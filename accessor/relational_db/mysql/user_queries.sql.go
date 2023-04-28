@@ -11,7 +11,7 @@ import (
 )
 
 const activateUser = `-- name: ActivateUser :exec
-UPDATE users SET is_deactivated = 0 WHERE id = ?
+UPDATE user SET is_deactivated = 0 WHERE id = ?
 `
 
 func (q *Queries) ActivateUser(ctx context.Context, id int64) error {
@@ -20,7 +20,7 @@ func (q *Queries) ActivateUser(ctx context.Context, id int64) error {
 }
 
 const deactivateUser = `-- name: DeactivateUser :exec
-UPDATE users SET is_deactivated = 1 WHERE id = ?
+UPDATE user SET is_deactivated = 1 WHERE id = ?
 `
 
 func (q *Queries) DeactivateUser(ctx context.Context, id int64) error {
@@ -29,7 +29,7 @@ func (q *Queries) DeactivateUser(ctx context.Context, id int64) error {
 }
 
 const deleteUserById = `-- name: DeleteUserById :exec
-DELETE FROM users
+DELETE FROM user
 WHERE id = ?
 `
 
@@ -39,7 +39,7 @@ func (q *Queries) DeleteUserById(ctx context.Context, id int64) error {
 }
 
 const deleteUserCredentialByUserId = `-- name: DeleteUserCredentialByUserId :exec
-DELETE FROM user_credentials
+DELETE FROM user_credential
 WHERE user_id = ?
 `
 
@@ -48,75 +48,13 @@ func (q *Queries) DeleteUserCredentialByUserId(ctx context.Context, userID int64
 	return err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM users
-WHERE email = ? LIMIT 1
-`
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.Email,
-		&i.UserDetail,
-		&i.PrivilegeType,
-		&i.IsDeactivated,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getUserById = `-- name: GetUserById :one
-SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM users
-WHERE id = ? LIMIT 1
-`
-
-func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserById, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.Email,
-		&i.UserDetail,
-		&i.PrivilegeType,
-		&i.IsDeactivated,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getUserCredentialByEmail = `-- name: GetUserCredentialByEmail :one
-SELECT user_id, email, password FROM user_credentials WHERE email = ?
-`
-
-func (q *Queries) GetUserCredentialByEmail(ctx context.Context, email string) (UserCredential, error) {
-	row := q.db.QueryRowContext(ctx, getUserCredentialByEmail, email)
-	var i UserCredential
-	err := row.Scan(&i.UserID, &i.Email, &i.Password)
-	return i, err
-}
-
-const getUserCredentialById = `-- name: GetUserCredentialById :one
-SELECT user_id, email, password FROM user_credentials WHERE user_id = ?
-`
-
-func (q *Queries) GetUserCredentialById(ctx context.Context, userID int64) (UserCredential, error) {
-	row := q.db.QueryRowContext(ctx, getUserCredentialById, userID)
-	var i UserCredential
-	err := row.Scan(&i.UserID, &i.Email, &i.Password)
-	return i, err
-}
-
-const getUsers = `-- name: GetUsers :many
-SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM users
+const getUser = `-- name: GetUser :many
+SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
 ORDER BY name
 `
 
-func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUsers)
+func (q *Queries) GetUser(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getUser)
 	if err != nil {
 		return nil, err
 	}
@@ -146,8 +84,70 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 	return items, nil
 }
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
+WHERE email = ? LIMIT 1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.UserDetail,
+		&i.PrivilegeType,
+		&i.IsDeactivated,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUserById = `-- name: GetUserById :one
+SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
+WHERE id = ? LIMIT 1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.UserDetail,
+		&i.PrivilegeType,
+		&i.IsDeactivated,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getUserCredentialByEmail = `-- name: GetUserCredentialByEmail :one
+SELECT user_id, email, password FROM user_credential WHERE email = ?
+`
+
+func (q *Queries) GetUserCredentialByEmail(ctx context.Context, email string) (UserCredential, error) {
+	row := q.db.QueryRowContext(ctx, getUserCredentialByEmail, email)
+	var i UserCredential
+	err := row.Scan(&i.UserID, &i.Email, &i.Password)
+	return i, err
+}
+
+const getUserCredentialById = `-- name: GetUserCredentialById :one
+SELECT user_id, email, password FROM user_credential WHERE user_id = ?
+`
+
+func (q *Queries) GetUserCredentialById(ctx context.Context, userID int64) (UserCredential, error) {
+	row := q.db.QueryRowContext(ctx, getUserCredentialById, userID)
+	var i UserCredential
+	err := row.Scan(&i.UserID, &i.Email, &i.Password)
+	return i, err
+}
+
 const insertUser = `-- name: InsertUser :execlastid
-INSERT INTO users (
+INSERT INTO user (
   email, username, user_detail, privilege_type
 ) VALUES (
   ?, ?, ?, ?
@@ -175,7 +175,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (int64, 
 }
 
 const insertUserCredential = `-- name: InsertUserCredential :execlastid
-INSERT INTO user_credentials (
+INSERT INTO user_credential (
   user_id, email, password
 ) VALUES (
   ?, ?, ?
@@ -197,7 +197,7 @@ func (q *Queries) InsertUserCredential(ctx context.Context, arg InsertUserCreden
 }
 
 const isUserExist = `-- name: IsUserExist :one
-SELECT EXISTS(SELECT id FROM users WHERE email = ? LIMIT 1)
+SELECT EXISTS(SELECT id FROM user WHERE email = ? LIMIT 1)
 `
 
 func (q *Queries) IsUserExist(ctx context.Context, email string) (bool, error) {
@@ -208,7 +208,7 @@ func (q *Queries) IsUserExist(ctx context.Context, email string) (bool, error) {
 }
 
 const updatePasswordByUserId = `-- name: UpdatePasswordByUserId :exec
-UPDATE user_credentials SET password = ? WHERE user_id = ?
+UPDATE user_credential SET password = ? WHERE user_id = ?
 `
 
 type UpdatePasswordByUserIdParams struct {

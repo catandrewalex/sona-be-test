@@ -24,3 +24,6 @@ go.work
 .env
 .env.*
 !.env.example
+
+# Etc
+sql_debug_helper.sql
