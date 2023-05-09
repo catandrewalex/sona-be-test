@@ -38,7 +38,7 @@ func (s *BackendService) AuthenticationMiddleware(next http.Handler) http.Handle
 
 		mainClaims := claims.(*auth.MainJWTClaims)
 
-		if mainClaims.PurposeType != auth.JWTTokenPurposeType_ResetPassword {
+		if mainClaims.PurposeType != auth.JWTTokenPurposeType_Auth {
 			http.Error(w, "invalid JWT token purpose", http.StatusUnauthorized)
 			return
 		}
