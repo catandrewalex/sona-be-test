@@ -6,8 +6,8 @@ if [[ -f .env ]]; then
 fi
 
 # Check that MYSQL_DATABASE variable is set
-if [[ -z "${DB_DATABASE_NAME}" ]]; then
-    echo "DB_DATABASE_NAME environment variable not set."
+if [[ -z "${DB_NAME}" ]]; then
+    echo "DB_NAME environment variable not set."
     exit 1
 fi
 
@@ -17,13 +17,13 @@ fi
 : ${DB_HOST:=localhost}
 : ${DB_PORT:=3306}
 
-echo "Dropping database ${DB_DATABASE_NAME}..."
-mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "DROP DATABASE IF EXISTS ${DB_DATABASE_NAME}; CREATE DATABASE ${MYSQL_DATABASE};"
+echo "Dropping database ${DB_NAME}..."
+mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${MYSQL_DATABASE};"
 
 echo "Running migrations..."
 for f in ./data/sql/migrations/*.sql; do
     echo "Running migration $(basename "$f" .sql)..."
-    mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_DATABASE_NAME}" < "$f"
+    mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
 done
 
 echo "Done."
