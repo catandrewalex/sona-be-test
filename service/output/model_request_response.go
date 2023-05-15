@@ -58,10 +58,9 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 type LoginResponse struct {
-	Data    AuthToken `json:"data"`
-	Message string    `json:"message,omitempty"`
+	Data    identity.AuthToken `json:"data"`
+	Message string             `json:"message,omitempty"`
 }
-type AuthToken string
 
 func (r LoginRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)

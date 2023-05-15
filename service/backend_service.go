@@ -149,7 +149,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 	}
 
 	return &output.LoginResponse{
-		Data: output.AuthToken(tokenString),
+		Data: identity.AuthToken(tokenString),
 	}, nil
 }
 
