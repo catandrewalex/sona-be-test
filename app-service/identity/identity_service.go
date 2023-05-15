@@ -26,10 +26,10 @@ type UserPrivilegeType int32
 
 const (
 	UserPrivilegeType_None      UserPrivilegeType = iota
-	UserPrivilegeType_Anonymous UserPrivilegeType = 1
-	UserPrivilegeType_Member    UserPrivilegeType = 2
-	UserPrivilegeType_Staff     UserPrivilegeType = 3
-	UserPrivilegeType_Admin     UserPrivilegeType = 4
+	UserPrivilegeType_Anonymous UserPrivilegeType = 100
+	UserPrivilegeType_Member    UserPrivilegeType = 200
+	UserPrivilegeType_Staff     UserPrivilegeType = 300
+	UserPrivilegeType_Admin     UserPrivilegeType = 400
 )
 
 type IdentityService interface {
