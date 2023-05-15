@@ -129,14 +129,23 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, t reflect.Type) (r
 	elem := reflect.New(t).Interface() // create a pointer to a zero value request param, e.g. similar to &SignupRequest{}
 	err := json.NewDecoder(r.Body).Decode(elem)
 	if err != nil {
-		return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.NewDecoder(r.Body).Decode(): %v", err), "Does the request contain valid JSON?")
+		return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.NewDecoder(r.Body).Decode(): %v", err), map[string]string{errs.ClientMessageKey_NonField: "Does the request contain valid JSON?"})
 	}
 
 	return reflect.ValueOf(elem).Elem(), nil
 }
 
-func (wrapper JSONSerdeWrapper) handleError(r *http.Request, w http.ResponseWriter, err errs.HTTPError) {
-	handleError(r, w, err)
+func (wrapper JSONSerdeWrapper) handleError(r *http.Request, w http.ResponseWriter, httpErr errs.HTTPError) {
+	logging.HTTPServerLogger.Error("Error: %v", httpErr)
+
+	resBytes, err := json.Marshal(httpErr.GetClientMessages())
+	if err != nil {
+		logging.HTTPServerLogger.Error("Error on json.Marshal(): %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	errorJSON(w, string(resBytes), httpErr.GetHTTPErrorCode())
 }
 
 func (wrapper JSONSerdeWrapper) handleSuccess(w http.ResponseWriter, response interface{}) {
@@ -160,8 +169,16 @@ func (wrapper JSONSerdeWrapper) handleSuccess(w http.ResponseWriter, response in
 	}
 }
 
-func handleError(r *http.Request, w http.ResponseWriter, err errs.HTTPError) {
-	logging.HTTPServerLogger.Error("Error: %v", err)
-	http.Error(w, err.GetClientMessage(), err.GetHTTPErrorCode())
-	return
+func errorJSON(w http.ResponseWriter, jsonBody string, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(code)
+	fmt.Fprintln(w, jsonBody)
 }
+
+// Disabled to be used later by another non-JSON serde_wrapper
+// func handleError(r *http.Request, w http.ResponseWriter, err errs.HTTPError) {
+// 	logging.HTTPServerLogger.Error("Error: %v", err)
+// 	http.Error(w, err.GetClientMessage(), err.GetHTTPErrorCode())
+// 	return
+// }

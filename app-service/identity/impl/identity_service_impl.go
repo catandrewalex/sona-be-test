@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"sonamusica-backend/accessor/email"
@@ -183,7 +184,7 @@ func (s identityServiceImpl) ResetPassword(ctx context.Context, spec identity.Re
 
 	mainClaims := claims.(*auth.MainJWTClaims)
 	if mainClaims.PurposeType != auth.JWTTokenPurposeType_ResetPassword {
-		return fmt.Errorf("invalid JWT token purpose")
+		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("invalid JWT token purpose"), map[string]string{errs.ClientMessageKey_NonField: "Invalid reset password token"})
 	}
 
 	userID := mainClaims.UserID

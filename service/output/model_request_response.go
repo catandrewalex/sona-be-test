@@ -9,13 +9,14 @@ type UserProfileRequest struct {
 	ID int `json:"id"`
 }
 type UserProfileResponse struct {
-	identity.User
+	Data    identity.User `json:"data"`
+	Message string        `json:"message"`
 }
 
 func (r UserProfileRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if r.ID == 0 {
-		errorDetail["id"] = "cannot be empty"
+		errorDetail["id"] = "id cannot be empty"
 	}
 
 	if len(errorDetail) > 0 {
@@ -37,13 +38,13 @@ type SignUpResponse struct {
 func (r SignUpRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if r.Email == "" {
-		errorDetail["email"] = "cannot be empty"
+		errorDetail["email"] = "email cannot be empty"
 	}
 	if r.Username == "" {
-		errorDetail["username"] = "cannot be empty"
+		errorDetail["username"] = "username cannot be empty"
 	}
 	if r.Password == "" {
-		errorDetail["password"] = "cannot be empty"
+		errorDetail["password"] = "password cannot be empty"
 	}
 
 	if len(errorDetail) > 0 {
@@ -63,10 +64,10 @@ type LoginResponse struct {
 func (r LoginRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if r.Email == "" {
-		errorDetail["email"] = "cannot be empty"
+		errorDetail["email"] = "email cannot be empty"
 	}
 	if r.Password == "" {
-		errorDetail["password"] = "cannot be empty"
+		errorDetail["password"] = "password cannot be empty"
 	}
 
 	if len(errorDetail) > 0 {
@@ -79,12 +80,14 @@ func (r LoginRequest) Validate() errs.ValidationError {
 type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }
-type ForgotPasswordResponse struct{}
+type ForgotPasswordResponse struct {
+	Message string `json:"message"`
+}
 
 func (r ForgotPasswordRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if r.Email == "" {
-		errorDetail["email"] = "cannot be empty"
+		errorDetail["email"] = "email cannot be empty"
 	}
 
 	if len(errorDetail) > 0 {
@@ -102,8 +105,11 @@ type ResetPasswordResponse struct{}
 
 func (r ResetPasswordRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if r.ResetToken == "" {
+		errorDetail["resetToken"] = "resetToken cannot be empty"
+	}
 	if r.NewPassword == "" {
-		errorDetail["newPassword"] = "cannot be empty"
+		errorDetail["newPassword"] = "newPassword cannot be empty"
 	}
 
 	if len(errorDetail) > 0 {

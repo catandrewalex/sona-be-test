@@ -77,10 +77,10 @@ func (s *BackendService) UserProfileHandler(ctx context.Context, req *output.Use
 	user, err := s.identityService.GetUserById(ctx, identity.UserID(req.ID))
 	if err != nil {
 		mainLog.Error("User with ID='%d' is not found\n", req.ID)
-		return nil, errs.NewHTTPError(http.StatusNotFound, fmt.Errorf("identityService.GetUserById(): %w", err), "")
+		return nil, errs.NewHTTPError(http.StatusNotFound, fmt.Errorf("identityService.GetUserById(): %w", err), map[string]string{})
 	}
 
-	return &output.UserProfileResponse{User: user}, nil
+	return &output.UserProfileResponse{Data: user}, nil
 }
 
 func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +118,7 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 		if errors.As(err, &validationErr) {
 			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), "Failed to create user")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
 	}
 	mainLog.Info("User created: userID='%d', email='%s', username='%s", userID, req.Email, req.Username)
 
@@ -134,7 +134,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 
 	requestContext, errHTTP := network.GetRequestContext(ctx)
 	if errHTTP != nil {
-		return nil, errs.NewHTTPError(errHTTP.GetHTTPErrorCode(), fmt.Errorf("network.GetRequestContext(): %w", errHTTP), errHTTP.GetClientMessage())
+		return nil, errs.NewHTTPError(errHTTP.GetHTTPErrorCode(), fmt.Errorf("network.GetRequestContext(): %w", errHTTP), errHTTP.GetClientMessages())
 	}
 	mainLog.Debug("context: %#v", ctx)
 	mainLog.Debug("requestContext: %#v", requestContext)
@@ -145,7 +145,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 		Password: req.Password,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), "Authentication failed")
+		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Authentication failed"})
 	}
 
 	return &output.LoginResponse{
@@ -162,7 +162,7 @@ func (s *BackendService) ForgotPasswordHandler(ctx context.Context, req *output.
 		Email: req.Email,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), map[string]string{})
 	}
 
 	return &output.ForgotPasswordResponse{}, nil
@@ -178,7 +178,11 @@ func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.R
 		NewPassword: req.NewPassword,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), "")
+		var httpErr errs.HTTPError
+		if errors.As(err, &httpErr) {
+			return nil, httpErr
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), map[string]string{})
 	}
 
 	return &output.ResetPasswordResponse{}, nil

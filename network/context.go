@@ -1,11 +1,11 @@
 package network
 
 import (
-	"sonamusica-backend/app-service/identity"
-	"sonamusica-backend/errs"
 	"context"
 	"fmt"
 	"net/http"
+	"sonamusica-backend/app-service/identity"
+	"sonamusica-backend/errs"
 
 	"github.com/mileusna/useragent"
 )
@@ -37,7 +37,7 @@ func CreateRequestContext(request *http.Request) RequestContext {
 func GetRequestContext(ctx context.Context) (RequestContext, errs.HTTPError) {
 	reqCtx, ok := ctx.Value(requestContextKey{}).(RequestContext)
 	if !ok {
-		return RequestContext{}, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("non-existing context: RequestContext"), "")
+		return RequestContext{}, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("non-existing context: RequestContext"), map[string]string{})
 	}
 	return reqCtx, nil
 }

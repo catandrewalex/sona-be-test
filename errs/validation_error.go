@@ -1,11 +1,10 @@
 package errs
 
 import (
-	"sonamusica-backend/logging"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"sonamusica-backend/logging"
 
 	goMySQL "github.com/go-sql-driver/mysql"
 )
@@ -22,7 +21,7 @@ type Validatable interface {
 // This validator returns HTTPError, thus is expected to be used on controller layer.
 func ValidateHTTPRequest(req Validatable, allowEmpty bool) HTTPError {
 	if req == nil && allowEmpty {
-		return NewHTTPError(http.StatusBadRequest, fmt.Errorf("nil request body"), "request body must not be empty")
+		return NewHTTPError(http.StatusBadRequest, fmt.Errorf("nil request body"), map[string]string{ClientMessageKey_NonField: "request body must not be empty"})
 	}
 	if errV := req.Validate(); errV != nil {
 		return NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("req.Validate(): %v", errV), errV.GetErrorDetail())
@@ -33,7 +32,7 @@ func ValidateHTTPRequest(req Validatable, allowEmpty bool) HTTPError {
 
 type ValidationError interface {
 	Error() string
-	GetErrorDetail() string
+	GetErrorDetail() map[string]string
 	Unwrap() error
 }
 
@@ -61,7 +60,7 @@ func NewValidationErrorFromMySQLDuplicateKey(mySQLError goMySQL.MySQLError) Vali
 		if ok {
 			logging.AppLogger.Warn("Replacing existing validation error detail: key='%s', from value='%s' to '%s'", key, existingValue, value)
 		}
-		detail[key] = fmt.Sprintf("'%s' already exists", value)
+		detail[key] = fmt.Sprintf("'%s' '%s' already exists", key, value)
 	} else {
 		panic("received invalid MySQLError, not a 'duplicate key error'")
 	}
@@ -73,16 +72,20 @@ func NewValidationErrorFromMySQLDuplicateKey(mySQLError goMySQL.MySQLError) Vali
 }
 
 func (e *validationError) Error() string {
-	return fmt.Sprintf("validation error (detail: `%s`): %v", e.GetErrorDetail(), e.Err)
+	return fmt.Sprintf("validation error (detail: `%#v`): %v", e.GetErrorDetail(), e.Err)
 }
 
-func (e *validationError) GetErrorDetail() string {
-	jsonString, err := json.MarshalIndent(e.Detail, "", " ")
-	if err != nil {
-		logging.AppLogger.Error("Unable to marshal ValidationErrorDetail, detail: %#v", e.Detail)
-	}
-	return fmt.Sprintf("%s", jsonString)
+func (e *validationError) GetErrorDetail() map[string]string {
+	return e.Detail
 }
+
+// func (e *validationError) GetErrorDetail() string {
+// 	jsonString, err := json.MarshalIndent(e.Detail, "", " ")
+// 	if err != nil {
+// 		logging.AppLogger.Error("Unable to marshal ValidationErrorDetail, detail: %#v", e.Detail)
+// 	}
+// 	return fmt.Sprintf("%s", jsonString)
+// }
 
 func (e *validationError) Unwrap() error {
 	return e.Err

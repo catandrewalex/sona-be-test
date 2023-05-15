@@ -1,32 +1,27 @@
 package errs
 
-import (
-	"fmt"
-	"net/http"
+const (
+	ClientMessageKey_NonField = "non-field"
 )
 
 type HTTPError interface {
 	Error() string
 
-	GetClientMessage() string
+	GetClientMessages() map[string]string
 	GetHTTPErrorCode() int
 }
 
 type httpError struct {
-	err           error
-	clientMessage string
-	httpErrorCode int
+	err            error
+	clientMessages map[string]string
+	httpErrorCode  int
 }
 
-func NewHTTPError(httpErrorCode int, err error, additionalClientMessage string) HTTPError {
-	clientMessage := http.StatusText(httpErrorCode)
-	if additionalClientMessage != "" {
-		clientMessage = fmt.Sprintf("%s: %s", clientMessage, additionalClientMessage)
-	}
+func NewHTTPError(httpErrorCode int, err error, clientMessages map[string]string) HTTPError {
 	return httpError{
-		err:           err,
-		clientMessage: clientMessage,
-		httpErrorCode: httpErrorCode,
+		err:            err,
+		clientMessages: clientMessages,
+		httpErrorCode:  httpErrorCode,
 	}
 }
 
@@ -34,8 +29,8 @@ func (e httpError) Error() string {
 	return e.err.Error()
 }
 
-func (e httpError) GetClientMessage() string {
-	return e.clientMessage
+func (e httpError) GetClientMessages() map[string]string {
+	return e.clientMessages
 }
 
 func (e httpError) GetHTTPErrorCode() int {
