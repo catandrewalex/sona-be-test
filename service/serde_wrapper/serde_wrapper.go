@@ -138,7 +138,7 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, t reflect.Type) (r
 func (wrapper JSONSerdeWrapper) handleError(r *http.Request, w http.ResponseWriter, httpErr errs.HTTPError) {
 	logging.HTTPServerLogger.Error("Error: %v", httpErr)
 
-	resBytes, err := json.Marshal(httpErr.GetClientMessages())
+	resBytes, err := json.Marshal(map[string]interface{}{"messages": httpErr.GetClientMessages()})
 	if err != nil {
 		logging.HTTPServerLogger.Error("Error on json.Marshal(): %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
