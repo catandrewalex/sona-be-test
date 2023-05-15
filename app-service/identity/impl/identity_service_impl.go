@@ -7,21 +7,23 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/matcornic/hermes/v2"
+	"golang.org/x/crypto/bcrypt"
+
 	"sonamusica-backend/accessor/email"
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/accessor/relational_db/mysql"
 	"sonamusica-backend/app-service/auth"
 	"sonamusica-backend/app-service/email_composer"
 	"sonamusica-backend/app-service/identity"
+	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
-
-	"github.com/matcornic/hermes/v2"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	mainLog = logging.NewGoLogger("BackendService", logging.LogLevel_Info)
+	configObject = config.Get()
+	mainLog      = logging.NewGoLogger("IdentityService", logging.GetLevel(configObject.LogLevel))
 )
 
 type identityServiceImpl struct {
@@ -114,25 +116,33 @@ func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignU
 	return identity.UserID(userID), nil
 }
 
-func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginUserSpec) (identity.AuthToken, error) {
+func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginUserSpec) (identity.LoginUserResult, error) {
 	userCredential, err := s.mySQLQueries.GetUserCredentialByEmail(ctx, spec.Email)
 	if err != nil {
-		return "", fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
+		return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
 	}
 
 	// Compare the hashed password with the input password
 	err = bcrypt.CompareHashAndPassword([]byte(userCredential.Password), []byte(spec.Password))
 	if err != nil {
-		return "", fmt.Errorf("bcrypt.CompareHashAndPassword(): %w", err)
+		return identity.LoginUserResult{}, fmt.Errorf("bcrypt.CompareHashAndPassword(): %w", err)
 	}
 
 	// Create a JWT token
 	tokenString, err := s.jwtService.CreateJWTToken(identity.UserID(userCredential.UserID), auth.JWTTokenPurposeType_Auth, 0)
 	if err != nil {
-		return "", fmt.Errorf("jwtService.CreateJWTToken(): %w", err)
+		return identity.LoginUserResult{}, fmt.Errorf("jwtService.CreateJWTToken(): %w", err)
 	}
 
-	return identity.AuthToken(tokenString), nil
+	user, err := s.GetUserById(ctx, identity.UserID(userCredential.UserID))
+	if err != nil {
+		return identity.LoginUserResult{}, fmt.Errorf("GetUserById(): %w", err)
+	}
+
+	return identity.LoginUserResult{
+		User:      user,
+		AuthToken: identity.AuthToken(tokenString),
+	}, nil
 }
 
 func (s identityServiceImpl) ForgotPassword(ctx context.Context, spec identity.ForgotPasswordSpec) error {

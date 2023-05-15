@@ -26,7 +26,7 @@ import (
 
 var (
 	configObject = config.Get()
-	mainLog      = logging.NewGoLogger("BackendService", logging.LogLevel_Info)
+	mainLog      = logging.NewGoLogger("BackendService", logging.GetLevel(configObject.LogLevel))
 )
 
 type BackendService struct {
@@ -140,7 +140,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 	mainLog.Debug("requestContext: %#v", requestContext)
 	mainLog.Debug("request: %#v", req)
 
-	tokenString, err := s.identityService.LoginUser(ctx, identity.LoginUserSpec{
+	loginResult, err := s.identityService.LoginUser(ctx, identity.LoginUserSpec{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -149,7 +149,10 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 	}
 
 	return &output.LoginResponse{
-		Data: identity.AuthToken(tokenString),
+		Data: output.LoginResult{
+			User:      loginResult.User,
+			AuthToken: loginResult.AuthToken,
+		},
 	}, nil
 }
 

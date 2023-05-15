@@ -1,6 +1,9 @@
 package logging
 
+import "sonamusica-backend/config"
+
 var (
-	HTTPServerLogger = NewGoLogger("HTTPServer", LogLevel_Info)
-	AppLogger        = NewGoLogger("App", LogLevel_Info)
+	configObject     = config.Get()
+	HTTPServerLogger = NewGoLogger("HTTPServer", GetLevel(configObject.LogLevel))
+	AppLogger        = NewGoLogger("App", GetLevel(configObject.LogLevel))
 )

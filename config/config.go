@@ -35,6 +35,8 @@ type Config struct {
 	DBUser              string `envconfig:"DB_USER" default:"backend-user"`
 	DBPassword          string `envconfig:"DB_PASSWORD" default:"p4ssw0rd"`
 	DBMaxOpenConnection int    `envconfig:"DB_MAX_OPEN_CONNECTION" default:"3"`
+
+	LogLevel string `envconfig:"LOG_LEVEL" default:"WARN"`
 }
 
 var doOnce sync.Once
