@@ -10,7 +10,7 @@ type UserProfileRequest struct {
 }
 type UserProfileResponse struct {
 	Data    identity.User `json:"data"`
-	Message string        `json:"message"`
+	Message string        `json:"message,omitempty"`
 }
 
 func (r UserProfileRequest) Validate() errs.ValidationError {
@@ -32,7 +32,7 @@ type SignUpRequest struct {
 	UserDetail identity.UserDetail `json:"userDetail"`
 }
 type SignUpResponse struct {
-	Message string `json:"message"`
+	Message string `json:"message,omitempty"`
 }
 
 func (r SignUpRequest) Validate() errs.ValidationError {
@@ -58,8 +58,10 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 type LoginResponse struct {
-	Message string `json:"message"`
+	Data    AuthToken `json:"data"`
+	Message string    `json:"message,omitempty"`
 }
+type AuthToken string
 
 func (r LoginRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
@@ -81,7 +83,7 @@ type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }
 type ForgotPasswordResponse struct {
-	Message string `json:"message"`
+	Message string `json:"message,omitempty"`
 }
 
 func (r ForgotPasswordRequest) Validate() errs.ValidationError {
@@ -101,7 +103,9 @@ type ResetPasswordRequest struct {
 	ResetToken  string `json:"resetToken"`
 	NewPassword string `json:"newPassword"`
 }
-type ResetPasswordResponse struct{}
+type ResetPasswordResponse struct {
+	Message string `json:"message,omitempty"`
+}
 
 func (r ResetPasswordRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)

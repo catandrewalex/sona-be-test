@@ -149,7 +149,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 	}
 
 	return &output.LoginResponse{
-		Message: string(tokenString),
+		Data: output.AuthToken(tokenString),
 	}, nil
 }
 
@@ -165,7 +165,9 @@ func (s *BackendService) ForgotPasswordHandler(ctx context.Context, req *output.
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), map[string]string{})
 	}
 
-	return &output.ForgotPasswordResponse{}, nil
+	return &output.ForgotPasswordResponse{
+		Message: "A reset password link has been sent to your email.",
+	}, nil
 }
 
 func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.ResetPasswordRequest) (*output.ResetPasswordResponse, errs.HTTPError) {
@@ -185,5 +187,7 @@ func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.R
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), map[string]string{})
 	}
 
-	return &output.ResetPasswordResponse{}, nil
+	return &output.ResetPasswordResponse{
+		Message: "Password reset successfully.",
+	}, nil
 }
