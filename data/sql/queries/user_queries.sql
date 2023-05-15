@@ -1,3 +1,4 @@
+/* ============================== USER ============================== */
 -- name: GetUserById :one
 SELECT * FROM user
 WHERE id = ? LIMIT 1;
@@ -30,6 +31,7 @@ UPDATE user SET is_deactivated = 1 WHERE id = ?;
 DELETE FROM user
 WHERE id = ?;
 
+/* ============================== USER_CREDENTIAL ============================== */
 -- name: GetUserCredentialById :one
 SELECT user_id, email, password FROM user_credential WHERE user_id = ?;
 

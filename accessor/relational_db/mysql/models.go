@@ -15,6 +15,7 @@ type Class struct {
 	DefaultTransportFee int64
 	TeacherID           sql.NullInt64
 	CourseID            int64
+	IsDeactivated       int32
 }
 
 type Course struct {
@@ -82,6 +83,15 @@ type StudentLearningToken struct {
 type Teacher struct {
 	ID     int64
 	UserID int64
+}
+
+type TeacherSalary struct {
+	ID                      int64
+	PresenceID              int64
+	CourseFeeValue          int32
+	TransportFeeValue       int32
+	ProfitSharingPercentage float64
+	AddedAt                 time.Time
 }
 
 type TeacherSpecialFee struct {

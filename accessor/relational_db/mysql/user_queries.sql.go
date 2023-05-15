@@ -109,6 +109,7 @@ SELECT id, username, email, user_detail, privilege_type, is_deactivated, created
 WHERE id = ? LIMIT 1
 `
 
+// ============================== USER ==============================
 func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User
@@ -139,6 +140,7 @@ const getUserCredentialById = `-- name: GetUserCredentialById :one
 SELECT user_id, email, password FROM user_credential WHERE user_id = ?
 `
 
+// ============================== USER_CREDENTIAL ==============================
 func (q *Queries) GetUserCredentialById(ctx context.Context, userID int64) (UserCredential, error) {
 	row := q.db.QueryRowContext(ctx, getUserCredentialById, userID)
 	var i UserCredential
