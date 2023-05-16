@@ -1,11 +1,22 @@
 /* ============================== TEACHER ============================== */
 -- name: GetTeacherById :one
-SELECT * FROM teacher
-WHERE id = ? LIMIT 1;
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
+WHERE teacher.id = ? LIMIT 1;
 
 -- name: GetTeacherByUserId :one
-SELECT * FROM teacher
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
 WHERE user_id = ? LIMIT 1;
+
+-- name: GetTeachers :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, Count(user_id) as total_results
+FROM teacher JOIN user ON teacher.user_id = user.id
+ORDER BY username
+LIMIT ? OFFSET ?;
+
+-- name: CountTeachers :one
+SELECT Count(user_id) as total_results FROM teacher;
 
 -- name: InsertTeacher :execlastid
 INSERT INTO teacher ( user_id ) VALUES ( ? );
@@ -20,12 +31,23 @@ WHERE user_id = ?;
 
 /* ============================== STUDENT ============================== */
 -- name: GetStudentById :one
-SELECT * FROM student
-WHERE id = ? LIMIT 1;
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
+WHERE student.id = ? LIMIT 1;
 
 -- name: GetStudentByUserId :one
-SELECT * FROM student
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
 WHERE user_id = ? LIMIT 1;
+
+-- name: GetStudents :many
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
+ORDER BY username
+LIMIT ? OFFSET ?;
+
+-- name: CountStudents :one
+SELECT Count(user_id) as total_results FROM student;
 
 -- name: InsertStudent :execlastid
 INSERT INTO student ( user_id ) VALUES ( ? );

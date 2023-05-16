@@ -17,6 +17,9 @@ import (
 	"sonamusica-backend/app-service/email_composer"
 	"sonamusica-backend/app-service/identity"
 	identityImpl "sonamusica-backend/app-service/identity/impl"
+	"sonamusica-backend/app-service/teaching"
+	teachingImpl "sonamusica-backend/app-service/teaching/impl"
+	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
@@ -33,6 +36,7 @@ type BackendService struct {
 	jwtService auth.JWTService
 
 	identityService identity.IdentityService
+	teachingService teaching.TeachingService
 }
 
 func NewBackendService() *BackendService {
@@ -59,9 +63,12 @@ func NewBackendService() *BackendService {
 
 	identityService := identityImpl.NewIdentityServiceImpl(mySqlQueries, smtpAccessor, jwtService, emailComposer)
 
+	teachingService := teachingImpl.NewTeachingServiceImpl(mySqlQueries)
+
 	return &BackendService{
 		jwtService:      jwtService,
 		identityService: identityService,
+		teachingService: teachingService,
 	}
 }
 
@@ -81,6 +88,60 @@ func (s *BackendService) UserProfileHandler(ctx context.Context, req *output.Use
 	}
 
 	return &output.UserProfileResponse{Data: user}, nil
+}
+
+func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.GetTeachersRequest) (*output.GetTeachersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getTeachersResult, err := s.teachingService.GetTeachers(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachers(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Failed to get teachers"})
+	}
+
+	paginationResult := getTeachersResult.PaginationResult
+
+	return &output.GetTeachersResponse{
+		Data: output.GetTeachersResult{
+			Results: getTeachersResult.Teachers,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   paginationResult.TotalPages,
+				TotalResults: paginationResult.TotalResults,
+				CurrentPage:  paginationResult.CurrentPage,
+			},
+		},
+	}, nil
+}
+
+func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.GetStudentsRequest) (*output.GetStudentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getStudentsResult, err := s.teachingService.GetStudents(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudents(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Failed to get students"})
+	}
+
+	paginationResult := getStudentsResult.PaginationResult
+
+	return &output.GetStudentsResponse{
+		Data: output.GetStudentsResult{
+			Results: getStudentsResult.Students,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   paginationResult.TotalPages,
+				TotalResults: paginationResult.TotalResults,
+				CurrentPage:  paginationResult.CurrentPage,
+			},
+		},
+	}, nil
 }
 
 func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
@@ -153,6 +214,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 			User:      loginResult.User,
 			AuthToken: loginResult.AuthToken,
 		},
+		Message: "Login successful!",
 	}, nil
 }
 

@@ -1,15 +1,15 @@
 package auth
 
 import (
-	"sonamusica-backend/app-service/identity"
 	"fmt"
+	"sonamusica-backend/app-service/identity"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 type MainJWTClaims struct {
-	UserID      identity.UserID     `json:"userID"`
+	UserID      identity.UserID     `json:"userId"`
 	PurposeType JWTTokenPurposeType `json:"purposeType"`
 	jwt.RegisteredClaims
 }

@@ -60,11 +60,12 @@ func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID
 	}
 
 	return identity.User{
-		ID:         identity.UserID(user.ID),
-		Username:   user.Username,
-		Email:      user.Email,
-		UserDetail: userDetail,
-		CreatedAt:  user.CreatedAt.Time,
+		ID:            identity.UserID(user.ID),
+		Username:      user.Username,
+		Email:         user.Email,
+		UserDetail:    userDetail,
+		PrivilegeType: identity.UserPrivilegeType(user.PrivilegeType),
+		CreatedAt:     user.CreatedAt.Time,
 	}, nil
 }
 

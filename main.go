@@ -68,6 +68,9 @@ func main() {
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Post("/user-profile", jsonSerdeWrapper.WrapFunc(backendService.UserProfileHandler))
+
+		authRouter.Post("/get-teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+		authRouter.Post("/get-students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 	})
 
 	baseRouter.Get("/", backendService.HomepageHandler)

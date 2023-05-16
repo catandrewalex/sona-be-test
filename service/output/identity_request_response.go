@@ -9,7 +9,8 @@ type UserProfileRequest struct {
 	ID int `json:"id"`
 }
 type UserProfileResponse struct {
-	Data identity.User `json:"data"`
+	Data    identity.User `json:"data"`
+	Message string        `json:"message,omitempty"`
 }
 
 func (r UserProfileRequest) Validate() errs.ValidationError {
@@ -57,7 +58,8 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 type LoginResponse struct {
-	Data LoginResult `json:"data"`
+	Data    LoginResult `json:"data"`
+	Message string      `json:"message,omitempty"`
 }
 
 type LoginResult struct {

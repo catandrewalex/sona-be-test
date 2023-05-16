@@ -7,7 +7,31 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 )
+
+const countStudents = `-- name: CountStudents :one
+SELECT Count(user_id) as total_results FROM student
+`
+
+func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countStudents)
+	var total_results int64
+	err := row.Scan(&total_results)
+	return total_results, err
+}
+
+const countTeachers = `-- name: CountTeachers :one
+SELECT Count(user_id) as total_results FROM teacher
+`
+
+func (q *Queries) CountTeachers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTeachers)
+	var total_results int64
+	err := row.Scan(&total_results)
+	return total_results, err
+}
 
 const deleteStudentById = `-- name: DeleteStudentById :exec
 DELETE FROM student
@@ -50,53 +74,249 @@ func (q *Queries) DeleteTeacherByUserId(ctx context.Context, userID int64) error
 }
 
 const getStudentById = `-- name: GetStudentById :one
-SELECT id, user_id FROM student
-WHERE id = ? LIMIT 1
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
+WHERE student.id = ? LIMIT 1
 `
 
+type GetStudentByIdRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
 // ============================== STUDENT ==============================
-func (q *Queries) GetStudentById(ctx context.Context, id int64) (Student, error) {
+func (q *Queries) GetStudentById(ctx context.Context, id int64) (GetStudentByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getStudentById, id)
-	var i Student
-	err := row.Scan(&i.ID, &i.UserID)
+	var i GetStudentByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.UserDetail,
+		&i.PrivilegeType,
+		&i.IsDeactivated,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
 const getStudentByUserId = `-- name: GetStudentByUserId :one
-SELECT id, user_id FROM student
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
 WHERE user_id = ? LIMIT 1
 `
 
-func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (Student, error) {
+type GetStudentByUserIdRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
+func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (GetStudentByUserIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getStudentByUserId, userID)
-	var i Student
-	err := row.Scan(&i.ID, &i.UserID)
+	var i GetStudentByUserIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.UserDetail,
+		&i.PrivilegeType,
+		&i.IsDeactivated,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
-const getTeacherById = `-- name: GetTeacherById :one
-SELECT id, user_id FROM teacher
-WHERE id = ? LIMIT 1
+const getStudents = `-- name: GetStudents :many
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
+ORDER BY username
+LIMIT ? OFFSET ?
 `
 
+type GetStudentsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+type GetStudentsRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
+func (q *Queries) GetStudents(ctx context.Context, arg GetStudentsParams) ([]GetStudentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStudents, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStudentsRow
+	for rows.Next() {
+		var i GetStudentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeacherById = `-- name: GetTeacherById :one
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
+WHERE teacher.id = ? LIMIT 1
+`
+
+type GetTeacherByIdRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
 // ============================== TEACHER ==============================
-func (q *Queries) GetTeacherById(ctx context.Context, id int64) (Teacher, error) {
+func (q *Queries) GetTeacherById(ctx context.Context, id int64) (GetTeacherByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getTeacherById, id)
-	var i Teacher
-	err := row.Scan(&i.ID, &i.UserID)
+	var i GetTeacherByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.UserDetail,
+		&i.PrivilegeType,
+		&i.IsDeactivated,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
 const getTeacherByUserId = `-- name: GetTeacherByUserId :one
-SELECT id, user_id FROM teacher
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
 WHERE user_id = ? LIMIT 1
 `
 
-func (q *Queries) GetTeacherByUserId(ctx context.Context, userID int64) (Teacher, error) {
+type GetTeacherByUserIdRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
+func (q *Queries) GetTeacherByUserId(ctx context.Context, userID int64) (GetTeacherByUserIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getTeacherByUserId, userID)
-	var i Teacher
-	err := row.Scan(&i.ID, &i.UserID)
+	var i GetTeacherByUserIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.UserDetail,
+		&i.PrivilegeType,
+		&i.IsDeactivated,
+		&i.CreatedAt,
+	)
 	return i, err
+}
+
+const getTeachers = `-- name: GetTeachers :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, Count(user_id) as total_results
+FROM teacher JOIN user ON teacher.user_id = user.id
+ORDER BY username
+LIMIT ? OFFSET ?
+`
+
+type GetTeachersParams struct {
+	Limit  int32
+	Offset int32
+}
+
+type GetTeachersRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+	TotalResults  int64
+}
+
+func (q *Queries) GetTeachers(ctx context.Context, arg GetTeachersParams) ([]GetTeachersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTeachers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeachersRow
+	for rows.Next() {
+		var i GetTeachersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+			&i.TotalResults,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertStudent = `-- name: InsertStudent :execlastid
