@@ -5,15 +5,15 @@ import (
 	"sonamusica-backend/errs"
 )
 
-type UserProfileRequest struct {
+type UserDataRequest struct {
 	ID int `json:"id"`
 }
-type UserProfileResponse struct {
+type UserDataResponse struct {
 	Data    identity.User `json:"data"`
 	Message string        `json:"message,omitempty"`
 }
 
-func (r UserProfileRequest) Validate() errs.ValidationError {
+func (r UserDataRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if r.ID == 0 {
 		errorDetail["id"] = "id cannot be empty"

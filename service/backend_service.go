@@ -76,7 +76,7 @@ func (s *BackendService) HomepageHandler(w http.ResponseWriter, r *http.Request)
 	fmt.Fprint(w, "Hello, world!")
 }
 
-func (s *BackendService) UserProfileHandler(ctx context.Context, req *output.UserProfileRequest) (*output.UserProfileResponse, errs.HTTPError) {
+func (s *BackendService) UserDataHandler(ctx context.Context, req *output.UserDataRequest) (*output.UserDataResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -87,7 +87,7 @@ func (s *BackendService) UserProfileHandler(ctx context.Context, req *output.Use
 		return nil, errs.NewHTTPError(http.StatusNotFound, fmt.Errorf("identityService.GetUserById(): %w", err), map[string]string{})
 	}
 
-	return &output.UserProfileResponse{Data: user}, nil
+	return &output.UserDataResponse{Data: user}, nil
 }
 
 func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.GetTeachersRequest) (*output.GetTeachersResponse, errs.HTTPError) {
