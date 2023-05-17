@@ -7,7 +7,7 @@ type PaginationSpec struct {
 
 const (
 	default_Page           = 1
-	default_ResultsPerPage = 1000
+	default_ResultsPerPage = 100
 )
 
 func (s *PaginationSpec) SetDefaultOnInvalidValues() {

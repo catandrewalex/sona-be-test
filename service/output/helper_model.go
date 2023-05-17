@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	Default_MaxPage           = 100
-	Default_MaxResultsPerPage = 5000
+	Default_MaxPage           = 50
+	Default_MaxResultsPerPage = 100
 )
 
 type PaginationRequest struct {
