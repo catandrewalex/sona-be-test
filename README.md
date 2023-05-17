@@ -36,7 +36,20 @@ Backend part for the administration app of Sonamusica, a private music school in
 ./scripts/mysql/reset_and_migrate_database.sh
 ```
 
-## Generate SQL Queries using SQLC
+## Generate Go Structs & Interfaces from Raw SQL Queries using SQLC
+
+We use [SQLC](https://github.com/kyleconroy/sqlc) to generate Go structs & interfaces from raw SQL queries ([documentation](https://docs.sqlc.dev/en/latest/tutorials/getting-started-mysql.html)). You can configure SQLC by modifying [sqlc.yaml](sqlc.yaml).
+
+Currently, we utilize 3 different folders inside [data/sql](data/sql/):
+
+1. [migrations/](data/sql/migrations/)  
+   To store schema & database migrations
+2. [queries/](data/sql/queries/)  
+   To store SQL queries
+3. [dev/](data/sql/dev/)  
+   To store seed data for dev environment
+
+The generated Go structs & interfaces will be stored in [accessor/relational_db/mysql/](accessor/relational_db/mysql/).
 
 ### Windows
 
