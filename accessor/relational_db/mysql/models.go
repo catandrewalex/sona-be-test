@@ -19,10 +19,11 @@ type Class struct {
 }
 
 type Course struct {
-	ID           int64
-	DefaultFee   int64
-	InstrumentID int64
-	GradeID      int64
+	ID                    int64
+	DefaultFee            int64
+	DefaultDurationMinute int32
+	InstrumentID          int64
+	GradeID               int64
 }
 
 type EnrollmentPayment struct {

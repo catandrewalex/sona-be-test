@@ -28,6 +28,7 @@ CREATE TABLE course
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   default_fee BIGINT NOT NULL,
+  default_duration_minute INT NOT NULL,
   instrument_id BIGINT unsigned NOT NULL,
   grade_id BIGINT unsigned NOT NULL,
   -- `course` consists of `instrument` + `grade`, and `course` is importantly referred by other tables, so these 3 should always be coupled
