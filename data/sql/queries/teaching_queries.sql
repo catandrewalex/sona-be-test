@@ -122,6 +122,15 @@ INSERT INTO course (
     ?, ?, ?, ?
 );
 
+-- name: UpdateCourseInfo :exec
+UPDATE course SET default_fee = ?, default_duration_minute = ? where id = ?;
+
+-- name: UpdateCourseInstrument :exec
+UPDATE course SET instrument_id = ? where id = ?;
+
+-- name: UpdateCourseGrade :exec
+UPDATE course SET grade_id = ? where id = ?;
+
 -- name: DeleteCourseById :exec
 DELETE FROM course
 WHERE id = ?;
@@ -140,11 +149,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 ORDER BY class.id
 LIMIT ? OFFSET ?;
 
@@ -159,11 +168,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE teacher_id = ?
 ORDER BY class.id;
 
@@ -178,16 +187,18 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE se.student_id = ?
 ORDER BY class.id;
 
 -- name: GetClassById :one
 SELECT class.id AS class_id, default_transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+user_teacher.username AS teacher_username,
+user_teacher.user_detail AS teacher_detail,
 instrument.name AS instrument_name, grade.name AS grade_name,
 user_student.username AS student_username,
 user_student.user_detail AS student_detail,
@@ -197,11 +208,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id = ? LIMIT 1;
 
 -- name: InsertClass :execlastid
@@ -210,6 +221,21 @@ INSERT INTO class (
 ) VALUES (
     ?, ?, ?, ?
 );
+
+-- name: UpdateClassInfo :exec
+UPDATE class SET default_transport_fee = ? WHERE id = ?;
+
+-- name: UpdateClassTeacher :exec
+UPDATE class SET teacher_id = ? WHERE id = ?;
+
+-- name: UpdateClassCourse :exec
+UPDATE class SET course_id = ? WHERE id = ?;
+
+-- name: ActivateClass :exec
+UPDATE class SET is_deactivated = 1 WHERE id = ?;
+
+-- name: DeactivateClass :exec
+UPDATE class SET is_deactivated = 0 WHERE id = ?;
 
 -- name: DeleteClassById :exec
 DELETE FROM class

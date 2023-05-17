@@ -11,6 +11,15 @@ import (
 	"encoding/json"
 )
 
+const activateClass = `-- name: ActivateClass :exec
+UPDATE class SET is_deactivated = 1 WHERE id = ?
+`
+
+func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, activateClass, id)
+	return err
+}
+
 const countStudents = `-- name: CountStudents :one
 SELECT Count(user_id) as total_results FROM student
 `
@@ -31,6 +40,15 @@ func (q *Queries) CountTeachers(ctx context.Context) (int64, error) {
 	var total_results int64
 	err := row.Scan(&total_results)
 	return total_results, err
+}
+
+const deactivateClass = `-- name: DeactivateClass :exec
+UPDATE class SET is_deactivated = 0 WHERE id = ?
+`
+
+func (q *Queries) DeactivateClass(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deactivateClass, id)
+	return err
 }
 
 const deleteClassById = `-- name: DeleteClassById :exec
@@ -165,6 +183,8 @@ func (q *Queries) DeleteTeacherSpecialFeeByTeacherId(ctx context.Context, teache
 
 const getClassById = `-- name: GetClassById :one
 SELECT class.id AS class_id, default_transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+user_teacher.username AS teacher_username,
+user_teacher.user_detail AS teacher_detail,
 instrument.name AS instrument_name, grade.name AS grade_name,
 user_student.username AS student_username,
 user_student.user_detail AS student_detail,
@@ -174,11 +194,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id = ? LIMIT 1
 `
 
@@ -188,10 +208,12 @@ type GetClassByIdRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
-	StudentID             int64
+	StudentID             sql.NullInt64
+	TeacherUsername       sql.NullString
+	TeacherDetail         json.RawMessage
 	InstrumentName        string
 	GradeName             string
-	StudentUsername       string
+	StudentUsername       sql.NullString
 	StudentDetail         json.RawMessage
 	DefaultFee            int64
 	DefaultDurationMinute int32
@@ -207,6 +229,8 @@ func (q *Queries) GetClassById(ctx context.Context, id int64) (GetClassByIdRow, 
 		&i.CourseID,
 		&i.TeacherID,
 		&i.StudentID,
+		&i.TeacherUsername,
+		&i.TeacherDetail,
 		&i.InstrumentName,
 		&i.GradeName,
 		&i.StudentUsername,
@@ -230,11 +254,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 ORDER BY class.id
 LIMIT ? OFFSET ?
 `
@@ -250,12 +274,12 @@ type GetClassesRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
-	StudentID             int64
-	TeacherUsername       string
+	StudentID             sql.NullInt64
+	TeacherUsername       sql.NullString
 	TeacherDetail         json.RawMessage
 	InstrumentName        string
 	GradeName             string
-	StudentUsername       string
+	StudentUsername       sql.NullString
 	StudentDetail         json.RawMessage
 	DefaultFee            int64
 	DefaultDurationMinute int32
@@ -311,11 +335,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE se.student_id = ?
 ORDER BY class.id
 `
@@ -326,7 +350,7 @@ type GetClassesByStudentIdRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
-	TeacherUsername       string
+	TeacherUsername       sql.NullString
 	TeacherDetail         json.RawMessage
 	InstrumentName        string
 	GradeName             string
@@ -380,11 +404,11 @@ FROM class
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 
-    JOIN teacher ON teacher_id = teacher.id
-    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    JOIN student_enrollment AS se ON class.id = se.class_id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE teacher_id = ?
 ORDER BY class.id
 `
@@ -394,10 +418,10 @@ type GetClassesByTeacherIdRow struct {
 	DefaultTransportFee   int64
 	IsDeactivated         int32
 	CourseID              int64
-	StudentID             int64
+	StudentID             sql.NullInt64
 	InstrumentName        string
 	GradeName             string
-	StudentUsername       string
+	StudentUsername       sql.NullString
 	StudentDetail         json.RawMessage
 	DefaultFee            int64
 	DefaultDurationMinute int32
@@ -1165,4 +1189,89 @@ func (q *Queries) InsertTeacherSpecialFee(ctx context.Context, arg InsertTeacher
 		return 0, err
 	}
 	return result.LastInsertId()
+}
+
+const updateClassCourse = `-- name: UpdateClassCourse :exec
+UPDATE class SET course_id = ? WHERE id = ?
+`
+
+type UpdateClassCourseParams struct {
+	CourseID int64
+	ID       int64
+}
+
+func (q *Queries) UpdateClassCourse(ctx context.Context, arg UpdateClassCourseParams) error {
+	_, err := q.db.ExecContext(ctx, updateClassCourse, arg.CourseID, arg.ID)
+	return err
+}
+
+const updateClassInfo = `-- name: UpdateClassInfo :exec
+UPDATE class SET default_transport_fee = ? WHERE id = ?
+`
+
+type UpdateClassInfoParams struct {
+	DefaultTransportFee int64
+	ID                  int64
+}
+
+func (q *Queries) UpdateClassInfo(ctx context.Context, arg UpdateClassInfoParams) error {
+	_, err := q.db.ExecContext(ctx, updateClassInfo, arg.DefaultTransportFee, arg.ID)
+	return err
+}
+
+const updateClassTeacher = `-- name: UpdateClassTeacher :exec
+UPDATE class SET teacher_id = ? WHERE id = ?
+`
+
+type UpdateClassTeacherParams struct {
+	TeacherID sql.NullInt64
+	ID        int64
+}
+
+func (q *Queries) UpdateClassTeacher(ctx context.Context, arg UpdateClassTeacherParams) error {
+	_, err := q.db.ExecContext(ctx, updateClassTeacher, arg.TeacherID, arg.ID)
+	return err
+}
+
+const updateCourseGrade = `-- name: UpdateCourseGrade :exec
+UPDATE course SET grade_id = ? where id = ?
+`
+
+type UpdateCourseGradeParams struct {
+	GradeID int64
+	ID      int64
+}
+
+func (q *Queries) UpdateCourseGrade(ctx context.Context, arg UpdateCourseGradeParams) error {
+	_, err := q.db.ExecContext(ctx, updateCourseGrade, arg.GradeID, arg.ID)
+	return err
+}
+
+const updateCourseInfo = `-- name: UpdateCourseInfo :exec
+UPDATE course SET default_fee = ?, default_duration_minute = ? where id = ?
+`
+
+type UpdateCourseInfoParams struct {
+	DefaultFee            int64
+	DefaultDurationMinute int32
+	ID                    int64
+}
+
+func (q *Queries) UpdateCourseInfo(ctx context.Context, arg UpdateCourseInfoParams) error {
+	_, err := q.db.ExecContext(ctx, updateCourseInfo, arg.DefaultFee, arg.DefaultDurationMinute, arg.ID)
+	return err
+}
+
+const updateCourseInstrument = `-- name: UpdateCourseInstrument :exec
+UPDATE course SET instrument_id = ? where id = ?
+`
+
+type UpdateCourseInstrumentParams struct {
+	InstrumentID int64
+	ID           int64
+}
+
+func (q *Queries) UpdateCourseInstrument(ctx context.Context, arg UpdateCourseInstrumentParams) error {
+	_, err := q.db.ExecContext(ctx, updateCourseInstrument, arg.InstrumentID, arg.ID)
+	return err
 }

@@ -209,6 +209,20 @@ func (q *Queries) IsUserExist(ctx context.Context, email string) (bool, error) {
 	return exists, err
 }
 
+const updateEmailByUserId = `-- name: UpdateEmailByUserId :exec
+UPDATE user_credential SET email = ? WHERE user_id = ?
+`
+
+type UpdateEmailByUserIdParams struct {
+	Email  string
+	UserID int64
+}
+
+func (q *Queries) UpdateEmailByUserId(ctx context.Context, arg UpdateEmailByUserIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateEmailByUserId, arg.Email, arg.UserID)
+	return err
+}
+
 const updatePasswordByUserId = `-- name: UpdatePasswordByUserId :exec
 UPDATE user_credential SET password = ? WHERE user_id = ?
 `
@@ -220,5 +234,40 @@ type UpdatePasswordByUserIdParams struct {
 
 func (q *Queries) UpdatePasswordByUserId(ctx context.Context, arg UpdatePasswordByUserIdParams) error {
 	_, err := q.db.ExecContext(ctx, updatePasswordByUserId, arg.Password, arg.UserID)
+	return err
+}
+
+const updateUserInfo = `-- name: UpdateUserInfo :exec
+UPDATE user SET email = ?, username = ?, user_detail = ? WHERE id = ?
+`
+
+type UpdateUserInfoParams struct {
+	Email      string
+	Username   string
+	UserDetail json.RawMessage
+	ID         int64
+}
+
+func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserInfo,
+		arg.Email,
+		arg.Username,
+		arg.UserDetail,
+		arg.ID,
+	)
+	return err
+}
+
+const updateUserPrivilege = `-- name: UpdateUserPrivilege :exec
+UPDATE user SET privilege_type = ? WHERE id = ?
+`
+
+type UpdateUserPrivilegeParams struct {
+	PrivilegeType int32
+	ID            int64
+}
+
+func (q *Queries) UpdateUserPrivilege(ctx context.Context, arg UpdateUserPrivilegeParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPrivilege, arg.PrivilegeType, arg.ID)
 	return err
 }

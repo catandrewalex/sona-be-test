@@ -207,8 +207,19 @@ INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 2 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 3, 3 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 4, 4 );
 
+/* ---------- Class with multiple students ---------- */
 INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 150000, 4, 44, 0 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 1, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 3, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 4, 5 );
+
+/* ---------- Class with teacher, without student ---------- */
+INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 4, 3, 0 );
+
+/* ---------- Class without teacher, with student ---------- */
+INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 2, 0 );
+INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 7 );
+
+/* ---------- Class without teacher, without student ---------- */
+INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 36, 1 );
