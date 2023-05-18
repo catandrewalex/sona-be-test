@@ -19,11 +19,40 @@ fi
 
 echo "Dropping database ${DB_NAME}..."
 mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${MYSQL_DATABASE};"
+echo "Database dropped.\n"
 
 echo "Running migrations..."
 for f in ./data/sql/migrations/*.sql; do
     echo "Running migration $(basename "$f" .sql)..."
     mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
 done
+echo "Migrations executed successfully.\n"
+
+# Ask for user input
+read -p "Do you want to proceed? (y/n): " user_input
+
+# Convert user input to lowercase
+user_input=${user_input,,}
+
+# Define valid responses
+valid_responses=("y" "n")
+
+# Check if the response is valid
+while [[ ! " ${valid_responses[@]} " =~ " ${user_input} " ]]; do
+    echo "Invalid input. Please enter either 'y' or 'n'."
+    read -p "Do you want to proceed? (y/n): " user_input
+    user_input=${user_input,,}
+done
+
+if [[ $user_input == "y" ]]; then
+    echo "Populating database with development seed..."
+    for f in ./data/sql/migrations/*.sql; do
+        echo "Executing $(basename "$f" .sql)..."
+        mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
+    done
+    echo "Database population executed successfully.\n"
+elif [[ $user_input == "n" ]]; then
+    # Do nothing
+fi
 
 echo "Done."

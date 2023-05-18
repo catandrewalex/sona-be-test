@@ -24,11 +24,39 @@ if "%DB_PORT%" == "" set "DB_PORT=3306"
 
 echo Dropping database %DB_NAME%...
 mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% -e "DROP DATABASE IF EXISTS %DB_NAME%; CREATE DATABASE %DB_NAME%;"
+echo Database dropped.
+echo.
 
 echo Running migrations...
 for %%f in (.\data\sql\migrations\*.sql) do (
   echo Running migration %%f...
   mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% %DB_NAME% < "%%f"
+)
+echo Migrations executed successfully.
+echo.
+
+:ask_input
+REM Ask for user input
+set /p user_input=Do you want to populate with development seed? (y/n): 
+
+REM Convert user input to lowercase
+set "user_input=%user_input:~0,1%"
+set "user_input=%user_input:l=%"
+
+REM Check user input
+if "%user_input%"=="y" (
+  echo Populating database with development seed...
+  for %%f in (.\data\sql\dev\*.sql) do (
+    echo Executing %%f...
+    mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% %DB_NAME% < "%%f"
+  )
+  echo Database population executed successfully.
+  echo.
+) else if "%user_input%"=="n" (
+  REM Do nothing
+) else (
+  echo Invalid input. Please enter either "y" or "n".
+  goto ask_input
 )
 
 echo Done.
