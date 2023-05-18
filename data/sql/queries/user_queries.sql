@@ -7,6 +7,10 @@ WHERE id = ? LIMIT 1;
 SELECT * FROM user
 WHERE email = ? LIMIT 1;
 
+-- name: GetUserByIds :many
+SELECT * from user
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: GetUser :many
 SELECT * FROM user
 ORDER BY name;

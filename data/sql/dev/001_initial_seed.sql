@@ -197,10 +197,10 @@ INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_
 INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 0, 60, 12, 17 );
 
 /* ============================== CLASS & STUDENT ENROLLMENT ============================== */
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 1, 1, 0 );
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 2, 13, 0 );
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 100000, 3, 16, 0 );
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 50000, 4, 17, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 1, 1, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 2, 13, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 100000, 3, 16, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 50000, 4, 17, 0 );
 
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 1, 1 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 2 );
@@ -208,18 +208,53 @@ INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 3, 3 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 4, 4 );
 
 /* ---------- Class with multiple students ---------- */
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 150000, 4, 44, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 150000, 4, 44, 0 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 1, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 3, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 4, 5 );
 
 /* ---------- Class with teacher, without student ---------- */
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 4, 3, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 4, 3, 0 );
 
 /* ---------- Class without teacher, with student ---------- */
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 2, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 2, 0 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 7 );
 
 /* ---------- Class without teacher, without student ---------- */
-INSERT INTO class ( default_transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 36, 1 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 36, 1 );
+
+/* ============================== TEACHER_SPECIAL_FEE ============================== */
+INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 575000, 3, 1 );
+INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 650000, 3, 2 );
+INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 575000, 3, 3 );
+
+/* ============================== STUDENT_LEARNING_TOKEN ============================== */
+INSERT INTO student_learning_token (
+    quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, enrollment_id
+) VALUES (
+    1, 0, 375000, 0, '2023-04-01 07:00:00', 1
+);
+
+INSERT INTO student_learning_token (
+    quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, enrollment_id
+) VALUES (
+    0, 0, 850000, 0, '2023-04-01 08:00:00', 2
+);
+
+/* ============================== PRESENCE & STUDENT_ATTEND ============================== */
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-01 09:00:00', 1, 30, 1, 1, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 1, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-08 09:10:00', 1, 30, 1, 1, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 1, 2 );
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-15 08:55:00', 1, 30, 1, 1, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 1, 3 );
+
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-02 10:00:00', 1, 60, 2, 2, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 2, 4 );
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-09 11:10:00', 1, 60, 2, 2, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 2, 5 );
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-16 09:55:00', 1, 60, 2, 2, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 2, 6 );
+INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, token_id ) VALUES ( '2023-05-23 09:35:20', 1, 60, 2, 2, 1 );
+INSERT INTO student_attend ( student_id, presence_id ) VALUES ( 2, 7 );

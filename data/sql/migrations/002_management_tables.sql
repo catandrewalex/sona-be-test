@@ -39,7 +39,7 @@ CREATE TABLE course
 CREATE TABLE class
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  default_transport_fee BIGINT NOT NULL,
+  transport_fee BIGINT NOT NULL,
   teacher_id BIGINT unsigned,
   course_id BIGINT unsigned NOT NULL,
   is_deactivated TINYINT NOT NULL DEFAULT 0,
@@ -79,7 +79,7 @@ CREATE TABLE student_learning_token
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
   last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  enrollment_id BIGINT unsigned,
+  enrollment_id BIGINT unsigned NOT NULL,
   -- `student_learning_token` has quota, whose value must be transferrable to another `enrollment` before a student `enrollment` is deleted
   FOREIGN KEY (enrollment_id) REFERENCES student_enrollment(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
@@ -125,8 +125,6 @@ CREATE TABLE teacher_salary
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   presence_id BIGINT unsigned NOT NULL,
-  course_fee_value INT NOT NULL,
-  transport_fee_value INT NOT NULL,
   profit_sharing_percentage FLOAT NOT NULL,
   added_at DATE NOT NULL,
   -- `teacher_salary` stores historical records of teacher payment, and must be deleted explicitly
