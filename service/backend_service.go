@@ -90,6 +90,33 @@ func (s *BackendService) UserDataHandler(ctx context.Context, req *output.UserDa
 	return &output.UserDataResponse{Data: user}, nil
 }
 
+func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUsersRequest) (*output.GetUsersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getUsersResult, err := s.identityService.GetUsers(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Failed to get users"})
+	}
+
+	paginationResult := getUsersResult.PaginationResult
+
+	return &output.GetUsersResponse{
+		Data: output.GetUsersResult{
+			Results: getUsersResult.Users,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   paginationResult.TotalPages,
+				TotalResults: paginationResult.TotalResults,
+				CurrentPage:  paginationResult.CurrentPage,
+			},
+		},
+	}, nil
+}
+
 func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.GetTeachersRequest) (*output.GetTeachersResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV

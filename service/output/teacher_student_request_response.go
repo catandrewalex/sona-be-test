@@ -27,8 +27,8 @@ type GetTeachersResult struct {
 
 func (r GetTeachersRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if paginationErr := r.PaginationRequest.Validate(MaxPage_GetTeachers, MaxResultsPerPage_GetTeachers); paginationErr != nil {
-		errorDetail = paginationErr.GetErrorDetail()
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeachers, MaxResultsPerPage_GetTeachers); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
 	}
 
 	if len(errorDetail) > 0 {
@@ -51,8 +51,8 @@ type GetStudentsResult struct {
 
 func (r GetStudentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if paginationErr := r.PaginationRequest.Validate(MaxPage_GetTeachers, MaxResultsPerPage_GetTeachers); paginationErr != nil {
-		errorDetail = paginationErr.GetErrorDetail()
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeachers, MaxResultsPerPage_GetTeachers); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
 	}
 
 	if len(errorDetail) > 0 {

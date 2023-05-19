@@ -8,13 +8,13 @@ import (
 )
 
 type Teacher struct {
-	ID   TeacherID     `json:"id"`
-	User identity.User `json:"user"`
+	TeacherID TeacherID     `json:"teacherId"`
+	User      identity.User `json:"user"`
 }
 
 type Student struct {
-	ID   StudentID     `json:"id"`
-	User identity.User `json:"user"`
+	StudentID StudentID     `json:"studentId"`
+	User      identity.User `json:"user"`
 }
 
 type Instrument struct {

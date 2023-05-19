@@ -44,7 +44,7 @@ func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.Pa
 		}
 
 		teachers = append(teachers, teaching.Teacher{
-			ID: teaching.TeacherID(teacherRow.ID),
+			TeacherID: teaching.TeacherID(teacherRow.ID),
 			User: identity.User{
 				ID:            identity.UserID(teacherRow.UserID),
 				Username:      teacherRow.Username,
@@ -77,7 +77,7 @@ func (s teachingServiceImpl) GetTeacherByUserID(ctx context.Context, userID iden
 	}
 
 	return teaching.Teacher{
-		ID: teaching.TeacherID(teacher.ID),
+		TeacherID: teaching.TeacherID(teacher.ID),
 		User: identity.User{
 			ID:            identity.UserID(teacher.UserID),
 			Username:      teacher.Username,
@@ -109,7 +109,7 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 		}
 
 		students = append(students, teaching.Student{
-			ID: teaching.StudentID(studentRow.ID),
+			StudentID: teaching.StudentID(studentRow.ID),
 			User: identity.User{
 				ID:            identity.UserID(studentRow.UserID),
 				Username:      studentRow.Username,
@@ -142,7 +142,7 @@ func (s teachingServiceImpl) GetStudentByUserID(ctx context.Context, userID iden
 	}
 
 	return teaching.Student{
-		ID: teaching.StudentID(student.ID),
+		StudentID: teaching.StudentID(student.ID),
 		User: identity.User{
 			ID:            identity.UserID(student.UserID),
 			Username:      student.Username,

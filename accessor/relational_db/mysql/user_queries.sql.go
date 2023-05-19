@@ -20,6 +20,17 @@ func (q *Queries) ActivateUser(ctx context.Context, id int64) error {
 	return err
 }
 
+const countUsers = `-- name: CountUsers :one
+SELECT Count(*) as total FROM user
+`
+
+func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUsers)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const deactivateUser = `-- name: DeactivateUser :exec
 UPDATE user SET is_deactivated = 1 WHERE id = ?
 `
@@ -187,11 +198,17 @@ func (q *Queries) GetUserCredentialByUsername(ctx context.Context, username stri
 
 const getUsers = `-- name: GetUsers :many
 SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
-ORDER BY name
+ORDER BY id
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUsers)
+type GetUsersParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getUsers, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

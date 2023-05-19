@@ -5,6 +5,23 @@ import (
 	"sonamusica-backend/errs"
 )
 
+const (
+	MaxPage_GetUsers           = Default_MaxPage
+	MaxResultsPerPage_GetUsers = Default_MaxResultsPerPage
+)
+
+func (r GetUsersRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetUsers, MaxResultsPerPage_GetUsers); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
 type UserDataRequest struct {
 	ID int `json:"id"`
 }
@@ -23,6 +40,18 @@ func (r UserDataRequest) Validate() errs.ValidationError {
 		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
 	}
 	return nil
+}
+
+type GetUsersRequest struct {
+	PaginationRequest
+}
+type GetUsersResponse struct {
+	Data    GetUsersResult `json:"data"`
+	Message string         `json:"message,omitempty"`
+}
+type GetUsersResult struct {
+	Results []identity.User `json:"results"`
+	PaginationResponse
 }
 
 type SignUpRequest struct {

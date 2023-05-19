@@ -12,7 +12,7 @@ WHERE user_id = ? LIMIT 1;
 -- name: GetTeachers :many
 SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
 FROM teacher JOIN user ON teacher.user_id = user.id
-ORDER BY username
+ORDER BY teacher.id
 LIMIT ? OFFSET ?;
 
 -- name: CountTeachers :one
@@ -43,7 +43,7 @@ WHERE user_id = ? LIMIT 1;
 -- name: GetStudents :many
 SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
 FROM student JOIN user ON student.user_id = user.id
-ORDER BY username
+ORDER BY student.id
 LIMIT ? OFFSET ?;
 
 -- name: CountStudents :one

@@ -3,6 +3,8 @@ package identity
 import (
 	"context"
 	"time"
+
+	"sonamusica-backend/app-service/util"
 )
 
 type User struct {
@@ -33,12 +35,18 @@ const (
 )
 
 type IdentityService interface {
+	GetUsers(ctx context.Context, pagination util.PaginationSpec) (GetUsersResult, error)
 	GetUserById(ctx context.Context, id UserID) (User, error)
 
 	SignUpUser(ctx context.Context, spec SignUpUserSpec) (UserID, error)
 	LoginUser(ctx context.Context, spec LoginUserSpec) (LoginUserResult, error)
 	ForgotPassword(ctx context.Context, spec ForgotPasswordSpec) error
 	ResetPassword(ctx context.Context, spec ResetPasswordSpec) error
+}
+
+type GetUsersResult struct {
+	Users            []User
+	PaginationResult util.PaginationResult
 }
 
 type SignUpUserSpec struct {

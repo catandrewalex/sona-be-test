@@ -18,6 +18,7 @@ import (
 	"sonamusica-backend/app-service/auth"
 	"sonamusica-backend/app-service/email_composer"
 	"sonamusica-backend/app-service/identity"
+	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
@@ -47,6 +48,43 @@ func NewIdentityServiceImpl(mySQLQueries *relational_db.MySQLQueries, smtpAccess
 		jwtService:    jwtService,
 		emailComposer: emailComposer,
 	}
+}
+
+func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.PaginationSpec) (identity.GetUsersResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	userRows, err := s.mySQLQueries.GetUsers(ctx, mysql.GetUsersParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.GetUsers(): %w", err)
+	}
+
+	users := make([]identity.User, 0, len(userRows))
+	for _, userRow := range userRows {
+		var userDetail identity.UserDetail
+		err = json.Unmarshal(userRow.UserDetail, &userDetail)
+		if err != nil {
+			return identity.GetUsersResult{}, fmt.Errorf("json.Unmarshal(): %w", err)
+		}
+
+		users = append(users, identity.User{
+			ID:            identity.UserID(userRow.ID),
+			Username:      userRow.Username,
+			Email:         userRow.Email,
+			UserDetail:    userDetail,
+			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
+			CreatedAt:     userRow.CreatedAt.Time,
+		})
+	}
+
+	totalResults, err := s.mySQLQueries.CountUsers(ctx)
+
+	return identity.GetUsersResult{
+		Users:            users,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
 }
 
 func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID) (identity.User, error) {

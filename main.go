@@ -69,6 +69,7 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Post("/user-data", jsonSerdeWrapper.WrapFunc(backendService.UserDataHandler))
 
+		authRouter.Post("/get-users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
 		authRouter.Post("/get-teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Post("/get-students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 	})

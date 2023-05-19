@@ -13,7 +13,11 @@ WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetUsers :many
 SELECT * FROM user
-ORDER BY name;
+ORDER BY id
+LIMIT ? OFFSET ?;
+
+-- name: CountUsers :one
+SELECT Count(*) as total FROM user;
 
 -- name: IsUserExist :one
 SELECT EXISTS(SELECT id FROM user WHERE email = ? LIMIT 1);
