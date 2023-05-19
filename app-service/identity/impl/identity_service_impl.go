@@ -177,15 +177,18 @@ func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginU
 		return identity.LoginUserResult{}, fmt.Errorf("bcrypt.CompareHashAndPassword(): %w", err)
 	}
 
-	// Create a JWT token
-	tokenString, err := s.jwtService.CreateJWTToken(identity.UserID(userCredential.UserID), auth.JWTTokenPurposeType_Auth, 0)
-	if err != nil {
-		return identity.LoginUserResult{}, fmt.Errorf("jwtService.CreateJWTToken(): %w", err)
-	}
-
 	user, err := s.GetUserById(ctx, identity.UserID(userCredential.UserID))
 	if err != nil {
 		return identity.LoginUserResult{}, fmt.Errorf("GetUserById(): %w", err)
+	}
+
+	// Create a JWT token
+	tokenString, err := s.jwtService.CreateJWTToken(
+		identity.UserID(userCredential.UserID), identity.UserPrivilegeType(user.PrivilegeType),
+		auth.JWTTokenPurposeType_Auth, auth.JWTToken_ExpiryTime_SetDefault,
+	)
+	if err != nil {
+		return identity.LoginUserResult{}, fmt.Errorf("jwtService.CreateJWTToken(): %w", err)
 	}
 
 	return identity.LoginUserResult{
@@ -210,7 +213,10 @@ func (s identityServiceImpl) ForgotPassword(ctx context.Context, spec identity.F
 		return nil // we return no error for security reason: avoid user knowing the existence of any email
 	}
 
-	tokenString, err := s.jwtService.CreateJWTToken(userID, auth.JWTTokenPurposeType_ResetPassword, 2*time.Hour)
+	tokenString, err := s.jwtService.CreateJWTToken(
+		userID, identity.UserPrivilegeType_Anonymous,
+		auth.JWTTokenPurposeType_ResetPassword, 2*time.Hour,
+	)
 	if err != nil {
 		return fmt.Errorf("jwtService.CreateJWTToken(): %w", err)
 	}

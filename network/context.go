@@ -42,16 +42,21 @@ func GetRequestContext(ctx context.Context) (RequestContext, errs.HTTPError) {
 	return reqCtx, nil
 }
 
-type userIDKey struct{}
+type authInfoKey struct{}
 
-func NewContextWithUserID(ctx context.Context, userID identity.UserID) context.Context {
-	return context.WithValue(ctx, userIDKey{}, userID)
+type AuthInfo struct {
+	UserID        identity.UserID
+	PrivilegeType identity.UserPrivilegeType
 }
 
-func GetUserID(ctx context.Context) identity.UserID {
-	userID, ok := ctx.Value(userIDKey{}).(identity.UserID)
+func NewContextWithAuthInfo(ctx context.Context, authInfo AuthInfo) context.Context {
+	return context.WithValue(ctx, authInfoKey{}, authInfo)
+}
+
+func GetAuthInfo(ctx context.Context) AuthInfo {
+	authInfo, ok := ctx.Value(authInfoKey{}).(AuthInfo)
 	if !ok {
-		return identity.UserID_None
+		return AuthInfo{}
 	}
-	return userID
+	return authInfo
 }

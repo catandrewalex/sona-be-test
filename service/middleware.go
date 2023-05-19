@@ -43,7 +43,10 @@ func (s *BackendService) AuthenticationMiddleware(next http.Handler) http.Handle
 			return
 		}
 
-		ctx := network.NewContextWithUserID(r.Context(), mainClaims.UserID)
+		ctx := network.NewContextWithAuthInfo(r.Context(), network.AuthInfo{
+			UserID:        mainClaims.UserID,
+			PrivilegeType: mainClaims.PrivilegeType,
+		})
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

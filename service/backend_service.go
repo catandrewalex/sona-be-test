@@ -180,7 +180,24 @@ func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenString, err := s.jwtService.CreateJWTToken(identity.UserID(userID), auth.JWTTokenPurposeType_Auth, 0)
+	userPrivilegeTypeStr := r.URL.Query().Get("privilegeType")
+	privilegeType, err := strconv.Atoi(userPrivilegeTypeStr)
+	if err != nil {
+		mainLog.Warn("Failed to parse privilegeType: %v. Defaulting to Anonymous", err)
+		privilegeType = int(identity.UserPrivilegeType_Anonymous)
+	}
+
+	tokenPurposeTypeStr := r.URL.Query().Get("tokenPurposeType")
+	tokenPurposeType, err := strconv.Atoi(tokenPurposeTypeStr)
+	if err != nil {
+		mainLog.Warn("Failed to parse tokenPurposeType: %v. Defaulting to Auth", err)
+		tokenPurposeType = int(auth.JWTTokenPurposeType_Auth)
+	}
+
+	tokenString, err := s.jwtService.CreateJWTToken(
+		identity.UserID(userID), identity.UserPrivilegeType(privilegeType),
+		auth.JWTTokenPurposeType(tokenPurposeType), auth.JWTToken_ExpiryTime_SetDefault,
+	)
 	if err != nil {
 		mainLog.Error("Failed to create JWT token:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

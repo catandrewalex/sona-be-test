@@ -8,9 +8,14 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
+const (
+	JWTToken_ExpiryTime_SetDefault = 0
+)
+
 type MainJWTClaims struct {
-	UserID      identity.UserID     `json:"userId"`
-	PurposeType JWTTokenPurposeType `json:"purposeType"`
+	UserID        identity.UserID            `json:"userId"`
+	PrivilegeType identity.UserPrivilegeType `json:"privilegeType"`
+	PurposeType   JWTTokenPurposeType        `json:"purposeType"`
 	jwt.RegisteredClaims
 }
 
@@ -28,7 +33,7 @@ type JWTServiceConfig struct {
 }
 
 type JWTService interface {
-	CreateJWTToken(userID identity.UserID, tokenPurposeType JWTTokenPurposeType, expireAfter time.Duration) (string, error)
+	CreateJWTToken(userID identity.UserID, privilegeType identity.UserPrivilegeType, tokenPurposeType JWTTokenPurposeType, expireAfter time.Duration) (string, error)
 	VerifyTokenStringAndReturnClaims(tokenString string) (interface{}, error)
 }
 
@@ -42,9 +47,9 @@ func NewJWTServiceImpl(config JWTServiceConfig) *jwtServiceImpl {
 	return &jwtServiceImpl{config: config}
 }
 
-func (s jwtServiceImpl) CreateJWTToken(userID identity.UserID, tokenPurposeType JWTTokenPurposeType, expireAfter time.Duration) (string, error) {
+func (s jwtServiceImpl) CreateJWTToken(userID identity.UserID, privilegeType identity.UserPrivilegeType, tokenPurposeType JWTTokenPurposeType, expireAfter time.Duration) (string, error) {
 	exp := expireAfter
-	if expireAfter == 0 {
+	if expireAfter == JWTToken_ExpiryTime_SetDefault {
 		exp = s.config.TokenExpiration
 	}
 
@@ -55,6 +60,7 @@ func (s jwtServiceImpl) CreateJWTToken(userID identity.UserID, tokenPurposeType 
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, MainJWTClaims{
 		userID,
+		privilegeType,
 		tokenPurposeType,
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(exp)),

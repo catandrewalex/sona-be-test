@@ -22,6 +22,16 @@ Backend part for the administration app of Sonamusica, a private music school in
 ./scripts/build_and_run.sh
 ```
 
+## API Contract
+
+**All endpoints**, on **any** HTTP methods (GET, POST, PUT, etc.) receive input parameters from:
+
+1. JSON body
+    - parsed from request body if header `Content-Type` is set to `application/json`
+2. URL query parameter
+    - parsed from URL query parameter (`?param1=x&param2=y`) if JSON body doesn't exist  
+    - currently only supports `int`, `float`, and `string`
+
 ## Migrate Database
 
 ### Windows

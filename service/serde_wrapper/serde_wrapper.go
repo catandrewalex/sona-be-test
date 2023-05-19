@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
@@ -127,12 +129,48 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, t reflect.Type) (r
 	}
 
 	elem := reflect.New(t).Interface() // create a pointer to a zero value request param, e.g. similar to &SignupRequest{}
-	err := json.NewDecoder(r.Body).Decode(elem)
-	if err != nil {
-		return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.NewDecoder(r.Body).Decode(): %v", err), map[string]string{errs.ClientMessageKey_NonField: "Does the request contain valid JSON?"})
+
+	// we accept input parameters from:
+	//   1. request body (only JSON), or
+	//   2. URL query param
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(elem)
+		if err != nil {
+			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.NewDecoder(r.Body).Decode(): %v", err), map[string]string{errs.ClientMessageKey_NonField: "Does the request contain valid JSON?"})
+		}
+	} else {
+		urlQueryInJSON := convertURLQueryToJSONString(r.URL.Query().Encode())
+		err := json.Unmarshal(urlQueryInJSON, elem)
+		if err != nil {
+			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.Unmarshal(urlQueryInJSON): %v", err), map[string]string{errs.ClientMessageKey_NonField: "The request doesn't contain JSON and has invalid URL query params!"})
+		}
 	}
 
 	return reflect.ValueOf(elem).Elem(), nil
+}
+
+func convertURLQueryToJSONString(encodedURLQuery string) []byte {
+	jsonStruct := make(map[string]interface{}, 0)
+
+	queries := strings.Split(encodedURLQuery, "&")
+	for _, query := range queries {
+		splittedQuery := strings.Split(query, "=")
+		key, value := splittedQuery[0], splittedQuery[1]
+		if valueInt, err := strconv.Atoi(value); err == nil {
+			jsonStruct[key] = valueInt
+		} else if valueFloat, err := strconv.ParseFloat(value, 64); err == nil {
+			jsonStruct[key] = valueFloat
+		} else {
+			jsonStruct[key] = value
+		}
+	}
+
+	jsonString, err := json.Marshal(jsonStruct)
+	if err != nil {
+		panic(fmt.Sprintf("error on json.Marshal() while parsing URL Query=%q", encodedURLQuery))
+	}
+
+	return jsonString
 }
 
 func (wrapper JSONSerdeWrapper) handleError(r *http.Request, w http.ResponseWriter, httpErr errs.HTTPError) {
