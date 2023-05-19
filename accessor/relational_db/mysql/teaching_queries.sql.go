@@ -22,7 +22,7 @@ func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
 }
 
 const countStudents = `-- name: CountStudents :one
-SELECT Count(user_id) as total FROM student
+SELECT Count(*) as total FROM student
 `
 
 func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
@@ -33,7 +33,7 @@ func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
 }
 
 const countTeachers = `-- name: CountTeachers :one
-SELECT Count(user_id) as total FROM teacher
+SELECT Count(*) as total FROM teacher
 `
 
 func (q *Queries) CountTeachers(ctx context.Context) (int64, error) {

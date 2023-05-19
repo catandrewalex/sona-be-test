@@ -54,8 +54,8 @@ type UserDetail struct {
 }
 
 type LoginUserSpec struct {
-	Email    string
-	Password string
+	UsernameOrEmail string
+	Password        string
 }
 type LoginUserResult struct {
 	User      User

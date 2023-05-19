@@ -2,7 +2,9 @@ package impl
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -101,6 +103,7 @@ func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignU
 
 	_, err = qtx.InsertUserCredential(ctx, mysql.InsertUserCredentialParams{
 		UserID:   userID,
+		Username: spec.Username,
 		Password: hashedPassword,
 		Email:    spec.Email,
 	})
@@ -118,9 +121,16 @@ func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignU
 }
 
 func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginUserSpec) (identity.LoginUserResult, error) {
-	userCredential, err := s.mySQLQueries.GetUserCredentialByEmail(ctx, spec.Email)
+	userCredential, err := s.mySQLQueries.GetUserCredentialByEmail(ctx, spec.UsernameOrEmail)
 	if err != nil {
-		return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
+		if !errors.Is(err, sql.ErrNoRows) {
+			return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
+		}
+
+		userCredential, err = s.mySQLQueries.GetUserCredentialByUsername(ctx, spec.UsernameOrEmail)
+		if err != nil {
+			return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByUsername(): %w", err)
+		}
 	}
 
 	// Compare the hashed password with the input password

@@ -112,6 +112,7 @@ type User struct {
 
 type UserCredential struct {
 	UserID   int64
+	Username string
 	Email    string
 	Password string
 }

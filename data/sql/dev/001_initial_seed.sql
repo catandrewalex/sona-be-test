@@ -5,9 +5,9 @@ INSERT INTO user (
   "userone@sonamusica.com", "userone", '{ "firstName": "User", "lastName": "One" }', 200
 );
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  1, "userone@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
+  1, "userone", "userone@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
 );
 
 INSERT INTO user (
@@ -16,9 +16,9 @@ INSERT INTO user (
   "usertwo@sonamusica.com", "usertwo", '{ "firstName": "User", "lastName": "Two" }', 200
 );
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  2, "usertwo@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
+  2, "usertwo", "usertwo@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
 );
 
 INSERT INTO user (
@@ -27,9 +27,9 @@ INSERT INTO user (
   "staffone@sonamusica.com", "staffone", '{ "firstName": "Staff", "lastName": "One" }', 300
 );
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  3, "staffone@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
+  3, "staffone", "staffone@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
 );
 
 INSERT INTO user (
@@ -38,9 +38,9 @@ INSERT INTO user (
   "stafftwo@sonamusica.com", "stafftwo", '{ "firstName": "Staff", "lastName": "Two" }', 300
 );
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  4, "stafftwo@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
+  4, "stafftwo", "stafftwo@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
 );
 
 INSERT INTO user (
@@ -49,9 +49,9 @@ INSERT INTO user (
   "adminone@sonamusica.com", "adminone", '{ "firstName": "Admin", "lastName": "One" }', 400
 );
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  5, "adminone@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
+  5, "adminone", "adminone@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
 );
 
 INSERT INTO user (
@@ -60,9 +60,9 @@ INSERT INTO user (
   "admintwo@sonamusica.com", "admintwo", '{ "firstName": "Admin", "lastName": "Two" }', 400
 );
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  6, "admintwo@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
+  6, "admintwo", "admintwo@sonamusica.com", "$2a$10$ao4yOZxrqv0TOmED.ZeoHOecLzYSgXpAZnAIVOmXAv8CWt1XAG/Lm" -- this equals to "pass"
 );
 
 /* ============================== STUDENT & TEACHER ============================== */

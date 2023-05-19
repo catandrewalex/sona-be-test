@@ -49,42 +49,6 @@ func (q *Queries) DeleteUserCredentialByUserId(ctx context.Context, userID int64
 	return err
 }
 
-const getUser = `-- name: GetUser :many
-SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
-ORDER BY name
-`
-
-func (q *Queries) GetUser(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUser)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.Email,
-			&i.UserDetail,
-			&i.PrivilegeType,
-			&i.IsDeactivated,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
 WHERE email = ? LIMIT 1
@@ -173,26 +137,88 @@ func (q *Queries) GetUserByIds(ctx context.Context, ids []int64) ([]User, error)
 }
 
 const getUserCredentialByEmail = `-- name: GetUserCredentialByEmail :one
-SELECT user_id, email, password FROM user_credential WHERE email = ?
+SELECT user_id, username, email, password FROM user_credential WHERE email = ?
 `
 
 func (q *Queries) GetUserCredentialByEmail(ctx context.Context, email string) (UserCredential, error) {
 	row := q.db.QueryRowContext(ctx, getUserCredentialByEmail, email)
 	var i UserCredential
-	err := row.Scan(&i.UserID, &i.Email, &i.Password)
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+	)
 	return i, err
 }
 
 const getUserCredentialById = `-- name: GetUserCredentialById :one
-SELECT user_id, email, password FROM user_credential WHERE user_id = ?
+SELECT user_id, username, email, password FROM user_credential WHERE user_id = ?
 `
 
 // ============================== USER_CREDENTIAL ==============================
 func (q *Queries) GetUserCredentialById(ctx context.Context, userID int64) (UserCredential, error) {
 	row := q.db.QueryRowContext(ctx, getUserCredentialById, userID)
 	var i UserCredential
-	err := row.Scan(&i.UserID, &i.Email, &i.Password)
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+	)
 	return i, err
+}
+
+const getUserCredentialByUsername = `-- name: GetUserCredentialByUsername :one
+SELECT user_id, username, email, password FROM user_credential WHERE username = ?
+`
+
+func (q *Queries) GetUserCredentialByUsername(ctx context.Context, username string) (UserCredential, error) {
+	row := q.db.QueryRowContext(ctx, getUserCredentialByUsername, username)
+	var i UserCredential
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+	)
+	return i, err
+}
+
+const getUsers = `-- name: GetUsers :many
+SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
+ORDER BY name
+`
+
+func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const insertUser = `-- name: InsertUser :execlastid
@@ -225,20 +251,26 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (int64, 
 
 const insertUserCredential = `-- name: InsertUserCredential :execlastid
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  ?, ?, ?
+  ?, ?, ?, ?
 )
 `
 
 type InsertUserCredentialParams struct {
 	UserID   int64
+	Username string
 	Email    string
 	Password string
 }
 
 func (q *Queries) InsertUserCredential(ctx context.Context, arg InsertUserCredentialParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, insertUserCredential, arg.UserID, arg.Email, arg.Password)
+	result, err := q.db.ExecContext(ctx, insertUserCredential,
+		arg.UserID,
+		arg.Username,
+		arg.Email,
+		arg.Password,
+	)
 	if err != nil {
 		return 0, err
 	}

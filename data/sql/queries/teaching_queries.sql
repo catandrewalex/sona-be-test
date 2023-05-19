@@ -16,7 +16,7 @@ ORDER BY username
 LIMIT ? OFFSET ?;
 
 -- name: CountTeachers :one
-SELECT Count(user_id) as total FROM teacher;
+SELECT Count(*) as total FROM teacher;
 
 -- name: InsertTeacher :execlastid
 INSERT INTO teacher ( user_id ) VALUES ( ? );
@@ -47,7 +47,7 @@ ORDER BY username
 LIMIT ? OFFSET ?;
 
 -- name: CountStudents :one
-SELECT Count(user_id) as total FROM student;
+SELECT Count(*) as total FROM student;
 
 -- name: InsertStudent :execlastid
 INSERT INTO student ( user_id ) VALUES ( ? );

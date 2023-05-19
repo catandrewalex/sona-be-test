@@ -202,8 +202,8 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 	mainLog.Debug("request: %#v", req)
 
 	loginResult, err := s.identityService.LoginUser(ctx, identity.LoginUserSpec{
-		Email:    req.Email,
-		Password: req.Password,
+		UsernameOrEmail: req.UsernameOrEmail,
+		Password:        req.Password,
 	})
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Authentication failed"})

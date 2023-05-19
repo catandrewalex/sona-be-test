@@ -11,7 +11,7 @@ WHERE email = ? LIMIT 1;
 SELECT * from user
 WHERE id IN (sqlc.slice('ids'));
 
--- name: GetUser :many
+-- name: GetUsers :many
 SELECT * FROM user
 ORDER BY name;
 
@@ -43,16 +43,19 @@ WHERE id = ?;
 
 /* ============================== USER_CREDENTIAL ============================== */
 -- name: GetUserCredentialById :one
-SELECT user_id, email, password FROM user_credential WHERE user_id = ?;
+SELECT * FROM user_credential WHERE user_id = ?;
 
 -- name: GetUserCredentialByEmail :one
-SELECT user_id, email, password FROM user_credential WHERE email = ?;
+SELECT * FROM user_credential WHERE email = ?;
+
+-- name: GetUserCredentialByUsername :one
+SELECT * FROM user_credential WHERE username = ?;
 
 -- name: InsertUserCredential :execlastid
 INSERT INTO user_credential (
-  user_id, email, password
+  user_id, username, email, password
 ) VALUES (
-  ?, ?, ?
+  ?, ?, ?, ?
 );
 
 -- name: UpdateEmailByUserId :exec

@@ -54,8 +54,8 @@ func (r SignUpRequest) Validate() errs.ValidationError {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	UsernameOrEmail string `json:"usernameOrEmail"`
+	Password        string `json:"password"`
 }
 type LoginResponse struct {
 	Data    LoginResult `json:"data"`
@@ -69,8 +69,8 @@ type LoginResult struct {
 
 func (r LoginRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.Email == "" {
-		errorDetail["email"] = "email cannot be empty"
+	if r.UsernameOrEmail == "" {
+		errorDetail["usernameOrEmail"] = "usernameOrEmail cannot be empty"
 	}
 	if r.Password == "" {
 		errorDetail["password"] = "password cannot be empty"
