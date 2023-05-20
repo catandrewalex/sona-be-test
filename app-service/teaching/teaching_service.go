@@ -38,12 +38,43 @@ type StudentLearningTokenID int64
 type TeacherSpecialFeeID int64
 type PresenceID int64
 
+const (
+	TeacherID_None TeacherID = iota
+)
+const (
+	StudentID_None StudentID = iota
+)
+const (
+	InstrumentID_None InstrumentID = iota
+)
+const (
+	GradeID_None GradeID = iota
+)
+const (
+	CourseID_None CourseID = iota
+)
+const (
+	ClassID_None ClassID = iota
+)
+const (
+	StudentEnrollmentID_None StudentEnrollmentID = iota
+)
+const (
+	StudentLearningTokenID_None StudentLearningTokenID = iota
+)
+const (
+	TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
+)
+const (
+	PresenceID_None PresenceID = iota
+)
+
 type TeachingService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
-	GetTeacherByUserID(ctx context.Context, userID identity.UserID) (Teacher, error)
+	GetTeacherById(ctx context.Context, id TeacherID) (Teacher, error)
 
 	GetStudents(ctx context.Context, pagination util.PaginationSpec) (GetStudentsResult, error)
-	GetStudentByUserID(ctx context.Context, userID identity.UserID) (Student, error)
+	GetStudentById(ctx context.Context, id StudentID) (Student, error)
 }
 
 type GetTeachersResult struct {

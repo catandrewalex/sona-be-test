@@ -12,12 +12,22 @@ import (
 
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type HTTPHandlerSerdeWrapper interface {
-	WrapFunc(fn interface{}) http.HandlerFunc
+	// WrapFunc accepts function with signature:
+	//   1. Request: must exist in: [(ctx context.Context), (ctx context.Context, req <any_Go_struct>)]
+	//   2. Response: must exist in: [(err error), (res <any_go_struct>, err Error)]
+	//
+	// We can pass urlParamKeys if the request comes from dynamic URL (URL with parameter), e.g..:
+	//   1. /user/1 --> pass ["id"] as urlParamKeys
+	//   2. /user/myusername --> pass ["username"] as urlParamKeys
+	WrapFunc(fn interface{}, urlParamKeys ...string) http.HandlerFunc
 
-	parseRequest(r *http.Request, t reflect.Type) (reflect.Value, errs.HTTPError)
+	// parseRequest is a internal helper function for WrapFunc, which also accepts urlParamKeys
+	parseRequest(r *http.Request, rType reflect.Type, urlParamKeys ...string) (reflect.Value, errs.HTTPError)
 	handleError(r *http.Request, w http.ResponseWriter, err errs.HTTPError)
 	handleSuccess(w http.ResponseWriter, response interface{})
 }
@@ -28,7 +38,7 @@ func NewJSONSerdeWrapper() HTTPHandlerSerdeWrapper {
 	return &JSONSerdeWrapper{}
 }
 
-func (wrapper JSONSerdeWrapper) WrapFunc(fn interface{}) http.HandlerFunc {
+func (wrapper JSONSerdeWrapper) WrapFunc(fn interface{}, urlParamKeys ...string) http.HandlerFunc {
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
 		panic("input parameter is not a function")
@@ -85,7 +95,7 @@ func (wrapper JSONSerdeWrapper) WrapFunc(fn interface{}) http.HandlerFunc {
 
 		// Parse the request object if exists
 		if reqType != nil {
-			req, err := wrapper.parseRequest(request, reqType)
+			req, err := wrapper.parseRequest(request, reqType, urlParamKeys...)
 			if err != nil {
 				wrapper.handleError(request, writer, err)
 				return
@@ -123,12 +133,12 @@ func (wrapper JSONSerdeWrapper) WrapFunc(fn interface{}) http.HandlerFunc {
 	})
 }
 
-func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, t reflect.Type) (reflect.Value, errs.HTTPError) {
-	if t.Kind() != reflect.Ptr || (t.Kind() == reflect.Ptr && t.Elem().Kind() != reflect.Struct) {
+func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, rType reflect.Type, urlParamKeys ...string) (reflect.Value, errs.HTTPError) {
+	if rType.Kind() != reflect.Ptr || (rType.Kind() == reflect.Ptr && rType.Elem().Kind() != reflect.Struct) {
 		panic("request type must be a pointer to struct")
 	}
 
-	elem := reflect.New(t).Interface() // create a pointer to a zero value request param, e.g. similar to &SignupRequest{}
+	elem := reflect.New(rType).Interface() // create a pointer to a zero value request param, e.g. similar to &SignupRequest{}
 
 	// we accept input parameters from:
 	//   1. request body (only JSON), or
@@ -146,7 +156,41 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, t reflect.Type) (r
 		}
 	}
 
-	return reflect.ValueOf(elem).Elem(), nil
+	elemValue := reflect.ValueOf(elem).Elem()
+
+	// Set field value from URL params
+	for _, urlParamKey := range urlParamKeys {
+		urlParamValue := chi.URLParam(r, urlParamKey)
+		logging.HTTPServerLogger.Debug("Found urlParam: key = %q, value = %q", urlParamKey, urlParamValue)
+		if len(urlParamValue) == 0 {
+			panic(fmt.Sprintf("found non-existing urlParamKey = %q. please check your URL pattern", urlParamKey))
+		}
+
+		elemField := reflect.Indirect(elemValue).FieldByName(urlParamKey)
+		if elemField.IsValid() {
+			if !elemField.IsZero() {
+				logging.HTTPServerLogger.Warn("Found pre-populated struct field = %q, check the JSON body or URL query param for the duplicated key. Discarding the URL param value.", urlParamKey)
+				continue
+			}
+
+			if elemField.Kind() == reflect.Int || elemField.Kind() == reflect.Int16 || elemField.Kind() == reflect.Int32 || elemField.Kind() == reflect.Int64 {
+				valueInt, err := strconv.ParseInt(urlParamValue, 10, 64)
+				if err != nil {
+					panic(fmt.Sprintf("incompatible urlParam: key = %q, value = %q can't be converted to int", urlParamKey, urlParamValue))
+				}
+				elemField.SetInt(valueInt)
+			} else if elemField.Kind() == reflect.String {
+				elemField.SetString(urlParamValue)
+			} else {
+				panic(fmt.Sprintf("unsupported field kind with name = %q. list of supported kind: [int, string]", urlParamKey))
+			}
+		} else {
+			panic(fmt.Sprintf("found non-existing request field (urlParamKey = %q). please check your request struct: urlParamKey must match struct's field 'name', NOT 'json tag', and is case sensitive", urlParamKey))
+		}
+
+	}
+
+	return elemValue, nil
 }
 
 func convertURLQueryToJSONString(encodedURLQuery string) []byte {
@@ -155,13 +199,15 @@ func convertURLQueryToJSONString(encodedURLQuery string) []byte {
 	queries := strings.Split(encodedURLQuery, "&")
 	for _, query := range queries {
 		splittedQuery := strings.Split(query, "=")
-		key, value := splittedQuery[0], splittedQuery[1]
-		if valueInt, err := strconv.Atoi(value); err == nil {
-			jsonStruct[key] = valueInt
-		} else if valueFloat, err := strconv.ParseFloat(value, 64); err == nil {
-			jsonStruct[key] = valueFloat
-		} else {
-			jsonStruct[key] = value
+		if len(splittedQuery) == 2 {
+			key, value := splittedQuery[0], splittedQuery[1]
+			if valueInt, err := strconv.Atoi(value); err == nil {
+				jsonStruct[key] = valueInt
+			} else if valueFloat, err := strconv.ParseFloat(value, 64); err == nil {
+				jsonStruct[key] = valueFloat
+			} else {
+				jsonStruct[key] = value
+			}
 		}
 	}
 

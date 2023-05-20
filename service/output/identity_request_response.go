@@ -10,6 +10,18 @@ const (
 	MaxResultsPerPage_GetUsers = Default_MaxResultsPerPage
 )
 
+type GetUsersRequest struct {
+	PaginationRequest
+}
+type GetUsersResponse struct {
+	Data    GetUsersResult `json:"data"`
+	Message string         `json:"message,omitempty"`
+}
+type GetUsersResult struct {
+	Results []identity.User `json:"results"`
+	PaginationResponse
+}
+
 func (r GetUsersRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if validationErr := r.PaginationRequest.Validate(MaxPage_GetUsers, MaxResultsPerPage_GetUsers); validationErr != nil {
@@ -22,17 +34,17 @@ func (r GetUsersRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type UserDataRequest struct {
-	ID int `json:"id"`
+type GetUserRequest struct {
+	ID identity.UserID `json:"id"`
 }
-type UserDataResponse struct {
+type GetUserResponse struct {
 	Data    identity.User `json:"data"`
 	Message string        `json:"message,omitempty"`
 }
 
-func (r UserDataRequest) Validate() errs.ValidationError {
+func (r GetUserRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.ID == 0 {
+	if r.ID == identity.UserID_None {
 		errorDetail["id"] = "id cannot be empty"
 	}
 
@@ -40,18 +52,6 @@ func (r UserDataRequest) Validate() errs.ValidationError {
 		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
 	}
 	return nil
-}
-
-type GetUsersRequest struct {
-	PaginationRequest
-}
-type GetUsersResponse struct {
-	Data    GetUsersResult `json:"data"`
-	Message string         `json:"message,omitempty"`
-}
-type GetUsersResult struct {
-	Results []identity.User `json:"results"`
-	PaginationResponse
 }
 
 type SignUpRequest struct {

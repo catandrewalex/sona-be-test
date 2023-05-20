@@ -37,6 +37,26 @@ func (r GetTeachersRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type GetTeacherRequest struct {
+	ID teaching.TeacherID `json:"id"`
+}
+type GetTeacherResponse struct {
+	Data    teaching.Teacher `json:"data"`
+	Message string           `json:"message,omitempty"`
+}
+
+func (r GetTeacherRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if r.ID == teaching.TeacherID_None {
+		errorDetail["id"] = "id cannot be empty"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
 type GetStudentsRequest struct {
 	PaginationRequest
 }
@@ -53,6 +73,26 @@ func (r GetStudentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeachers, MaxResultsPerPage_GetTeachers); validationErr != nil {
 		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetStudentRequest struct {
+	ID teaching.StudentID `json:"id"`
+}
+type GetStudentResponse struct {
+	Data    teaching.Student `json:"data"`
+	Message string           `json:"message,omitempty"`
+}
+
+func (r GetStudentRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if r.ID == teaching.StudentID_None {
+		errorDetail["id"] = "id cannot be empty"
 	}
 
 	if len(errorDetail) > 0 {

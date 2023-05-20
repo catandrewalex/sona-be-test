@@ -1,7 +1,6 @@
 package errs
 
 import (
-	"database/sql"
 	"errors"
 	"regexp"
 
@@ -29,8 +28,6 @@ func WrapMySQLError(err error) error {
 		if mySQLErr.Number == MySQL_ErrorNumber_DuplicateKey {
 			wrappedErr = NewValidationErrorFromMySQLDuplicateKey(*mySQLErr)
 		}
-	} else if errors.Is(err, sql.ErrNoRows) { // we assume record not found = no error
-		wrappedErr = nil
 	} else {
 		panic("WrapMySQLError received an unsupported error type")
 	}

@@ -64,10 +64,10 @@ func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.Pa
 	}, nil
 }
 
-func (s teachingServiceImpl) GetTeacherByUserID(ctx context.Context, userID identity.UserID) (teaching.Teacher, error) {
-	teacher, err := s.mySQLQueries.GetTeacherByUserId(ctx, int64(userID))
+func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.TeacherID) (teaching.Teacher, error) {
+	teacher, err := s.mySQLQueries.GetTeacherById(ctx, int64(id))
 	if err != nil {
-		return teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetUserById(): %w", err)
+		return teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetTeacherById(): %w", err)
 	}
 
 	var userDetail identity.UserDetail
@@ -129,10 +129,10 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 	}, nil
 }
 
-func (s teachingServiceImpl) GetStudentByUserID(ctx context.Context, userID identity.UserID) (teaching.Student, error) {
-	student, err := s.mySQLQueries.GetStudentByUserId(ctx, int64(userID))
+func (s teachingServiceImpl) GetStudentById(ctx context.Context, id teaching.StudentID) (teaching.Student, error) {
+	student, err := s.mySQLQueries.GetStudentById(ctx, int64(id))
 	if err != nil {
-		return teaching.Student{}, fmt.Errorf("mySQLQueries.GetUserById(): %w", err)
+		return teaching.Student{}, fmt.Errorf("mySQLQueries.GetStudentById(): %w", err)
 	}
 
 	var userDetail identity.UserDetail

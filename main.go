@@ -67,11 +67,14 @@ func main() {
 	// Router group for authenticated endpoints
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
-		authRouter.Post("/user-data", jsonSerdeWrapper.WrapFunc(backendService.UserDataHandler))
+		authRouter.Get("/users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
+		authRouter.Get("/user/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "ID"))
 
-		authRouter.Post("/get-users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
-		authRouter.Post("/get-teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
-		authRouter.Post("/get-students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
+		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+		authRouter.Get("/teacher/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherByIdHandler, "ID"))
+
+		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
+		authRouter.Get("/student/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetStudentByIdHandler, "ID"))
 	})
 
 	baseRouter.Get("/", backendService.HomepageHandler)

@@ -76,20 +76,6 @@ func (s *BackendService) HomepageHandler(w http.ResponseWriter, r *http.Request)
 	fmt.Fprint(w, "Hello, world!")
 }
 
-func (s *BackendService) UserDataHandler(ctx context.Context, req *output.UserDataRequest) (*output.UserDataResponse, errs.HTTPError) {
-	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
-		return nil, errV
-	}
-
-	user, err := s.identityService.GetUserById(ctx, identity.UserID(req.ID))
-	if err != nil {
-		mainLog.Error("User with ID='%d' is not found\n", req.ID)
-		return nil, errs.NewHTTPError(http.StatusNotFound, fmt.Errorf("identityService.GetUserById(): %w", err), map[string]string{})
-	}
-
-	return &output.UserDataResponse{Data: user}, nil
-}
-
 func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUsersRequest) (*output.GetUsersResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -114,6 +100,25 @@ func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUse
 				CurrentPage:  paginationResult.CurrentPage,
 			},
 		},
+	}, nil
+}
+
+func (s *BackendService) GetUserByIdHandler(ctx context.Context, req *output.GetUserRequest) (*output.GetUserResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	user, err := s.identityService.GetUserById(ctx, req.ID)
+	if err != nil {
+		wrappedErr := fmt.Errorf("identityService.GetUserById(): %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, map[string]string{})
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, map[string]string{})
+	}
+
+	return &output.GetUserResponse{
+		Data: user,
 	}, nil
 }
 
@@ -144,6 +149,25 @@ func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.Get
 	}, nil
 }
 
+func (s *BackendService) GetTeacherByIdHandler(ctx context.Context, req *output.GetTeacherRequest) (*output.GetTeacherResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	teacher, err := s.teachingService.GetTeacherById(ctx, req.ID)
+	if err != nil {
+		wrappedErr := fmt.Errorf("identityService.GetTeacherById(): %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, map[string]string{})
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, map[string]string{})
+	}
+
+	return &output.GetTeacherResponse{
+		Data: teacher,
+	}, nil
+}
+
 func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.GetStudentsRequest) (*output.GetStudentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -168,6 +192,25 @@ func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.Get
 				CurrentPage:  paginationResult.CurrentPage,
 			},
 		},
+	}, nil
+}
+
+func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.GetStudentRequest) (*output.GetStudentResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	student, err := s.teachingService.GetStudentById(ctx, req.ID)
+	if err != nil {
+		wrappedErr := fmt.Errorf("identityService.GetStudentById(): %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, map[string]string{})
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, map[string]string{})
+	}
+
+	return &output.GetStudentResponse{
+		Data: student,
 	}, nil
 }
 
