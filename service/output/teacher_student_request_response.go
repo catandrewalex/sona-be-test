@@ -38,7 +38,7 @@ func (r GetTeachersRequest) Validate() errs.ValidationError {
 }
 
 type GetTeacherRequest struct {
-	ID teaching.TeacherID `json:"id"`
+	ID teaching.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetTeacherResponse struct {
 	Data    teaching.Teacher `json:"data"`
@@ -82,7 +82,7 @@ func (r GetStudentsRequest) Validate() errs.ValidationError {
 }
 
 type GetStudentRequest struct {
-	ID teaching.StudentID `json:"id"`
+	ID teaching.StudentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetStudentResponse struct {
 	Data    teaching.Student `json:"data"`

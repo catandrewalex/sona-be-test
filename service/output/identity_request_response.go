@@ -35,7 +35,7 @@ func (r GetUsersRequest) Validate() errs.ValidationError {
 }
 
 type GetUserRequest struct {
-	ID identity.UserID `json:"id"`
+	ID identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetUserResponse struct {
 	Data    identity.User `json:"data"`

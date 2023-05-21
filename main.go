@@ -64,6 +64,13 @@ func main() {
 		middleware.Timeout(configObject.ServerTimeout),
 	)
 
+	baseRouter.Get("/", backendService.HomepageHandler)
+	baseRouter.Get("/get-jwt", backendService.GetJWTHandler)
+	baseRouter.Post("/sign-up", jsonSerdeWrapper.WrapFunc(backendService.SignUpHandler))
+	baseRouter.Post("/login", jsonSerdeWrapper.WrapFunc(backendService.LoginHandler))
+	baseRouter.Post("/forgot-password", jsonSerdeWrapper.WrapFunc(backendService.ForgotPasswordHandler))
+	baseRouter.Post("/reset-password", jsonSerdeWrapper.WrapFunc(backendService.ResetPasswordHandler))
+
 	// Router group for authenticated endpoints
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
@@ -76,13 +83,6 @@ func main() {
 		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 		authRouter.Get("/student/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetStudentByIdHandler, "ID"))
 	})
-
-	baseRouter.Get("/", backendService.HomepageHandler)
-	baseRouter.Get("/get-jwt", backendService.GetJWTHandler)
-	baseRouter.Post("/sign-up", jsonSerdeWrapper.WrapFunc(backendService.SignUpHandler))
-	baseRouter.Post("/login", jsonSerdeWrapper.WrapFunc(backendService.LoginHandler))
-	baseRouter.Post("/forgot-password", jsonSerdeWrapper.WrapFunc(backendService.ForgotPasswordHandler))
-	baseRouter.Post("/reset-password", jsonSerdeWrapper.WrapFunc(backendService.ResetPasswordHandler))
 
 	server := &http.Server{
 		Addr:           fmt.Sprintf(":%s", configObject.Port),

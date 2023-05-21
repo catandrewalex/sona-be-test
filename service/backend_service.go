@@ -76,6 +76,136 @@ func (s *BackendService) HomepageHandler(w http.ResponseWriter, r *http.Request)
 	fmt.Fprint(w, "Hello, world!")
 }
 
+func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
+	userIDStr := r.URL.Query().Get("id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		mainLog.Error("Failed to parse userID:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	userPrivilegeTypeStr := r.URL.Query().Get("privilegeType")
+	privilegeType, err := strconv.Atoi(userPrivilegeTypeStr)
+	if err != nil {
+		mainLog.Warn("Failed to parse privilegeType: %v. Defaulting to Anonymous", err)
+		privilegeType = int(identity.UserPrivilegeType_Anonymous)
+	}
+
+	tokenPurposeTypeStr := r.URL.Query().Get("tokenPurposeType")
+	tokenPurposeType, err := strconv.Atoi(tokenPurposeTypeStr)
+	if err != nil {
+		mainLog.Warn("Failed to parse tokenPurposeType: %v. Defaulting to Auth", err)
+		tokenPurposeType = int(auth.JWTTokenPurposeType_Auth)
+	}
+
+	tokenString, err := s.jwtService.CreateJWTToken(
+		identity.UserID(userID), identity.UserPrivilegeType(privilegeType),
+		auth.JWTTokenPurposeType(tokenPurposeType), auth.JWTToken_ExpiryTime_SetDefault,
+	)
+	if err != nil {
+		mainLog.Error("Failed to create JWT token:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprint(w, tokenString)
+}
+
+func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRequest) (*output.SignUpResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	userID, err := s.identityService.SignUpUser(ctx, identity.SignUpUserSpec{
+		Email:    req.Email,
+		Password: req.Password,
+		Username: req.Username,
+	})
+	if err != nil {
+		errContext := fmt.Sprintf("identityService.SignUpUser()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
+	}
+	mainLog.Info("User created: userID='%d', email='%s', username='%s", userID, req.Email, req.Username)
+
+	return &output.SignUpResponse{
+		Message: "User created successfully",
+	}, nil
+}
+
+func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequest) (*output.LoginResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	requestContext, errHTTP := network.GetRequestContext(ctx)
+	if errHTTP != nil {
+		return nil, errs.NewHTTPError(errHTTP.GetHTTPErrorCode(), fmt.Errorf("network.GetRequestContext(): %w", errHTTP), errHTTP.GetClientMessages())
+	}
+	mainLog.Debug("context: %#v", ctx)
+	mainLog.Debug("requestContext: %#v", requestContext)
+	mainLog.Debug("request: %#v", req)
+
+	loginResult, err := s.identityService.LoginUser(ctx, identity.LoginUserSpec{
+		UsernameOrEmail: req.UsernameOrEmail,
+		Password:        req.Password,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Authentication failed"})
+	}
+
+	return &output.LoginResponse{
+		Data: output.LoginResult{
+			User:      loginResult.User,
+			AuthToken: loginResult.AuthToken,
+		},
+		Message: "Login successful!",
+	}, nil
+}
+
+func (s *BackendService) ForgotPasswordHandler(ctx context.Context, req *output.ForgotPasswordRequest) (*output.ForgotPasswordResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	err := s.identityService.ForgotPassword(ctx, identity.ForgotPasswordSpec{
+		Email: req.Email,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), map[string]string{})
+	}
+
+	return &output.ForgotPasswordResponse{
+		Message: "A reset password link has been sent to your email.",
+	}, nil
+}
+
+func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.ResetPasswordRequest) (*output.ResetPasswordResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	err := s.identityService.ResetPassword(ctx, identity.ResetPasswordSpec{
+		ResetToken:  req.ResetToken,
+		NewPassword: req.NewPassword,
+	})
+	if err != nil {
+		var httpErr errs.HTTPError
+		if errors.As(err, &httpErr) {
+			return nil, httpErr
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), map[string]string{})
+	}
+
+	return &output.ResetPasswordResponse{
+		Message: "Password reset successfully.",
+	}, nil
+}
+
 func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUsersRequest) (*output.GetUsersResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -211,135 +341,5 @@ func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.
 
 	return &output.GetStudentResponse{
 		Data: student,
-	}, nil
-}
-
-func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("id")
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		mainLog.Error("Failed to parse userID:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	userPrivilegeTypeStr := r.URL.Query().Get("privilegeType")
-	privilegeType, err := strconv.Atoi(userPrivilegeTypeStr)
-	if err != nil {
-		mainLog.Warn("Failed to parse privilegeType: %v. Defaulting to Anonymous", err)
-		privilegeType = int(identity.UserPrivilegeType_Anonymous)
-	}
-
-	tokenPurposeTypeStr := r.URL.Query().Get("tokenPurposeType")
-	tokenPurposeType, err := strconv.Atoi(tokenPurposeTypeStr)
-	if err != nil {
-		mainLog.Warn("Failed to parse tokenPurposeType: %v. Defaulting to Auth", err)
-		tokenPurposeType = int(auth.JWTTokenPurposeType_Auth)
-	}
-
-	tokenString, err := s.jwtService.CreateJWTToken(
-		identity.UserID(userID), identity.UserPrivilegeType(privilegeType),
-		auth.JWTTokenPurposeType(tokenPurposeType), auth.JWTToken_ExpiryTime_SetDefault,
-	)
-	if err != nil {
-		mainLog.Error("Failed to create JWT token:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprint(w, tokenString)
-}
-
-func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRequest) (*output.SignUpResponse, errs.HTTPError) {
-	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
-		return nil, errV
-	}
-
-	userID, err := s.identityService.SignUpUser(ctx, identity.SignUpUserSpec{
-		Email:    req.Email,
-		Password: req.Password,
-		Username: req.Username,
-	})
-	if err != nil {
-		errContext := fmt.Sprintf("identityService.SignUpUser()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
-	}
-	mainLog.Info("User created: userID='%d', email='%s', username='%s", userID, req.Email, req.Username)
-
-	return &output.SignUpResponse{
-		Message: "User created successfully",
-	}, nil
-}
-
-func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequest) (*output.LoginResponse, errs.HTTPError) {
-	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
-		return nil, errV
-	}
-
-	requestContext, errHTTP := network.GetRequestContext(ctx)
-	if errHTTP != nil {
-		return nil, errs.NewHTTPError(errHTTP.GetHTTPErrorCode(), fmt.Errorf("network.GetRequestContext(): %w", errHTTP), errHTTP.GetClientMessages())
-	}
-	mainLog.Debug("context: %#v", ctx)
-	mainLog.Debug("requestContext: %#v", requestContext)
-	mainLog.Debug("request: %#v", req)
-
-	loginResult, err := s.identityService.LoginUser(ctx, identity.LoginUserSpec{
-		UsernameOrEmail: req.UsernameOrEmail,
-		Password:        req.Password,
-	})
-	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Authentication failed"})
-	}
-
-	return &output.LoginResponse{
-		Data: output.LoginResult{
-			User:      loginResult.User,
-			AuthToken: loginResult.AuthToken,
-		},
-		Message: "Login successful!",
-	}, nil
-}
-
-func (s *BackendService) ForgotPasswordHandler(ctx context.Context, req *output.ForgotPasswordRequest) (*output.ForgotPasswordResponse, errs.HTTPError) {
-	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
-		return nil, errV
-	}
-
-	err := s.identityService.ForgotPassword(ctx, identity.ForgotPasswordSpec{
-		Email: req.Email,
-	})
-	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), map[string]string{})
-	}
-
-	return &output.ForgotPasswordResponse{
-		Message: "A reset password link has been sent to your email.",
-	}, nil
-}
-
-func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.ResetPasswordRequest) (*output.ResetPasswordResponse, errs.HTTPError) {
-	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
-		return nil, errV
-	}
-
-	err := s.identityService.ResetPassword(ctx, identity.ResetPasswordSpec{
-		ResetToken:  req.ResetToken,
-		NewPassword: req.NewPassword,
-	})
-	if err != nil {
-		var httpErr errs.HTTPError
-		if errors.As(err, &httpErr) {
-			return nil, httpErr
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), map[string]string{})
-	}
-
-	return &output.ResetPasswordResponse{
-		Message: "Password reset successfully.",
 	}, nil
 }
