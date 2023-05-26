@@ -46,14 +46,6 @@ type GetTeacherResponse struct {
 }
 
 func (r GetTeacherRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.ID == teaching.TeacherID_None {
-		errorDetail["id"] = "id cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
 	return nil
 }
 
@@ -90,13 +82,5 @@ type GetStudentResponse struct {
 }
 
 func (r GetStudentRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.ID == teaching.StudentID_None {
-		errorDetail["id"] = "id cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
 	return nil
 }

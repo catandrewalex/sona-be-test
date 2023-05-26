@@ -21,20 +21,6 @@ type SignUpResponse struct {
 }
 
 func (r SignUpRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.Email == "" {
-		errorDetail["email"] = "email cannot be empty"
-	}
-	if r.Username == "" {
-		errorDetail["username"] = "username cannot be empty"
-	}
-	if r.Password == "" {
-		errorDetail["password"] = "password cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
 	return nil
 }
 
@@ -53,18 +39,6 @@ type LoginResult struct {
 }
 
 func (r LoginRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.UsernameOrEmail == "" {
-		errorDetail["usernameOrEmail"] = "usernameOrEmail cannot be empty"
-	}
-	if r.Password == "" {
-		errorDetail["password"] = "password cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
-
 	return nil
 }
 
@@ -76,15 +50,6 @@ type ForgotPasswordResponse struct {
 }
 
 func (r ForgotPasswordRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.Email == "" {
-		errorDetail["email"] = "email cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
-
 	return nil
 }
 
@@ -97,18 +62,6 @@ type ResetPasswordResponse struct {
 }
 
 func (r ResetPasswordRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.ResetToken == "" {
-		errorDetail["resetToken"] = "resetToken cannot be empty"
-	}
-	if r.NewPassword == "" {
-		errorDetail["newPassword"] = "newPassword cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
-
 	return nil
 }
 
@@ -145,13 +98,5 @@ type GetUserResponse struct {
 }
 
 func (r GetUserRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if r.ID == identity.UserID_None {
-		errorDetail["id"] = "id cannot be empty"
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
 	return nil
 }

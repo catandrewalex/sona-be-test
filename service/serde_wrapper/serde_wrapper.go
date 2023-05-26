@@ -173,15 +173,16 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, rType reflect.Type
 				continue
 			}
 
-			if elemField.Kind() == reflect.Int || elemField.Kind() == reflect.Int16 || elemField.Kind() == reflect.Int32 || elemField.Kind() == reflect.Int64 {
+			switch elemField.Kind() {
+			case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 				valueInt, err := strconv.ParseInt(urlParamValue, 10, 64)
 				if err != nil {
 					panic(fmt.Sprintf("incompatible urlParam: key = %q, value = %q can't be converted to int", urlParamKey, urlParamValue))
 				}
 				elemField.SetInt(valueInt)
-			} else if elemField.Kind() == reflect.String {
+			case reflect.String:
 				elemField.SetString(urlParamValue)
-			} else {
+			default:
 				panic(fmt.Sprintf("unsupported field kind with name = %q. list of supported kind: [int, string]", urlParamKey))
 			}
 		} else {
