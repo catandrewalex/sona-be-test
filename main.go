@@ -76,6 +76,9 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Get("/users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
 		authRouter.Get("/user/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "ID"))
+		authRouter.Post("/users", jsonSerdeWrapper.WrapFunc(backendService.InsertUsersHandler))
+		// authRouter.Put("/users", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersHandler))
+		// authRouter.Delete("/users", jsonSerdeWrapper.WrapFunc(backendService.DeleteUsersHandler))
 
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/teacher/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherByIdHandler, "ID"))

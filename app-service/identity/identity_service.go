@@ -37,6 +37,7 @@ const (
 type IdentityService interface {
 	GetUsers(ctx context.Context, pagination util.PaginationSpec) (GetUsersResult, error)
 	GetUserById(ctx context.Context, id UserID) (User, error)
+	InsertUsers(ctx context.Context, specs []InsertUserSpec) ([]UserID, error)
 
 	SignUpUser(ctx context.Context, spec SignUpUserSpec) (UserID, error)
 	LoginUser(ctx context.Context, spec LoginUserSpec) (LoginUserResult, error)
@@ -49,6 +50,14 @@ type GetUsersResult struct {
 	PaginationResult util.PaginationResult
 }
 
+type InsertUserSpec struct {
+	Email             string
+	Password          string
+	Username          string
+	UserDetail        UserDetail
+	UserPrivilegeType UserPrivilegeType
+}
+
 type SignUpUserSpec struct {
 	Email      string
 	Password   string
@@ -58,7 +67,7 @@ type SignUpUserSpec struct {
 
 type UserDetail struct {
 	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
+	LastName  string `json:"lastName,omitempty"`
 }
 
 type LoginUserSpec struct {

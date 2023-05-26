@@ -109,53 +109,83 @@ func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID
 	}, nil
 }
 
-func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignUpUserSpec) (identity.UserID, error) {
-	hashedPassword, err := hashPassword(spec.Password)
-	if err != nil {
-		return identity.UserID_None, fmt.Errorf("hashPassword(): %w", err)
+func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]identity.UserID, error) {
+	hashedPasswords := make([]string, 0, len(specs))
+	userDetails := make([][]byte, 0, len(specs))
+
+	for _, spec := range specs {
+		hashedPassword, err := hashPassword(spec.Password)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("hashPassword(): %w", err)
+		}
+		hashedPasswords = append(hashedPasswords, hashedPassword)
+
+		userDetail, err := json.Marshal(spec.UserDetail)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("marshal UserDetail: %w", err)
+		}
+		userDetails = append(userDetails, userDetail)
 	}
 
-	userDetail, err := json.Marshal(spec.UserDetail)
-	if err != nil {
-		return identity.UserID_None, fmt.Errorf("marshal UserDetail: %w", err)
-	}
+	userIds := make([]identity.UserID, 0, len(specs))
 
-	// We insert into 2 tables, need to wrap inside SQL transaction
+	// We insert into 2 tables & also in bulk --> need to wrap inside SQL transaction
 	tx, err := s.mySQLQueries.DB.Begin()
 	if err != nil {
-		return identity.UserID_None, fmt.Errorf("mySQLDB.Begin(): %w", err)
+		return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTx(tx)
 
-	userID, err := qtx.InsertUser(ctx, mysql.InsertUserParams{
-		Email:         spec.Email,
-		Username:      spec.Username,
-		UserDetail:    userDetail,
-		PrivilegeType: int32(identity.UserPrivilegeType_Member),
-	})
-	dbErr := errs.WrapMySQLError(err)
-	if dbErr != nil {
-		return identity.UserID_None, fmt.Errorf("qtx.InsertUser(): %w", dbErr)
-	}
+	for i, spec := range specs {
+		userID, err := qtx.InsertUser(ctx, mysql.InsertUserParams{
+			Email:         spec.Email,
+			Username:      spec.Username,
+			UserDetail:    userDetails[i],
+			PrivilegeType: int32(spec.UserPrivilegeType),
+		})
+		dbErr := errs.WrapMySQLError(err)
+		if dbErr != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUser(): %w", dbErr)
+		}
 
-	_, err = qtx.InsertUserCredential(ctx, mysql.InsertUserCredentialParams{
-		UserID:   userID,
-		Username: spec.Username,
-		Password: hashedPassword,
-		Email:    spec.Email,
-	})
-	dbErr = errs.WrapMySQLError(err)
-	if dbErr != nil {
-		return identity.UserID_None, fmt.Errorf("qtx.InsertUserCredentia(): %w", dbErr)
+		_, err = qtx.InsertUserCredential(ctx, mysql.InsertUserCredentialParams{
+			UserID:   userID,
+			Username: spec.Username,
+			Password: hashedPasswords[i],
+			Email:    spec.Email,
+		})
+		dbErr = errs.WrapMySQLError(err)
+		if dbErr != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredentia(): %w", dbErr)
+		}
+
+		userIds = append(userIds, identity.UserID(userID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return identity.UserID_None, fmt.Errorf("tx.Commit(): %w", err)
+		return []identity.UserID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
-	return identity.UserID(userID), nil
+	return userIds, nil
+}
+
+func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignUpUserSpec) (identity.UserID, error) {
+	userIds, err := s.InsertUsers(ctx, []identity.InsertUserSpec{
+		{
+			Email:             spec.Email,
+			Password:          spec.Password,
+			Username:          spec.Username,
+			UserDetail:        spec.UserDetail,
+			UserPrivilegeType: identity.UserPrivilegeType_Member,
+		},
+	})
+	if err != nil {
+		return identity.UserID_None, fmt.Errorf("InsertUser(): %w", err)
+	}
+
+	return userIds[0], nil
 }
 
 func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginUserSpec) (identity.LoginUserResult, error) {
@@ -199,9 +229,8 @@ func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginU
 
 func (s identityServiceImpl) ForgotPassword(ctx context.Context, spec identity.ForgotPasswordSpec) error {
 	user, err := s.mySQLQueries.GetUserByEmail(ctx, spec.Email)
-	dbErr := errs.WrapMySQLError(err)
-	if dbErr != nil {
-		return fmt.Errorf("GetUserByEmail(): %w", dbErr)
+	if err != nil {
+		return fmt.Errorf("GetUserByEmail(): %w", err)
 	}
 
 	userID := identity.UserID(user.ID)

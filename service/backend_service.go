@@ -118,9 +118,10 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 	}
 
 	userID, err := s.identityService.SignUpUser(ctx, identity.SignUpUserSpec{
-		Email:    req.Email,
-		Password: req.Password,
-		Username: req.Username,
+		Email:      req.Email,
+		Password:   req.Password,
+		Username:   req.Username,
+		UserDetail: req.UserDetail,
 	})
 	if err != nil {
 		errContext := fmt.Sprintf("identityService.SignUpUser()")
@@ -130,7 +131,7 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 		}
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
 	}
-	mainLog.Info("User created: userID='%d', email='%s', username='%s", userID, req.Email, req.Username)
+	mainLog.Info("User created: userID='%d', email='%s', username='%s'", userID, req.Email, req.Username)
 
 	return &output.SignUpResponse{
 		Message: "User created successfully",
@@ -249,6 +250,38 @@ func (s *BackendService) GetUserByIdHandler(ctx context.Context, req *output.Get
 
 	return &output.GetUserResponse{
 		Data: user,
+	}, nil
+}
+
+func (s *BackendService) InsertUsersHandler(ctx context.Context, req *output.InsertUsersRequest) (*output.InsertUsersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]identity.InsertUserSpec, 0, len(req.Params))
+	for _, param := range req.Params {
+		specs = append(specs, identity.InsertUserSpec{
+			Email:             param.Email,
+			Password:          param.Password,
+			Username:          param.Username,
+			UserDetail:        param.UserDetail,
+			UserPrivilegeType: param.UserPrivilegeType,
+		})
+	}
+
+	userIDs, err := s.identityService.InsertUsers(ctx, specs)
+	if err != nil {
+		errContext := fmt.Sprintf("identityService.InsertUsers()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
+	}
+	mainLog.Info("Users created: userIDs='%v'", userIDs)
+
+	return &output.InsertUsersResponse{
+		Data: userIDs,
 	}, nil
 }
 

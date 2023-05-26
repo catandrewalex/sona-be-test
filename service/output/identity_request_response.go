@@ -100,3 +100,24 @@ type GetUserResponse struct {
 func (r GetUserRequest) Validate() errs.ValidationError {
 	return nil
 }
+
+type InsertUsersRequest struct {
+	Params []InsertUsersParam `json:"params"`
+}
+
+type InsertUsersParam struct {
+	Email             string                     `json:"email"`
+	Password          string                     `json:"password"`
+	Username          string                     `json:"username"`
+	UserDetail        identity.UserDetail        `json:"userDetail"`
+	UserPrivilegeType identity.UserPrivilegeType `json:"userPrivilegeType"`
+}
+
+type InsertUsersResponse struct {
+	Data    []identity.UserID `json:"data"`
+	Message string            `json:"message,omitempty"`
+}
+
+func (r InsertUsersRequest) Validate() errs.ValidationError {
+	return nil
+}
