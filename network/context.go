@@ -64,7 +64,10 @@ func GetAuthInfo(ctx context.Context) AuthInfo {
 
 type sqlTxKey struct{}
 
-// TODO: remove this and look for alternative? as we're utilizing this as optional parameter
+// NewContextWithSQLTx copies a context, adds a Go's sql.Tx into it, and returns the new context.
+//
+// TODO: remove this and look for alternative? as we're utilizing this as optional parameter.
+// Go' documentation officially doesn't recommend doing it.
 func NewContextWithSQLTx(ctx context.Context, tx *sql.Tx) context.Context {
 	return context.WithValue(ctx, sqlTxKey{}, tx)
 }

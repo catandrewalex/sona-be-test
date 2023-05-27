@@ -336,8 +336,29 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	insertUserSpecs := make([]identity.InsertUserSpec, 0, len(req.NewUserParams))
-	for _, param := range req.NewUserParams {
+	teacherIDs, err := s.teachingService.InsertTeachers(ctx, req.UserIDs)
+	if err != nil {
+		errContext := fmt.Sprintf("teachingService.InsertTeachers()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create teachers"})
+	}
+	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
+
+	return &output.InsertTeachersResponse{
+		Data: teacherIDs,
+	}, nil
+}
+
+func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, req *output.InsertTeachersWithNewUsersRequest) (*output.InsertTeachersWithNewUsersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	insertUserSpecs := make([]identity.InsertUserSpec, 0, len(req.Params))
+	for _, param := range req.Params {
 		insertUserSpecs = append(insertUserSpecs, identity.InsertUserSpec{
 			Email:             param.Email,
 			Password:          param.Password,
@@ -347,23 +368,21 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 		})
 	}
 
-	userIDs, err := s.teachingService.InsertTeachers(ctx, teaching.InsertTeacherSpec{
-		InsertionType:   req.InsertionType,
-		UserIDs:         req.UserIDs,
-		InsertUserSpecs: insertUserSpecs,
-	})
+	teacherIDs, err := s.teachingService.InsertTeachersWithNewUsers(ctx, insertUserSpecs)
 	if err != nil {
-		errContext := fmt.Sprintf("teachingService.InsertTeachers()")
+		errContext := fmt.Sprintf("teachingService.InsertTeachersWithNewUsers()")
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
 			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
 		}
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create teachers"})
 	}
-	mainLog.Info("Teachers created: userIDs='%v'", userIDs)
+	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
-	return &output.InsertTeachersResponse{
-		Data: userIDs,
+	return &output.InsertTeachersWithNewUsersResponse{
+		InsertTeachersResponse: output.InsertTeachersResponse{
+			Data: teacherIDs,
+		},
 	}, nil
 }
 

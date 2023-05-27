@@ -1,10 +1,8 @@
 package output
 
 import (
-	"fmt"
 	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/app-service/teaching"
-	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/errs"
 )
 
@@ -53,44 +51,25 @@ func (r GetTeacherRequest) Validate() errs.ValidationError {
 }
 
 type InsertTeachersRequest struct {
-	// TODO: possibly just separate into 2 different endpoints?
-	InsertionType util.InsertionType `json:"insertionType"`
-	// TODO: handle this problematic optional parameter ",omitempty" --> auto zero value validation
-	UserIDs []identity.UserID `json:"userIDs,omitempty"`
-	// TODO: handle this problematic optional parameter ",omitempty" --> auto zero value validation
-	NewUserParams []InsertUserRequestParam `json:"newUserParams,omitempty"`
+	UserIDs []identity.UserID `json:"userIDs"`
 }
-
 type InsertTeachersResponse struct {
 	Data    []teaching.TeacherID `json:"data"`
 	Message string               `json:"message,omitempty"`
 }
 
 func (r InsertTeachersRequest) Validate() errs.ValidationError {
-	errorDetail := make(errs.ValidationErrorDetail, 0)
+	return nil
+}
 
-	if _, ok := util.ValidInsertionTypes[r.InsertionType]; !ok {
-		errorDetail["insertionType"] = fmt.Sprintf("insertionType has invalid value '%s'", r.InsertionType)
-	}
+type InsertTeachersWithNewUsersRequest struct {
+	Params []InsertUserRequestParam `json:"params"`
+}
+type InsertTeachersWithNewUsersResponse struct {
+	InsertTeachersResponse
+}
 
-	if r.InsertionType == util.InsertionType_New {
-		if len(r.UserIDs) > 0 {
-			errorDetail[errs.ClientMessageKey_NonField] = fmt.Sprintf("insertionType='%s' can't have userIDs", r.InsertionType)
-		} else if len(r.NewUserParams) == 0 {
-			errorDetail["newUserParams"] = "newUserParams cannot be empty"
-		}
-	} else if r.InsertionType == util.InsertionType_FromExisting {
-		if len(r.NewUserParams) > 0 {
-			errorDetail[errs.ClientMessageKey_NonField] = fmt.Sprintf("insertionType='%s' can't have newUserParams", r.InsertionType)
-		} else if len(r.UserIDs) == 0 {
-			errorDetail["userIDs"] = "userIDs cannot be empty"
-		}
-	}
-
-	if len(errorDetail) > 0 {
-		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
-	}
-
+func (r InsertTeachersWithNewUsersRequest) Validate() errs.ValidationError {
 	return nil
 }
 
