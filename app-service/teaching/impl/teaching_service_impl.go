@@ -10,17 +10,22 @@ import (
 	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
+	"sonamusica-backend/errs"
+	"sonamusica-backend/network"
 )
 
 type teachingServiceImpl struct {
 	mySQLQueries *relational_db.MySQLQueries
+
+	identityService identity.IdentityService
 }
 
 var _ teaching.TeachingService = (*teachingServiceImpl)(nil)
 
-func NewTeachingServiceImpl(mySQLQueries *relational_db.MySQLQueries) *teachingServiceImpl {
+func NewTeachingServiceImpl(mySQLQueries *relational_db.MySQLQueries, identityService identity.IdentityService) *teachingServiceImpl {
 	return &teachingServiceImpl{
-		mySQLQueries: mySQLQueries,
+		mySQLQueries:    mySQLQueries,
+		identityService: identityService,
 	}
 }
 
@@ -89,6 +94,55 @@ func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.Tea
 	}, nil
 }
 
+func (s teachingServiceImpl) InsertTeachers(ctx context.Context, spec teaching.InsertTeacherSpec) ([]teaching.TeacherID, error) {
+	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
+	tx, err := s.mySQLQueries.DB.Begin()
+	if err != nil {
+		return []teaching.TeacherID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+	}
+	defer tx.Rollback()
+
+	var userIDs []identity.UserID
+	if spec.InsertionType == util.InsertionType_New {
+		if len(spec.UserIDs) > 0 {
+			return []teaching.TeacherID{}, fmt.Errorf("invalid spec: has InsertionType=%q but UserIDs is defined (found='%d')", spec.InsertionType, spec.UserIDs)
+		}
+		ctxWithSQLTx := network.NewContextWithSQLTx(ctx, tx)
+		userIDs, err = s.identityService.InsertUsers(ctxWithSQLTx, spec.InsertUserSpecs)
+		if err != nil {
+			return []teaching.TeacherID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
+		}
+	} else if spec.InsertionType == util.InsertionType_FromExisting {
+		if len(spec.UserIDs) == 0 {
+			return []teaching.TeacherID{}, fmt.Errorf("invalid spec: has InsertionType=%q but UserIDs is empty", spec.InsertionType)
+		}
+		userIDs = spec.UserIDs
+	} else {
+		return []teaching.TeacherID{}, fmt.Errorf("unsupported InsertionType")
+	}
+
+	teacherIDs := make([]teaching.TeacherID, 0, len(userIDs))
+
+	fmt.Println("MEOW")
+	fmt.Println(spec.UserIDs)
+	qtx := s.mySQLQueries.WithTx(tx)
+	for _, userID := range userIDs {
+		teacherID, err := qtx.InsertTeacher(ctx, int64(userID))
+		wrappedErr := errs.WrapMySQLError(err)
+		if wrappedErr != nil {
+			return []teaching.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", wrappedErr)
+		}
+		teacherIDs = append(teacherIDs, teaching.TeacherID(teacherID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.TeacherID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return teacherIDs, nil
+}
+
 func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.PaginationSpec) (teaching.GetStudentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
@@ -122,6 +176,9 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 	}
 
 	totalResults, err := s.mySQLQueries.CountStudents(ctx)
+	if err != nil {
+		return teaching.GetStudentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
 
 	return teaching.GetStudentsResult{
 		Students:         students,

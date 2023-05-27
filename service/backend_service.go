@@ -63,7 +63,7 @@ func NewBackendService() *BackendService {
 
 	identityService := identityImpl.NewIdentityServiceImpl(mySqlQueries, smtpAccessor, jwtService, emailComposer)
 
-	teachingService := teachingImpl.NewTeachingServiceImpl(mySqlQueries)
+	teachingService := teachingImpl.NewTeachingServiceImpl(mySqlQueries, identityService)
 
 	return &BackendService{
 		jwtService:      jwtService,
@@ -328,6 +328,42 @@ func (s *BackendService) GetTeacherByIdHandler(ctx context.Context, req *output.
 
 	return &output.GetTeacherResponse{
 		Data: teacher,
+	}, nil
+}
+
+func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.InsertTeachersRequest) (*output.InsertTeachersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	insertUserSpecs := make([]identity.InsertUserSpec, 0, len(req.NewUserParams))
+	for _, param := range req.NewUserParams {
+		insertUserSpecs = append(insertUserSpecs, identity.InsertUserSpec{
+			Email:             param.Email,
+			Password:          param.Password,
+			Username:          param.Username,
+			UserDetail:        param.UserDetail,
+			UserPrivilegeType: param.UserPrivilegeType,
+		})
+	}
+
+	userIDs, err := s.teachingService.InsertTeachers(ctx, teaching.InsertTeacherSpec{
+		InsertionType:   req.InsertionType,
+		UserIDs:         req.UserIDs,
+		InsertUserSpecs: insertUserSpecs,
+	})
+	if err != nil {
+		errContext := fmt.Sprintf("teachingService.InsertTeachers()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create teachers"})
+	}
+	mainLog.Info("Teachers created: userIDs='%v'", userIDs)
+
+	return &output.InsertTeachersResponse{
+		Data: userIDs,
 	}, nil
 }
 

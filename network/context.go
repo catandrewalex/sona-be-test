@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"sonamusica-backend/app-service/identity"
@@ -59,4 +60,19 @@ func GetAuthInfo(ctx context.Context) AuthInfo {
 		return AuthInfo{}
 	}
 	return authInfo
+}
+
+type sqlTxKey struct{}
+
+// TODO: remove this and look for alternative? as we're utilizing this as optional parameter
+func NewContextWithSQLTx(ctx context.Context, tx *sql.Tx) context.Context {
+	return context.WithValue(ctx, sqlTxKey{}, tx)
+}
+
+func GetSQLTx(ctx context.Context) *sql.Tx {
+	sqlTx, ok := ctx.Value(sqlTxKey{}).(*sql.Tx)
+	if !ok {
+		return nil
+	}
+	return sqlTx
 }

@@ -22,6 +22,7 @@ import (
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
+	"sonamusica-backend/network"
 )
 
 var (
@@ -109,6 +110,10 @@ func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID
 	}, nil
 }
 
+// InsertUsers insert users specified in spec in bulk, in single transaction (it's ALL successful or NONE successful).
+//
+// This methods check for existing *sql.Tx inside ctx, and will reuse the tx to execute the insertion.
+// Else, will create a new *sql.Tx and will be committed immediately.
 func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]identity.UserID, error) {
 	hashedPasswords := make([]string, 0, len(specs))
 	userDetails := make([][]byte, 0, len(specs))
@@ -128,13 +133,21 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 	}
 
 	userIds := make([]identity.UserID, 0, len(specs))
-
 	// We insert into 2 tables & also in bulk --> need to wrap inside SQL transaction
-	tx, err := s.mySQLQueries.DB.Begin()
-	if err != nil {
-		return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+	var tx *sql.Tx
+	var err error
+	isReusingExistingTx := false
+	if existingTx := network.GetSQLTx(ctx); existingTx != nil { // reuse existing pre-created SQL transaction (Tx) if exists
+		tx = existingTx
+		isReusingExistingTx = true
+	} else {
+		tx, err = s.mySQLQueries.DB.Begin()
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+		}
+		defer tx.Rollback()
 	}
-	defer tx.Rollback()
+
 	qtx := s.mySQLQueries.WithTx(tx)
 
 	for i, spec := range specs {
@@ -144,9 +157,9 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 			UserDetail:    userDetails[i],
 			PrivilegeType: int32(spec.UserPrivilegeType),
 		})
-		dbErr := errs.WrapMySQLError(err)
-		if dbErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUser(): %w", dbErr)
+		wrappedErr := errs.WrapMySQLError(err)
+		if wrappedErr != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUser(): %w", wrappedErr)
 		}
 
 		_, err = qtx.InsertUserCredential(ctx, mysql.InsertUserCredentialParams{
@@ -155,17 +168,19 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 			Password: hashedPasswords[i],
 			Email:    spec.Email,
 		})
-		dbErr = errs.WrapMySQLError(err)
-		if dbErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredentia(): %w", dbErr)
+		wrappedErr = errs.WrapMySQLError(err)
+		if wrappedErr != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredentia(): %w", wrappedErr)
 		}
 
 		userIds = append(userIds, identity.UserID(userID))
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return []identity.UserID{}, fmt.Errorf("tx.Commit(): %w", err)
+	if !isReusingExistingTx {
+		err = tx.Commit()
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("tx.Commit(): %w", err)
+		}
 	}
 
 	return userIds, nil
