@@ -94,6 +94,41 @@ func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.Tea
 	}, nil
 }
 
+func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teaching.TeacherID) ([]teaching.Teacher, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	teacherRows, err := s.mySQLQueries.GetTeachersByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetTeachersByIds(): %w", err)
+	}
+
+	teachers := make([]teaching.Teacher, 0, len(teacherRows))
+	for _, teacherRow := range teacherRows {
+		var userDetail identity.UserDetail
+		err = json.Unmarshal(teacherRow.UserDetail, &userDetail)
+		if err != nil {
+			return []teaching.Teacher{}, fmt.Errorf("json.Unmarshal(): %w", err)
+		}
+
+		teachers = append(teachers, teaching.Teacher{
+			TeacherID: teaching.TeacherID(teacherRow.ID),
+			User: identity.User{
+				ID:            identity.UserID(teacherRow.UserID),
+				Username:      teacherRow.Username,
+				Email:         teacherRow.Email,
+				UserDetail:    userDetail,
+				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
+				CreatedAt:     teacherRow.CreatedAt.Time,
+			},
+		})
+	}
+
+	return teachers, nil
+}
+
 func (s teachingServiceImpl) InsertTeachers(ctx context.Context, userIDs []identity.UserID) ([]teaching.TeacherID, error) {
 	teacherIDs := make([]teaching.TeacherID, 0, len(userIDs))
 
@@ -208,4 +243,39 @@ func (s teachingServiceImpl) GetStudentById(ctx context.Context, id teaching.Stu
 			CreatedAt:     student.CreatedAt.Time,
 		},
 	}, nil
+}
+
+func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teaching.StudentID) ([]teaching.Student, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	studentRows, err := s.mySQLQueries.GetStudentsByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.Student{}, fmt.Errorf("mySQLQueries.GetStudentsByIds(): %w", err)
+	}
+
+	students := make([]teaching.Student, 0, len(studentRows))
+	for _, studentRow := range studentRows {
+		var userDetail identity.UserDetail
+		err = json.Unmarshal(studentRow.UserDetail, &userDetail)
+		if err != nil {
+			return []teaching.Student{}, fmt.Errorf("json.Unmarshal(): %w", err)
+		}
+
+		students = append(students, teaching.Student{
+			StudentID: teaching.StudentID(studentRow.ID),
+			User: identity.User{
+				ID:            identity.UserID(studentRow.UserID),
+				Username:      studentRow.Username,
+				Email:         studentRow.Email,
+				UserDetail:    userDetail,
+				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
+				CreatedAt:     studentRow.CreatedAt.Time,
+			},
+		})
+	}
+
+	return students, nil
 }

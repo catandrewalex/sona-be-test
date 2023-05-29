@@ -134,7 +134,7 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 	mainLog.Info("User created: userID='%d', email='%s', username='%s'", userID, req.Email, req.Username)
 
 	return &output.SignUpResponse{
-		Message: "User created successfully",
+		Message: "Successfully signed up user",
 	}, nil
 }
 
@@ -200,7 +200,7 @@ func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.R
 	}
 
 	return &output.ResetPasswordResponse{
-		Message: "Password reset successfully.",
+		Message: "Successfully reset password",
 	}, nil
 }
 
@@ -255,8 +255,8 @@ func (s *BackendService) InsertUsersHandler(ctx context.Context, req *output.Ins
 		return nil, errV
 	}
 
-	specs := make([]identity.InsertUserSpec, 0, len(req.Params))
-	for _, param := range req.Params {
+	specs := make([]identity.InsertUserSpec, 0, len(req.Data))
+	for _, param := range req.Data {
 		specs = append(specs, identity.InsertUserSpec{
 			Email:             param.Email,
 			Password:          param.Password,
@@ -277,8 +277,16 @@ func (s *BackendService) InsertUsersHandler(ctx context.Context, req *output.Ins
 	}
 	mainLog.Info("Users created: userIDs='%v'", userIDs)
 
+	users, err := s.identityService.GetUsersByIds(ctx, userIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsersByIds: %v", err), nil, "")
+	}
+
 	return &output.InsertUsersResponse{
-		Data: userIDs,
+		Data: output.InsertUserResult{
+			Results: users,
+		},
+		Message: "Successfully created users",
 	}, nil
 }
 
@@ -344,8 +352,16 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
+	teachers, err := s.teachingService.GetTeachersByIds(ctx, teacherIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachersByIds: %v", err), nil, "")
+	}
+
 	return &output.InsertTeachersResponse{
-		Data: teacherIDs,
+		Data: output.InsertTeacherResult{
+			Results: teachers,
+		},
+		Message: "Successfully created teachers",
 	}, nil
 }
 
@@ -376,9 +392,17 @@ func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, 
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
+	teachers, err := s.teachingService.GetTeachersByIds(ctx, teacherIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachersByIds: %v", err), nil, "")
+	}
+
 	return &output.InsertTeachersWithNewUsersResponse{
 		InsertTeachersResponse: output.InsertTeachersResponse{
-			Data: teacherIDs,
+			Data: output.InsertTeacherResult{
+				Results: teachers,
+			},
+			Message: "Successfully created teachers",
 		},
 	}, nil
 }

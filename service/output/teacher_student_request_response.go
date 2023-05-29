@@ -54,8 +54,11 @@ type InsertTeachersRequest struct {
 	UserIDs []identity.UserID `json:"userIDs"`
 }
 type InsertTeachersResponse struct {
-	Data    []teaching.TeacherID `json:"data"`
-	Message string               `json:"message,omitempty"`
+	Data    InsertTeacherResult `json:"data"`
+	Message string              `json:"message,omitempty"`
+}
+type InsertTeacherResult struct {
+	Results []teaching.Teacher `json:"results"`
 }
 
 func (r InsertTeachersRequest) Validate() errs.ValidationError {
@@ -63,7 +66,7 @@ func (r InsertTeachersRequest) Validate() errs.ValidationError {
 }
 
 type InsertTeachersWithNewUsersRequest struct {
-	Params []InsertUserRequestParam `json:"params"`
+	Data []InsertUserRequestParam `json:"data"`
 }
 type InsertTeachersWithNewUsersResponse struct {
 	InsertTeachersResponse

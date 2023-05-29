@@ -37,6 +37,7 @@ const (
 type IdentityService interface {
 	GetUsers(ctx context.Context, pagination util.PaginationSpec) (GetUsersResult, error)
 	GetUserById(ctx context.Context, id UserID) (User, error)
+	GetUsersByIds(ctx context.Context, ids []UserID) ([]User, error)
 	InsertUsers(ctx context.Context, specs []InsertUserSpec) ([]UserID, error)
 
 	SignUpUser(ctx context.Context, spec SignUpUserSpec) (UserID, error)

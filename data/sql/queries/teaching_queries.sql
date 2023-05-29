@@ -15,6 +15,11 @@ FROM teacher JOIN user ON teacher.user_id = user.id
 ORDER BY teacher.id
 LIMIT ? OFFSET ?;
 
+-- name: GetTeachersByIds :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
+WHERE teacher.id IN (sqlc.slice('ids'));
+
 -- name: CountTeachers :one
 SELECT Count(*) as total FROM teacher;
 
@@ -45,6 +50,11 @@ SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_t
 FROM student JOIN user ON student.user_id = user.id
 ORDER BY student.id
 LIMIT ? OFFSET ?;
+
+-- name: GetStudentsByIds :many
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
+WHERE student.id IN (sqlc.slice('ids'));
 
 -- name: CountStudents :one
 SELECT Count(*) as total FROM student;

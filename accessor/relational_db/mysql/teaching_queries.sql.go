@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 )
 
 const activateClass = `-- name: ActivateClass :exec
@@ -879,6 +880,65 @@ func (q *Queries) GetStudents(ctx context.Context, arg GetStudentsParams) ([]Get
 	return items, nil
 }
 
+const getStudentsByIds = `-- name: GetStudentsByIds :many
+SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM student JOIN user ON student.user_id = user.id
+WHERE student.id IN (/*SLICE:ids*/?)
+`
+
+type GetStudentsByIdsRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
+func (q *Queries) GetStudentsByIds(ctx context.Context, ids []int64) ([]GetStudentsByIdsRow, error) {
+	sql := getStudentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStudentsByIdsRow
+	for rows.Next() {
+		var i GetStudentsByIdsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTeacherById = `-- name: GetTeacherById :one
 SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
 FROM teacher JOIN user ON teacher.user_id = user.id
@@ -1098,6 +1158,65 @@ func (q *Queries) GetTeachers(ctx context.Context, arg GetTeachersParams) ([]Get
 	var items []GetTeachersRow
 	for rows.Next() {
 		var i GetTeachersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeachersByIds = `-- name: GetTeachersByIds :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
+WHERE teacher.id IN (/*SLICE:ids*/?)
+`
+
+type GetTeachersByIdsRow struct {
+	ID            int64
+	UserID        int64
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	CreatedAt     sql.NullTime
+}
+
+func (q *Queries) GetTeachersByIds(ctx context.Context, ids []int64) ([]GetTeachersByIdsRow, error) {
+	sql := getTeachersByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeachersByIdsRow
+	for rows.Next() {
+		var i GetTeachersByIdsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,

@@ -72,11 +72,13 @@ const (
 type TeachingService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
 	GetTeacherById(ctx context.Context, id TeacherID) (Teacher, error)
+	GetTeachersByIds(ctx context.Context, ids []TeacherID) ([]Teacher, error)
 	InsertTeachers(ctx context.Context, userIDs []identity.UserID) ([]TeacherID, error)
 	InsertTeachersWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]TeacherID, error)
 
 	GetStudents(ctx context.Context, pagination util.PaginationSpec) (GetStudentsResult, error)
 	GetStudentById(ctx context.Context, id StudentID) (Student, error)
+	GetStudentsByIds(ctx context.Context, ids []StudentID) ([]Student, error)
 }
 
 type GetTeachersResult struct {

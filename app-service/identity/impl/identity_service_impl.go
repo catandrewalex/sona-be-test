@@ -110,6 +110,38 @@ func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID
 	}, nil
 }
 
+func (s identityServiceImpl) GetUsersByIds(ctx context.Context, ids []identity.UserID) ([]identity.User, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	userRows, err := s.mySQLQueries.GetUsersByIds(ctx, idsInt)
+	if err != nil {
+		return []identity.User{}, fmt.Errorf("mySQLQueries.GetUsersByIds(): %w", err)
+	}
+
+	users := make([]identity.User, 0, len(userRows))
+	for _, userRow := range userRows {
+		var userDetail identity.UserDetail
+		err = json.Unmarshal(userRow.UserDetail, &userDetail)
+		if err != nil {
+			return []identity.User{}, fmt.Errorf("json.Unmarshal(): %w", err)
+		}
+
+		users = append(users, identity.User{
+			ID:            identity.UserID(userRow.ID),
+			Username:      userRow.Username,
+			Email:         userRow.Email,
+			UserDetail:    userDetail,
+			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
+			CreatedAt:     userRow.CreatedAt.Time,
+		})
+	}
+
+	return users, nil
+}
+
 // InsertUsers insert users specified in spec in bulk, in single transaction (it's ALL successful or NONE successful).
 //
 // This methods check for existing *sql.Tx inside ctx, and will reuse the tx to execute the insertion.

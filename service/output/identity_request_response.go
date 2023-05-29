@@ -102,18 +102,21 @@ func (r GetUserRequest) Validate() errs.ValidationError {
 }
 
 type InsertUsersRequest struct {
-	Params []InsertUserRequestParam `json:"params"`
+	Data []InsertUserRequestParam `json:"data"`
 }
 type InsertUserRequestParam struct {
+	Username          string                     `json:"username"`
 	Email             string                     `json:"email"`
 	Password          string                     `json:"password"`
-	Username          string                     `json:"username"`
 	UserDetail        identity.UserDetail        `json:"userDetail"`
 	UserPrivilegeType identity.UserPrivilegeType `json:"userPrivilegeType"`
 }
 type InsertUsersResponse struct {
-	Data    []identity.UserID `json:"data"`
-	Message string            `json:"message,omitempty"`
+	Data    InsertUserResult `json:"data"`
+	Message string           `json:"message,omitempty"`
+}
+type InsertUserResult struct {
+	Results []identity.User `json:"results"`
 }
 
 func (r InsertUsersRequest) Validate() errs.ValidationError {

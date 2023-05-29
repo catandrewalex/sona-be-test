@@ -101,52 +101,6 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
-const getUserByIds = `-- name: GetUserByIds :many
-SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at from user
-WHERE id IN (/*SLICE:ids*/?)
-`
-
-func (q *Queries) GetUserByIds(ctx context.Context, ids []int64) ([]User, error) {
-	sql := getUserByIds
-	var queryParams []interface{}
-	if len(ids) > 0 {
-		for _, v := range ids {
-			queryParams = append(queryParams, v)
-		}
-		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
-	} else {
-		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
-	}
-	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.Email,
-			&i.UserDetail,
-			&i.PrivilegeType,
-			&i.IsDeactivated,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getUserCredentialByEmail = `-- name: GetUserCredentialByEmail :one
 SELECT user_id, username, email, password FROM user_credential WHERE email = ?
 `
@@ -209,6 +163,52 @@ type GetUsersParams struct {
 
 func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
 	rows, err := q.db.QueryContext(ctx, getUsers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersByIds = `-- name: GetUsersByIds :many
+SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at from user
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetUsersByIds(ctx context.Context, ids []int64) ([]User, error) {
+	sql := getUsersByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
 	if err != nil {
 		return nil, err
 	}
