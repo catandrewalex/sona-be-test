@@ -11,6 +11,11 @@ const (
 	Default_MaxResultsPerPage = 100
 )
 
+type ErrorResponse struct {
+	Errors  map[string]string `json:"errors"`
+	Message string            `json:"message,omitempty"`
+}
+
 type PaginationRequest struct {
 	Page           int `json:"page"`
 	ResultsPerPage int `json:"resultsPerPage"`

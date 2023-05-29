@@ -288,12 +288,12 @@ func (s identityServiceImpl) ForgotPassword(ctx context.Context, spec identity.F
 func (s identityServiceImpl) ResetPassword(ctx context.Context, spec identity.ResetPasswordSpec) error {
 	claims, err := s.jwtService.VerifyTokenStringAndReturnClaims(spec.ResetToken)
 	if err != nil {
-		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("VerifyTokenStringAndReturnClaims(): %v", err), map[string]string{errs.ClientMessageKey_NonField: "Invalid reset password token. Try requesting for a password reset again."})
+		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("VerifyTokenStringAndReturnClaims(): %v", err), nil, "Invalid reset password token. Try requesting for a password reset again.")
 	}
 
 	mainClaims := claims.(*auth.MainJWTClaims)
 	if mainClaims.PurposeType != auth.JWTTokenPurposeType_ResetPassword {
-		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("invalid JWT token purpose"), map[string]string{errs.ClientMessageKey_NonField: "Invalid reset password token"})
+		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("invalid JWT token purpose"), nil, "Invalid reset password token")
 	}
 
 	userID := mainClaims.UserID

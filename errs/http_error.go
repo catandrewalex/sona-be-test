@@ -7,21 +7,24 @@ const (
 type HTTPError interface {
 	Error() string
 
-	GetClientMessages() map[string]string
+	GetProcessableErrors() map[string]string
+	GetClientMessage() string
 	GetHTTPErrorCode() int
 }
 
 type httpError struct {
-	err            error
-	clientMessages map[string]string
-	httpErrorCode  int
+	err               error
+	processableErrors map[string]string
+	clientMessage     string
+	httpErrorCode     int
 }
 
-func NewHTTPError(httpErrorCode int, err error, clientMessages map[string]string) HTTPError {
+func NewHTTPError(httpErrorCode int, err error, processableErrors map[string]string, clientMessage string) HTTPError {
 	return httpError{
-		err:            err,
-		clientMessages: clientMessages,
-		httpErrorCode:  httpErrorCode,
+		err:               err,
+		processableErrors: processableErrors,
+		clientMessage:     clientMessage,
+		httpErrorCode:     httpErrorCode,
 	}
 }
 
@@ -29,8 +32,15 @@ func (e httpError) Error() string {
 	return e.err.Error()
 }
 
-func (e httpError) GetClientMessages() map[string]string {
-	return e.clientMessages
+func (e httpError) GetProcessableErrors() map[string]string {
+	if e.processableErrors == nil {
+		return map[string]string{}
+	}
+	return e.processableErrors
+}
+
+func (e httpError) GetClientMessage() string {
+	return e.clientMessage
 }
 
 func (e httpError) GetHTTPErrorCode() int {

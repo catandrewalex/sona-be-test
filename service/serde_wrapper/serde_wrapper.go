@@ -12,6 +12,7 @@ import (
 
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
+	"sonamusica-backend/service/output"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -146,13 +147,13 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, rType reflect.Type
 	if r.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(r.Body).Decode(elem)
 		if err != nil {
-			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.NewDecoder(r.Body).Decode(): %v", err), map[string]string{errs.ClientMessageKey_NonField: "Does the request contain valid JSON?"})
+			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.NewDecoder(r.Body).Decode(): %v", err), map[string]string{errs.ClientMessageKey_NonField: "Does the request contain valid JSON?"}, "")
 		}
 	} else {
 		urlQueryInJSON := convertURLQueryToJSONString(r.URL.Query().Encode())
 		err := json.Unmarshal(urlQueryInJSON, elem)
 		if err != nil {
-			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.Unmarshal(urlQueryInJSON): %v", err), map[string]string{errs.ClientMessageKey_NonField: "The request doesn't contain JSON and has invalid URL query params!"})
+			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.Unmarshal(urlQueryInJSON): %v", err), map[string]string{errs.ClientMessageKey_NonField: "The request doesn't contain JSON and has invalid URL query params!"}, "")
 		}
 	}
 
@@ -223,7 +224,12 @@ func convertURLQueryToJSONString(encodedURLQuery string) []byte {
 func (wrapper JSONSerdeWrapper) handleError(r *http.Request, w http.ResponseWriter, httpErr errs.HTTPError) {
 	logging.HTTPServerLogger.Error("Error: %v", httpErr)
 
-	resBytes, err := json.Marshal(map[string]interface{}{"messages": httpErr.GetClientMessages()})
+	errResponse := output.ErrorResponse{
+		Errors:  httpErr.GetProcessableErrors(),
+		Message: httpErr.GetClientMessage(),
+	}
+
+	resBytes, err := json.Marshal(errResponse)
 	if err != nil {
 		logging.HTTPServerLogger.Error("Error on json.Marshal(): %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

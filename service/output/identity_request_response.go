@@ -104,7 +104,6 @@ func (r GetUserRequest) Validate() errs.ValidationError {
 type InsertUsersRequest struct {
 	Params []InsertUserRequestParam `json:"params"`
 }
-
 type InsertUserRequestParam struct {
 	Email             string                     `json:"email"`
 	Password          string                     `json:"password"`
@@ -112,7 +111,6 @@ type InsertUserRequestParam struct {
 	UserDetail        identity.UserDetail        `json:"userDetail"`
 	UserPrivilegeType identity.UserPrivilegeType `json:"userPrivilegeType"`
 }
-
 type InsertUsersResponse struct {
 	Data    []identity.UserID `json:"data"`
 	Message string            `json:"message,omitempty"`

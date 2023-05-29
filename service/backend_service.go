@@ -127,9 +127,9 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 		errContext := fmt.Sprintf("identityService.SignUpUser()")
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create user")
 	}
 	mainLog.Info("User created: userID='%d', email='%s', username='%s'", userID, req.Email, req.Username)
 
@@ -143,10 +143,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 		return nil, errV
 	}
 
-	requestContext, errHTTP := network.GetRequestContext(ctx)
-	if errHTTP != nil {
-		return nil, errs.NewHTTPError(errHTTP.GetHTTPErrorCode(), fmt.Errorf("network.GetRequestContext(): %w", errHTTP), errHTTP.GetClientMessages())
-	}
+	requestContext := network.GetRequestContext(ctx)
 	mainLog.Debug("context: %#v", ctx)
 	mainLog.Debug("requestContext: %#v", requestContext)
 	mainLog.Debug("request: %#v", req)
@@ -156,7 +153,7 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 		Password:        req.Password,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Authentication failed"})
+		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), nil, "Authentication failed")
 	}
 
 	return &output.LoginResponse{
@@ -177,7 +174,7 @@ func (s *BackendService) ForgotPasswordHandler(ctx context.Context, req *output.
 		Email: req.Email,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), map[string]string{})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), nil, "Failed to send forgot password request")
 	}
 
 	return &output.ForgotPasswordResponse{
@@ -199,7 +196,7 @@ func (s *BackendService) ResetPasswordHandler(ctx context.Context, req *output.R
 		if errors.As(err, &httpErr) {
 			return nil, httpErr
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), map[string]string{})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ResetPassword(): %w", err), nil, "Failed to reset password")
 	}
 
 	return &output.ResetPasswordResponse{
@@ -217,7 +214,7 @@ func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUse
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Failed to get users"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), nil, "Failed to get users")
 	}
 
 	paginationResult := getUsersResult.PaginationResult
@@ -243,9 +240,9 @@ func (s *BackendService) GetUserByIdHandler(ctx context.Context, req *output.Get
 	if err != nil {
 		wrappedErr := fmt.Errorf("identityService.GetUserById(): %w", err)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, map[string]string{})
+			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, "User is not found")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, map[string]string{})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, "Failed to get user")
 	}
 
 	return &output.GetUserResponse{
@@ -274,9 +271,9 @@ func (s *BackendService) InsertUsersHandler(ctx context.Context, req *output.Ins
 		errContext := fmt.Sprintf("identityService.InsertUsers()")
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid user properties")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create user"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create user")
 	}
 	mainLog.Info("Users created: userIDs='%v'", userIDs)
 
@@ -295,7 +292,7 @@ func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.Get
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachers(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Failed to get teachers"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachers(): %w", err), nil, "Failed to get teachers")
 	}
 
 	paginationResult := getTeachersResult.PaginationResult
@@ -321,9 +318,9 @@ func (s *BackendService) GetTeacherByIdHandler(ctx context.Context, req *output.
 	if err != nil {
 		wrappedErr := fmt.Errorf("identityService.GetTeacherById(): %w", err)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, map[string]string{})
+			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, "Teacher is not found")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, map[string]string{})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, "Failed to get teacher")
 	}
 
 	return &output.GetTeacherResponse{
@@ -341,9 +338,9 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 		errContext := fmt.Sprintf("teachingService.InsertTeachers()")
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid teacher properties")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create teachers"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create teachers")
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
@@ -357,8 +354,8 @@ func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, 
 		return nil, errV
 	}
 
-	insertUserSpecs := make([]identity.InsertUserSpec, 0, len(req.Params))
-	for _, param := range req.Params {
+	insertUserSpecs := make([]identity.InsertUserSpec, 0, len(req.Data))
+	for _, param := range req.Data {
 		insertUserSpecs = append(insertUserSpecs, identity.InsertUserSpec{
 			Email:             param.Email,
 			Password:          param.Password,
@@ -373,9 +370,9 @@ func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, 
 		errContext := fmt.Sprintf("teachingService.InsertTeachersWithNewUsers()")
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail())
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid teacher properties")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), map[string]string{errs.ClientMessageKey_NonField: "Failed to create teachers"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create teachers")
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
@@ -396,7 +393,7 @@ func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.Get
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudents(): %w", err), map[string]string{errs.ClientMessageKey_NonField: "Failed to get students"})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudents(): %w", err), nil, "Failed to get students")
 	}
 
 	paginationResult := getStudentsResult.PaginationResult
@@ -422,9 +419,9 @@ func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.
 	if err != nil {
 		wrappedErr := fmt.Errorf("identityService.GetStudentById(): %w", err)
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, map[string]string{})
+			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, "Student is not found")
 		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, map[string]string{})
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, "Failed to get student")
 	}
 
 	return &output.GetStudentResponse{
