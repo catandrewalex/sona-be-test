@@ -261,7 +261,7 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 		})
 		wrappedErr = errs.WrapMySQLError(err)
 		if wrappedErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredential(): %w", wrappedErr)
+			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUserCredentialInfoByUserId(): %w", wrappedErr)
 		}
 
 		userIDs = append(userIDs, spec.ID)

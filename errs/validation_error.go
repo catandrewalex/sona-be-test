@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"sonamusica-backend/logging"
 	"strings"
-
-	goMySQL "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -133,27 +131,6 @@ type ValidationErrorDetail map[string]string
 func NewValidationError(err error, detail ValidationErrorDetail) ValidationError {
 	return &validationError{
 		Err:    err,
-		Detail: detail,
-	}
-}
-
-func NewValidationErrorFromMySQLDuplicateKey(mySQLError goMySQL.MySQLError) ValidationError {
-	detail := make(ValidationErrorDetail, 0)
-
-	// Add the duplicated keys if the error is a MySQL duplicated key error
-	if mySQLError.Number == MySQL_ErrorNumber_DuplicateKey {
-		value, key := extractSQLValueAndKeyNameFromErrorString(mySQLError.Message)
-		existingValue, ok := detail[key]
-		if ok {
-			logging.AppLogger.Warn("Replacing existing validation error detail: key='%s', from value='%s' to '%s'", key, existingValue, value)
-		}
-		detail[key] = fmt.Sprintf("'%s' '%s' already exists", key, value)
-	} else {
-		panic("received invalid MySQLError, not a 'duplicate key error'")
-	}
-
-	return &validationError{
-		Err:    &mySQLError,
 		Detail: detail,
 	}
 }
