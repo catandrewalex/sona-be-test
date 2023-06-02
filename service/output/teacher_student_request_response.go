@@ -51,7 +51,10 @@ func (r GetTeacherRequest) Validate() errs.ValidationError {
 }
 
 type InsertTeachersRequest struct {
-	UserIDs []identity.UserID `json:"userIDs"`
+	Data []InsertTeachersRequestParam `json:"data"`
+}
+type InsertTeachersRequestParam struct {
+	UserID identity.UserID `json:"userID"`
 }
 type InsertTeachersResponse struct {
 	Data    InsertTeacherResult `json:"data"`
@@ -109,5 +112,34 @@ type GetStudentResponse struct {
 }
 
 func (r GetStudentRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertStudentsRequest struct {
+	Data []InsertStudentsRequestParam `json:"data"`
+}
+type InsertStudentsRequestParam struct {
+	UserID identity.UserID `json:"userID"`
+}
+type InsertStudentsResponse struct {
+	Data    InsertStudentResult `json:"data"`
+	Message string              `json:"message,omitempty"`
+}
+type InsertStudentResult struct {
+	Results []teaching.Student `json:"results"`
+}
+
+func (r InsertStudentsRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertStudentsWithNewUsersRequest struct {
+	Data []InsertUserRequestParam `json:"data"`
+}
+type InsertStudentsWithNewUsersResponse struct {
+	InsertStudentsResponse
+}
+
+func (r InsertStudentsWithNewUsersRequest) Validate() errs.ValidationError {
 	return nil
 }

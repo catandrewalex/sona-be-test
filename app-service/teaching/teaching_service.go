@@ -79,6 +79,8 @@ type TeachingService interface {
 	GetStudents(ctx context.Context, pagination util.PaginationSpec) (GetStudentsResult, error)
 	GetStudentById(ctx context.Context, id StudentID) (Student, error)
 	GetStudentsByIds(ctx context.Context, ids []StudentID) ([]Student, error)
+	InsertStudents(ctx context.Context, userIDs []identity.UserID) ([]StudentID, error)
+	InsertStudentsWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]StudentID, error)
 }
 
 type GetTeachersResult struct {

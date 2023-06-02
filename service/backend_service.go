@@ -341,7 +341,12 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	teacherIDs, err := s.teachingService.InsertTeachers(ctx, req.UserIDs)
+	userIDs := make([]identity.UserID, 0, len(req.Data))
+	for _, param := range req.Data {
+		userIDs = append(userIDs, param.UserID)
+	}
+
+	teacherIDs, err := s.teachingService.InsertTeachers(ctx, userIDs)
 	if err != nil {
 		errContext := fmt.Sprintf("teachingService.InsertTeachers()")
 		var validationErr errs.ValidationError
@@ -450,5 +455,81 @@ func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.
 
 	return &output.GetStudentResponse{
 		Data: student,
+	}, nil
+}
+
+func (s *BackendService) InsertStudentsHandler(ctx context.Context, req *output.InsertStudentsRequest) (*output.InsertStudentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	userIDs := make([]identity.UserID, 0, len(req.Data))
+	for _, param := range req.Data {
+		userIDs = append(userIDs, param.UserID)
+	}
+
+	studentIDs, err := s.teachingService.InsertStudents(ctx, userIDs)
+	if err != nil {
+		errContext := fmt.Sprintf("teachingService.InsertStudents()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid student properties")
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create students")
+	}
+	mainLog.Info("Students created: studentIDs='%v'", studentIDs)
+
+	students, err := s.teachingService.GetStudentsByIds(ctx, studentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudentsByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertStudentsResponse{
+		Data: output.InsertStudentResult{
+			Results: students,
+		},
+		Message: "Successfully created students",
+	}, nil
+}
+
+func (s *BackendService) InsertStudentsWithNewUsersHandler(ctx context.Context, req *output.InsertStudentsWithNewUsersRequest) (*output.InsertStudentsWithNewUsersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	insertUserSpecs := make([]identity.InsertUserSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		insertUserSpecs = append(insertUserSpecs, identity.InsertUserSpec{
+			Email:             param.Email,
+			Password:          param.Password,
+			Username:          param.Username,
+			UserDetail:        param.UserDetail,
+			UserPrivilegeType: param.UserPrivilegeType,
+		})
+	}
+
+	studentIDs, err := s.teachingService.InsertStudentsWithNewUsers(ctx, insertUserSpecs)
+	if err != nil {
+		errContext := fmt.Sprintf("teachingService.InsertStudentsWithNewUsers()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid student properties")
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create students")
+	}
+	mainLog.Info("Students created: studentIDs='%v'", studentIDs)
+
+	students, err := s.teachingService.GetStudentsByIds(ctx, studentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudentsByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertStudentsWithNewUsersResponse{
+		InsertStudentsResponse: output.InsertStudentsResponse{
+			Data: output.InsertStudentResult{
+				Results: students,
+			},
+			Message: "Successfully created students",
+		},
 	}, nil
 }

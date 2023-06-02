@@ -89,7 +89,8 @@ func main() {
 
 		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 		authRouter.Get("/student/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetStudentByIdHandler, "ID"))
-		// authRouter.Post("/students", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsHandler))
+		authRouter.Post("/students", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsHandler))
+		authRouter.Post("/students/new-users", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsWithNewUsersHandler))
 		// authRouter.Put("/students", jsonSerdeWrapper.WrapFunc(backendService.UpdateStudentsHandler))
 		// authRouter.Delete("/students", jsonSerdeWrapper.WrapFunc(backendService.DeleteStudentsHandler))
 	})
