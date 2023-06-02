@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"database/sql"
 
@@ -238,11 +239,7 @@ func (s *BackendService) GetUserByIdHandler(ctx context.Context, req *output.Get
 
 	user, err := s.identityService.GetUserById(ctx, req.ID)
 	if err != nil {
-		wrappedErr := fmt.Errorf("identityService.GetUserById(): %w", err)
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, "User is not found")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, "Failed to get user")
+		return nil, handleReadError(err, "identityService.GetUserById()", "user")
 	}
 
 	return &output.GetUserResponse{
@@ -268,12 +265,7 @@ func (s *BackendService) InsertUsersHandler(ctx context.Context, req *output.Ins
 
 	userIDs, err := s.identityService.InsertUsers(ctx, specs)
 	if err != nil {
-		errContext := fmt.Sprintf("identityService.InsertUsers()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid user properties")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create user")
+		return nil, handleUpsertionError(err, "identityService.InsertUsers()", "user")
 	}
 	mainLog.Info("Users created: userIDs='%v'", userIDs)
 
@@ -309,14 +301,9 @@ func (s *BackendService) UpdateUsersHandler(ctx context.Context, req *output.Upd
 
 	userIDs, err := s.identityService.UpdateUserInfos(ctx, specs)
 	if err != nil {
-		errContext := fmt.Sprintf("identityService.UpdateUserInfos()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid user properties")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create user")
+		return nil, handleUpsertionError(err, "identityService.UpdateUserInfos()", "user")
 	}
-	mainLog.Info("Users created: userIDs='%v'", userIDs)
+	mainLog.Info("Users updated: userIDs='%v'", userIDs)
 
 	users, err := s.identityService.GetUsersByIds(ctx, userIDs)
 	if err != nil {
@@ -341,10 +328,6 @@ func (s *BackendService) UpdateUserPasswordHandler(ctx context.Context, req *out
 		Password: req.NewPassword,
 	})
 	if err != nil {
-		var httpErr errs.HTTPError
-		if errors.As(err, &httpErr) {
-			return nil, httpErr
-		}
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.UpdateUserPassword(): %w", err), nil, "Failed to reset password")
 	}
 
@@ -387,11 +370,7 @@ func (s *BackendService) GetTeacherByIdHandler(ctx context.Context, req *output.
 
 	teacher, err := s.teachingService.GetTeacherById(ctx, req.ID)
 	if err != nil {
-		wrappedErr := fmt.Errorf("identityService.GetTeacherById(): %w", err)
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, "Teacher is not found")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, "Failed to get teacher")
+		return nil, handleReadError(err, "identityService.GetTeacherById()", "teacher")
 	}
 
 	return &output.GetTeacherResponse{
@@ -411,12 +390,7 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 
 	teacherIDs, err := s.teachingService.InsertTeachers(ctx, userIDs)
 	if err != nil {
-		errContext := fmt.Sprintf("teachingService.InsertTeachers()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid teacher properties")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create teachers")
+		return nil, handleUpsertionError(err, "teachingService.InsertTeachers()", "teacher")
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
@@ -451,12 +425,7 @@ func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, 
 
 	teacherIDs, err := s.teachingService.InsertTeachersWithNewUsers(ctx, insertUserSpecs)
 	if err != nil {
-		errContext := fmt.Sprintf("teachingService.InsertTeachersWithNewUsers()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid teacher properties")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create teachers")
+		return nil, handleUpsertionError(err, "teachingService.InsertTeachersWithNewUsers()", "teacher")
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
@@ -509,11 +478,7 @@ func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.
 
 	student, err := s.teachingService.GetStudentById(ctx, req.ID)
 	if err != nil {
-		wrappedErr := fmt.Errorf("identityService.GetStudentById(): %w", err)
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, "Student is not found")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, "Failed to get student")
+		return nil, handleReadError(err, "identityService.GetStudentById()", "student")
 	}
 
 	return &output.GetStudentResponse{
@@ -533,12 +498,7 @@ func (s *BackendService) InsertStudentsHandler(ctx context.Context, req *output.
 
 	studentIDs, err := s.teachingService.InsertStudents(ctx, userIDs)
 	if err != nil {
-		errContext := fmt.Sprintf("teachingService.InsertStudents()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid student properties")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create students")
+		return nil, handleUpsertionError(err, "teachingService.InsertStudents()", "student")
 	}
 	mainLog.Info("Students created: studentIDs='%v'", studentIDs)
 
@@ -573,12 +533,7 @@ func (s *BackendService) InsertStudentsWithNewUsersHandler(ctx context.Context, 
 
 	studentIDs, err := s.teachingService.InsertStudentsWithNewUsers(ctx, insertUserSpecs)
 	if err != nil {
-		errContext := fmt.Sprintf("teachingService.InsertStudentsWithNewUsers()")
-		var validationErr errs.ValidationError
-		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid student properties")
-		}
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create students")
+		return nil, handleUpsertionError(err, "teachingService.InsertStudentsWithNewUsers()", "student")
 	}
 	mainLog.Info("Students created: studentIDs='%v'", studentIDs)
 
@@ -595,4 +550,349 @@ func (s *BackendService) InsertStudentsWithNewUsersHandler(ctx context.Context, 
 			Message: "Successfully created students",
 		},
 	}, nil
+}
+
+func (s *BackendService) GetInstrumentsHandler(ctx context.Context, req *output.GetInstrumentsRequest) (*output.GetInstrumentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getInstrumentsResult, err := s.teachingService.GetInstruments(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstruments(): %w", err), nil, "Failed to get instruments")
+	}
+
+	paginationResult := getInstrumentsResult.PaginationResult
+
+	return &output.GetInstrumentsResponse{
+		Data: output.GetInstrumentsResult{
+			Results: getInstrumentsResult.Instruments,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   paginationResult.TotalPages,
+				TotalResults: paginationResult.TotalResults,
+				CurrentPage:  paginationResult.CurrentPage,
+			},
+		},
+	}, nil
+}
+
+func (s *BackendService) GetInstrumentByIdHandler(ctx context.Context, req *output.GetInstrumentRequest) (*output.GetInstrumentResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	instrument, err := s.teachingService.GetInstrumentById(ctx, req.ID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetInstrumentById()", "instrument")
+	}
+
+	return &output.GetInstrumentResponse{
+		Data: instrument,
+	}, nil
+}
+
+func (s *BackendService) InsertInstrumentsHandler(ctx context.Context, req *output.InsertInstrumentsRequest) (*output.InsertInstrumentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.InsertInstrumentSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.InsertInstrumentSpec{
+			Name: param.Name,
+		})
+	}
+
+	instrumentIDs, err := s.teachingService.InsertInstruments(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.InsertInstruments()", "instrument")
+	}
+	mainLog.Info("Instruments created: instrumentIDs='%v'", instrumentIDs)
+
+	instruments, err := s.teachingService.GetInstrumentsByIds(ctx, instrumentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstrumentsByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertInstrumentsResponse{
+		Data: output.UpsertInstrumentResult{
+			Results: instruments,
+		},
+		Message: "Successfully created instruments",
+	}, nil
+}
+
+func (s *BackendService) UpdateInstrumentsHandler(ctx context.Context, req *output.UpdateInstrumentsRequest) (*output.UpdateInstrumentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.UpdateInstrumentSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.UpdateInstrumentSpec{
+			ID:   param.ID,
+			Name: param.Name,
+		})
+	}
+
+	instrumentIDs, err := s.teachingService.UpdateInstruments(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.UpdateInstruments()", "instrument")
+	}
+	mainLog.Info("Instruments updated: instrumentIDs='%v'", instrumentIDs)
+
+	instruments, err := s.teachingService.GetInstrumentsByIds(ctx, instrumentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstrumentsByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateInstrumentsResponse{
+		Data: output.UpsertInstrumentResult{
+			Results: instruments,
+		},
+		Message: "Successfully updated instruments",
+	}, nil
+}
+
+func (s *BackendService) GetGradesHandler(ctx context.Context, req *output.GetGradesRequest) (*output.GetGradesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getGradesResult, err := s.teachingService.GetGrades(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGrades(): %w", err), nil, "Failed to get grades")
+	}
+
+	paginationResult := getGradesResult.PaginationResult
+
+	return &output.GetGradesResponse{
+		Data: output.GetGradesResult{
+			Results: getGradesResult.Grades,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   paginationResult.TotalPages,
+				TotalResults: paginationResult.TotalResults,
+				CurrentPage:  paginationResult.CurrentPage,
+			},
+		},
+	}, nil
+}
+
+func (s *BackendService) GetGradeByIdHandler(ctx context.Context, req *output.GetGradeRequest) (*output.GetGradeResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	grade, err := s.teachingService.GetGradeById(ctx, req.ID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetGradeById()", "grade")
+	}
+
+	return &output.GetGradeResponse{
+		Data: grade,
+	}, nil
+}
+
+func (s *BackendService) InsertGradesHandler(ctx context.Context, req *output.InsertGradesRequest) (*output.InsertGradesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.InsertGradeSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.InsertGradeSpec{
+			Name: param.Name,
+		})
+	}
+
+	gradeIDs, err := s.teachingService.InsertGrades(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.InsertGrades()", "grade")
+	}
+	mainLog.Info("Grades created: gradeIDs='%v'", gradeIDs)
+
+	grades, err := s.teachingService.GetGradesByIds(ctx, gradeIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGradesByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertGradesResponse{
+		Data: output.UpsertGradeResult{
+			Results: grades,
+		},
+		Message: "Successfully created grades",
+	}, nil
+}
+
+func (s *BackendService) UpdateGradesHandler(ctx context.Context, req *output.UpdateGradesRequest) (*output.UpdateGradesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.UpdateGradeSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.UpdateGradeSpec{
+			ID:   param.ID,
+			Name: param.Name,
+		})
+	}
+
+	gradeIDs, err := s.teachingService.UpdateGrades(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.UpdateGrades()", "grade")
+	}
+	mainLog.Info("Grades updated: gradeIDs='%v'", gradeIDs)
+
+	grades, err := s.teachingService.GetGradesByIds(ctx, gradeIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGradesByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateGradesResponse{
+		Data: output.UpsertGradeResult{
+			Results: grades,
+		},
+		Message: "Successfully updated grades",
+	}, nil
+}
+
+func (s *BackendService) GetCoursesHandler(ctx context.Context, req *output.GetCoursesRequest) (*output.GetCoursesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getCoursesResult, err := s.teachingService.GetCourses(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCourses(): %w", err), nil, "Failed to get courses")
+	}
+
+	paginationResult := getCoursesResult.PaginationResult
+
+	return &output.GetCoursesResponse{
+		Data: output.GetCoursesResult{
+			Results: getCoursesResult.Courses,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   paginationResult.TotalPages,
+				TotalResults: paginationResult.TotalResults,
+				CurrentPage:  paginationResult.CurrentPage,
+			},
+		},
+	}, nil
+}
+
+func (s *BackendService) GetCourseByIdHandler(ctx context.Context, req *output.GetCourseRequest) (*output.GetCourseResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	course, err := s.teachingService.GetCourseById(ctx, req.ID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetCourseById()", "course")
+	}
+
+	return &output.GetCourseResponse{
+		Data: course,
+	}, nil
+}
+
+func (s *BackendService) InsertCoursesHandler(ctx context.Context, req *output.InsertCoursesRequest) (*output.InsertCoursesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.InsertCourseSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.InsertCourseSpec{
+			InstrumentID:          param.InstrumentID,
+			GradeID:               param.GradeID,
+			DefaultFee:            param.DefaultFee,
+			DefaultDurationMinute: param.DefaultDurationMinute,
+		})
+	}
+
+	courseIDs, err := s.teachingService.InsertCourses(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.InsertCourses()", "course")
+	}
+	mainLog.Info("Courses created: courseIDs='%v'", courseIDs)
+
+	courses, err := s.teachingService.GetCoursesByIds(ctx, courseIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCoursesByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertCoursesResponse{
+		Data: output.UpsertCourseResult{
+			Results: courses,
+		},
+		Message: "Successfully created courses",
+	}, nil
+}
+
+func (s *BackendService) UpdateCoursesHandler(ctx context.Context, req *output.UpdateCoursesRequest) (*output.UpdateCoursesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.UpdateCourseSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.UpdateCourseSpec{
+			ID:                    param.ID,
+			DefaultFee:            param.DefaultFee,
+			DefaultDurationMinute: param.DefaultDurationMinute,
+		})
+	}
+
+	courseIDs, err := s.teachingService.UpdateCourses(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.UpdateCourses()", "course")
+	}
+	mainLog.Info("Courses updated: courseIDs='%v'", courseIDs)
+
+	courses, err := s.teachingService.GetCoursesByIds(ctx, courseIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCoursesByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateCoursesResponse{
+		Data: output.UpsertCourseResult{
+			Results: courses,
+		},
+		Message: "Successfully updated courses",
+	}, nil
+}
+
+// handleReadError detects non-existing result error (e.g. sql.ErrNoRows) and returns HTTP 404-NotFound. Else, returns HTTP 500.
+func handleReadError(err error, methodName, entityName string) errs.HTTPError {
+	if err == nil {
+		return nil
+	}
+
+	wrappedErr := fmt.Errorf("%s: %w", methodName, err)
+	if errors.Is(err, sql.ErrNoRows) {
+		return errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, fmt.Sprintf("%s is not found", strings.Title(entityName)))
+	}
+	return errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, fmt.Sprintf("Failed to get %s", entityName))
+}
+
+// handleReadError detects update/insert error due to rule violation (e.g. duplicate entries) and returns HTTP 409-Conflict. Else, returns HTTP 500.
+func handleUpsertionError(err error, methodName, entityName string) errs.HTTPError {
+	if err == nil {
+		return nil
+	}
+
+	var validationErr errs.ValidationError
+	if errors.As(err, &validationErr) {
+		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, validationErr), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
+	}
+	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create %s", entityName))
 }

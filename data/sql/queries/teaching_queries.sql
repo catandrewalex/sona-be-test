@@ -75,6 +75,18 @@ WHERE user_id = ?;
 SELECT * FROM instrument
 WHERE id = ? LIMIT 1;
 
+-- name: GetInstrumentsByIds :many
+SELECT * FROM instrument
+WHERE id IN (sqlc.slice('ids'));
+
+-- name: GetInstruments :many
+SELECT * FROM instrument
+ORDER BY id
+LIMIT ? OFFSET ?;
+
+-- name: CountInstruments :one
+SELECT Count(*) as total FROM instrument;
+
 -- name: InsertInstrument :execlastid
 INSERT INTO instrument ( name ) VALUES ( ? );
 
@@ -90,6 +102,18 @@ WHERE id = ?;
 -- name: GetGradeById :one
 SELECT * FROM grade
 WHERE id = ? LIMIT 1;
+
+-- name: GetGradesByIds :many
+SELECT * FROM grade
+WHERE id IN (sqlc.slice('ids'));
+
+-- name: GetGrades :many
+SELECT * FROM grade
+ORDER BY id
+LIMIT ? OFFSET ?;
+
+-- name: CountGrades :one
+SELECT Count(*) as total FROM grade;
 
 -- name: InsertGrade :execlastid
 INSERT INTO grade ( name ) VALUES ( ? );
@@ -108,7 +132,18 @@ SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS co
 FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
-ORDER BY course.id;
+ORDER BY course.id
+LIMIT ? OFFSET ?;
+
+-- name: CountCourses :one
+SELECT Count(*) as total FROM course;
+
+-- name: GetCoursesByIds :many
+SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+FROM course
+    JOIN instrument ON instrument_id = instrument.id
+    JOIN grade ON grade_id = grade.id
+WHERE course.id IN (sqlc.slice('ids'));
 
 -- name: GetCoursesByInstrumentId :many
 SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
@@ -116,7 +151,8 @@ FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
 WHERE instrument.id = ?
-ORDER BY course.id;
+ORDER BY course.id
+LIMIT ? OFFSET ?;
 
 -- name: GetCoursesByGradeId :many
 SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
@@ -124,7 +160,8 @@ FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
 WHERE grade.id = ?
-ORDER BY course.id;
+ORDER BY course.id
+LIMIT ? OFFSET ?;
 
 -- name: GetCourseById :one
 SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute

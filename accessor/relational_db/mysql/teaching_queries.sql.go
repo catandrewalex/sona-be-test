@@ -22,6 +22,39 @@ func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
 	return err
 }
 
+const countCourses = `-- name: CountCourses :one
+SELECT Count(*) as total FROM course
+`
+
+func (q *Queries) CountCourses(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countCourses)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countGrades = `-- name: CountGrades :one
+SELECT Count(*) as total FROM grade
+`
+
+func (q *Queries) CountGrades(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countGrades)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countInstruments = `-- name: CountInstruments :one
+SELECT Count(*) as total FROM instrument
+`
+
+func (q *Queries) CountInstruments(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countInstruments)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countStudents = `-- name: CountStudents :one
 SELECT Count(*) as total FROM student
 `
@@ -490,7 +523,13 @@ FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
 ORDER BY course.id
+LIMIT ? OFFSET ?
 `
+
+type GetCoursesParams struct {
+	Limit  int32
+	Offset int32
+}
 
 type GetCoursesRow struct {
 	CourseID              int64
@@ -500,8 +539,8 @@ type GetCoursesRow struct {
 }
 
 // ============================== COURSE ==============================
-func (q *Queries) GetCourses(ctx context.Context) ([]GetCoursesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCourses)
+func (q *Queries) GetCourses(ctx context.Context, arg GetCoursesParams) ([]GetCoursesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCourses, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -535,7 +574,14 @@ FROM course
     JOIN grade ON grade_id = grade.id
 WHERE grade.id = ?
 ORDER BY course.id
+LIMIT ? OFFSET ?
 `
+
+type GetCoursesByGradeIdParams struct {
+	ID     int64
+	Limit  int32
+	Offset int32
+}
 
 type GetCoursesByGradeIdRow struct {
 	CourseID              int64
@@ -544,8 +590,8 @@ type GetCoursesByGradeIdRow struct {
 	DefaultDurationMinute int32
 }
 
-func (q *Queries) GetCoursesByGradeId(ctx context.Context, id int64) ([]GetCoursesByGradeIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCoursesByGradeId, id)
+func (q *Queries) GetCoursesByGradeId(ctx context.Context, arg GetCoursesByGradeIdParams) ([]GetCoursesByGradeIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCoursesByGradeId, arg.ID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -572,6 +618,59 @@ func (q *Queries) GetCoursesByGradeId(ctx context.Context, id int64) ([]GetCours
 	return items, nil
 }
 
+const getCoursesByIds = `-- name: GetCoursesByIds :many
+SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+FROM course
+    JOIN instrument ON instrument_id = instrument.id
+    JOIN grade ON grade_id = grade.id
+WHERE course.id IN (/*SLICE:ids*/?)
+`
+
+type GetCoursesByIdsRow struct {
+	CourseID              int64
+	CourseName            string
+	DefaultFee            int64
+	DefaultDurationMinute int32
+}
+
+func (q *Queries) GetCoursesByIds(ctx context.Context, ids []int64) ([]GetCoursesByIdsRow, error) {
+	sql := getCoursesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCoursesByIdsRow
+	for rows.Next() {
+		var i GetCoursesByIdsRow
+		if err := rows.Scan(
+			&i.CourseID,
+			&i.CourseName,
+			&i.DefaultFee,
+			&i.DefaultDurationMinute,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCoursesByInstrumentId = `-- name: GetCoursesByInstrumentId :many
 SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
 FROM course
@@ -579,7 +678,14 @@ FROM course
     JOIN grade ON grade_id = grade.id
 WHERE instrument.id = ?
 ORDER BY course.id
+LIMIT ? OFFSET ?
 `
+
+type GetCoursesByInstrumentIdParams struct {
+	ID     int64
+	Limit  int32
+	Offset int32
+}
 
 type GetCoursesByInstrumentIdRow struct {
 	CourseID              int64
@@ -588,8 +694,8 @@ type GetCoursesByInstrumentIdRow struct {
 	DefaultDurationMinute int32
 }
 
-func (q *Queries) GetCoursesByInstrumentId(ctx context.Context, id int64) ([]GetCoursesByInstrumentIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCoursesByInstrumentId, id)
+func (q *Queries) GetCoursesByInstrumentId(ctx context.Context, arg GetCoursesByInstrumentIdParams) ([]GetCoursesByInstrumentIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCoursesByInstrumentId, arg.ID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -629,6 +735,78 @@ func (q *Queries) GetGradeById(ctx context.Context, id int64) (Grade, error) {
 	return i, err
 }
 
+const getGrades = `-- name: GetGrades :many
+SELECT id, name FROM grade
+ORDER BY id
+LIMIT ? OFFSET ?
+`
+
+type GetGradesParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) GetGrades(ctx context.Context, arg GetGradesParams) ([]Grade, error) {
+	rows, err := q.db.QueryContext(ctx, getGrades, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Grade
+	for rows.Next() {
+		var i Grade
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGradesByIds = `-- name: GetGradesByIds :many
+SELECT id, name FROM grade
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetGradesByIds(ctx context.Context, ids []int64) ([]Grade, error) {
+	sql := getGradesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Grade
+	for rows.Next() {
+		var i Grade
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getInstrumentById = `-- name: GetInstrumentById :one
 SELECT id, name FROM instrument
 WHERE id = ? LIMIT 1
@@ -640,6 +818,78 @@ func (q *Queries) GetInstrumentById(ctx context.Context, id int64) (Instrument, 
 	var i Instrument
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
+}
+
+const getInstruments = `-- name: GetInstruments :many
+SELECT id, name FROM instrument
+ORDER BY id
+LIMIT ? OFFSET ?
+`
+
+type GetInstrumentsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) GetInstruments(ctx context.Context, arg GetInstrumentsParams) ([]Instrument, error) {
+	rows, err := q.db.QueryContext(ctx, getInstruments, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Instrument
+	for rows.Next() {
+		var i Instrument
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getInstrumentsByIds = `-- name: GetInstrumentsByIds :many
+SELECT id, name FROM instrument
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetInstrumentsByIds(ctx context.Context, ids []int64) ([]Instrument, error) {
+	sql := getInstrumentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Instrument
+	for rows.Next() {
+		var i Instrument
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getStudentById = `-- name: GetStudentById :one

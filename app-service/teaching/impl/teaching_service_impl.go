@@ -333,3 +333,291 @@ func (s teachingServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, spe
 
 	return studentIDs, nil
 }
+
+func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util.PaginationSpec) (teaching.GetInstrumentsResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	instrumentRows, err := s.mySQLQueries.GetInstruments(ctx, mysql.GetInstrumentsParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return teaching.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
+	}
+
+	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
+	for _, instrumentRow := range instrumentRows {
+		instruments = append(instruments, teaching.Instrument{
+			ID:   teaching.InstrumentID(instrumentRow.ID),
+			Name: instrumentRow.Name,
+		})
+	}
+
+	totalResults, err := s.mySQLQueries.CountInstruments(ctx)
+
+	return teaching.GetInstrumentsResult{
+		Instruments:      instruments,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s teachingServiceImpl) GetInstrumentById(ctx context.Context, id teaching.InstrumentID) (teaching.Instrument, error) {
+	instrument, err := s.mySQLQueries.GetInstrumentById(ctx, int64(id))
+	if err != nil {
+		return teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
+	}
+
+	return teaching.Instrument{
+		ID:   teaching.InstrumentID(instrument.ID),
+		Name: instrument.Name,
+	}, nil
+}
+
+func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teaching.InstrumentID) ([]teaching.Instrument, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	instrumentRows, err := s.mySQLQueries.GetInstrumentsByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
+	}
+
+	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
+	for _, instrumentRow := range instrumentRows {
+		instruments = append(instruments, teaching.Instrument{
+			ID:   teaching.InstrumentID(instrumentRow.ID),
+			Name: instrumentRow.Name,
+		})
+	}
+
+	return instruments, nil
+}
+
+func (s teachingServiceImpl) InsertInstruments(ctx context.Context, specs []teaching.InsertInstrumentSpec) ([]teaching.InstrumentID, error) {
+	instrumentIDs := make([]teaching.InstrumentID, 0, len(specs))
+
+	for _, spec := range specs {
+		instrumentID, err := s.mySQLQueries.InsertInstrument(ctx, spec.Name)
+		if err != nil {
+			return []teaching.InstrumentID{}, fmt.Errorf("qtx.InsertInstrument(): %w", err)
+		}
+		instrumentIDs = append(instrumentIDs, teaching.InstrumentID(instrumentID))
+	}
+
+	return instrumentIDs, nil
+}
+
+func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teaching.UpdateInstrumentSpec) ([]teaching.InstrumentID, error) {
+	instrumentIDs := make([]teaching.InstrumentID, 0, len(specs))
+
+	for _, spec := range specs {
+		err := s.mySQLQueries.UpdateInstrument(ctx, mysql.UpdateInstrumentParams{
+			Name: spec.Name,
+			ID:   int64(spec.ID),
+		})
+		if err != nil {
+			return []teaching.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", err)
+		}
+		instrumentIDs = append(instrumentIDs, spec.ID)
+	}
+
+	return instrumentIDs, nil
+}
+
+func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.PaginationSpec) (teaching.GetGradesResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	gradeRows, err := s.mySQLQueries.GetGrades(ctx, mysql.GetGradesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return teaching.GetGradesResult{}, fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
+	}
+
+	grades := make([]teaching.Grade, 0, len(gradeRows))
+	for _, gradeRow := range gradeRows {
+		grades = append(grades, teaching.Grade{
+			ID:   teaching.GradeID(gradeRow.ID),
+			Name: gradeRow.Name,
+		})
+	}
+
+	totalResults, err := s.mySQLQueries.CountGrades(ctx)
+
+	return teaching.GetGradesResult{
+		Grades:           grades,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s teachingServiceImpl) GetGradeById(ctx context.Context, id teaching.GradeID) (teaching.Grade, error) {
+	grade, err := s.mySQLQueries.GetGradeById(ctx, int64(id))
+	if err != nil {
+		return teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
+	}
+
+	return teaching.Grade{
+		ID:   teaching.GradeID(grade.ID),
+		Name: grade.Name,
+	}, nil
+}
+
+func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.GradeID) ([]teaching.Grade, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	gradeRows, err := s.mySQLQueries.GetGradesByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
+	}
+
+	grades := make([]teaching.Grade, 0, len(gradeRows))
+	for _, gradeRow := range gradeRows {
+		grades = append(grades, teaching.Grade{
+			ID:   teaching.GradeID(gradeRow.ID),
+			Name: gradeRow.Name,
+		})
+	}
+
+	return grades, nil
+}
+
+func (s teachingServiceImpl) InsertGrades(ctx context.Context, specs []teaching.InsertGradeSpec) ([]teaching.GradeID, error) {
+	gradeIDs := make([]teaching.GradeID, 0, len(specs))
+
+	for _, spec := range specs {
+		gradeID, err := s.mySQLQueries.InsertGrade(ctx, spec.Name)
+		if err != nil {
+			return []teaching.GradeID{}, fmt.Errorf("qtx.InsertGrade(): %w", err)
+		}
+		gradeIDs = append(gradeIDs, teaching.GradeID(gradeID))
+	}
+
+	return gradeIDs, nil
+}
+
+func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.UpdateGradeSpec) ([]teaching.GradeID, error) {
+	gradeIDs := make([]teaching.GradeID, 0, len(specs))
+
+	for _, spec := range specs {
+		err := s.mySQLQueries.UpdateGrade(ctx, mysql.UpdateGradeParams{
+			Name: spec.Name,
+			ID:   int64(spec.ID),
+		})
+		if err != nil {
+			return []teaching.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", err)
+		}
+		gradeIDs = append(gradeIDs, spec.ID)
+	}
+
+	return gradeIDs, nil
+}
+
+func (s teachingServiceImpl) GetCourses(ctx context.Context, pagination util.PaginationSpec) (teaching.GetCoursesResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	courseRows, err := s.mySQLQueries.GetCourses(ctx, mysql.GetCoursesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return teaching.GetCoursesResult{}, fmt.Errorf("mySQLQueries.GetCourses(): %w", err)
+	}
+
+	courses := make([]teaching.Course, 0, len(courseRows))
+	for _, courseRow := range courseRows {
+		courses = append(courses, teaching.Course{
+			ID:                    teaching.CourseID(courseRow.CourseID),
+			CompleteName:          courseRow.CourseName,
+			DefaultFee:            courseRow.DefaultFee,
+			DefaultDurationMinute: courseRow.DefaultDurationMinute,
+		})
+	}
+
+	totalResults, err := s.mySQLQueries.CountCourses(ctx)
+
+	return teaching.GetCoursesResult{
+		Courses:          courses,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s teachingServiceImpl) GetCourseById(ctx context.Context, id teaching.CourseID) (teaching.Course, error) {
+	course, err := s.mySQLQueries.GetCourseById(ctx, int64(id))
+	if err != nil {
+		return teaching.Course{}, fmt.Errorf("mySQLQueries.GetCourseById(): %w", err)
+	}
+
+	return teaching.Course{
+		ID:                    teaching.CourseID(course.CourseID),
+		CompleteName:          course.CourseName,
+		DefaultFee:            course.DefaultFee,
+		DefaultDurationMinute: course.DefaultDurationMinute,
+	}, nil
+}
+
+func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching.CourseID) ([]teaching.Course, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	courseRows, err := s.mySQLQueries.GetCoursesByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.Course{}, fmt.Errorf("mySQLQueries.GetCoursesByIds(): %w", err)
+	}
+
+	courses := make([]teaching.Course, 0, len(courseRows))
+	for _, courseRow := range courseRows {
+		courses = append(courses, teaching.Course{
+			ID:                    teaching.CourseID(courseRow.CourseID),
+			CompleteName:          courseRow.CourseName,
+			DefaultFee:            courseRow.DefaultFee,
+			DefaultDurationMinute: courseRow.DefaultDurationMinute,
+		})
+	}
+
+	return courses, nil
+}
+
+func (s teachingServiceImpl) InsertCourses(ctx context.Context, specs []teaching.InsertCourseSpec) ([]teaching.CourseID, error) {
+	courseIDs := make([]teaching.CourseID, 0, len(specs))
+
+	for _, spec := range specs {
+		courseID, err := s.mySQLQueries.InsertCourse(ctx, mysql.InsertCourseParams{
+			DefaultFee:            spec.DefaultFee,
+			DefaultDurationMinute: spec.DefaultDurationMinute,
+			InstrumentID:          int64(spec.InstrumentID),
+			GradeID:               int64(spec.GradeID),
+		})
+		if err != nil {
+			return []teaching.CourseID{}, fmt.Errorf("qtx.InsertCourse(): %w", err)
+		}
+		courseIDs = append(courseIDs, teaching.CourseID(courseID))
+	}
+
+	return courseIDs, nil
+}
+
+func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching.UpdateCourseSpec) ([]teaching.CourseID, error) {
+	courseIDs := make([]teaching.CourseID, 0, len(specs))
+
+	for _, spec := range specs {
+		err := s.mySQLQueries.UpdateCourseInfo(ctx, mysql.UpdateCourseInfoParams{
+			DefaultFee:            spec.DefaultFee,
+			DefaultDurationMinute: spec.DefaultDurationMinute,
+			ID:                    int64(spec.ID),
+		})
+		if err != nil {
+			return []teaching.CourseID{}, fmt.Errorf("qtx.UpdateCourse(): %w", err)
+		}
+		courseIDs = append(courseIDs, spec.ID)
+	}
+
+	return courseIDs, nil
+}

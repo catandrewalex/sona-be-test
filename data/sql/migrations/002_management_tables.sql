@@ -33,7 +33,8 @@ CREATE TABLE course
   grade_id BIGINT unsigned NOT NULL,
   -- `course` consists of `instrument` + `grade`, and `course` is importantly referred by other tables, so these 3 should always be coupled
   FOREIGN KEY (instrument_id) REFERENCES instrument(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (grade_id) REFERENCES grade(id) ON UPDATE CASCADE ON DELETE RESTRICT
+  FOREIGN KEY (grade_id) REFERENCES grade(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  UNIQUE KEY `unique_course` (`instrument_id`, `grade_id`)
 );
 
 CREATE TABLE class
