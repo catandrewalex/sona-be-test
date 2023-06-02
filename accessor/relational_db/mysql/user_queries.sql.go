@@ -305,20 +305,6 @@ func (q *Queries) IsUserExist(ctx context.Context, email string) (bool, error) {
 	return exists, err
 }
 
-const updateEmailByUserId = `-- name: UpdateEmailByUserId :exec
-UPDATE user_credential SET email = ? WHERE user_id = ?
-`
-
-type UpdateEmailByUserIdParams struct {
-	Email  string
-	UserID int64
-}
-
-func (q *Queries) UpdateEmailByUserId(ctx context.Context, arg UpdateEmailByUserIdParams) error {
-	_, err := q.db.ExecContext(ctx, updateEmailByUserId, arg.Email, arg.UserID)
-	return err
-}
-
 const updatePasswordByUserId = `-- name: UpdatePasswordByUserId :exec
 UPDATE user_credential SET password = ? WHERE user_id = ?
 `
@@ -333,21 +319,61 @@ func (q *Queries) UpdatePasswordByUserId(ctx context.Context, arg UpdatePassword
 	return err
 }
 
+const updateUser = `-- name: UpdateUser :exec
+UPDATE user SET username = ?, email = ?, user_detail = ?, privilege_type = ?, is_deactivated = ? WHERE id = ?
+`
+
+type UpdateUserParams struct {
+	Username      string
+	Email         string
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	ID            int64
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.ExecContext(ctx, updateUser,
+		arg.Username,
+		arg.Email,
+		arg.UserDetail,
+		arg.PrivilegeType,
+		arg.IsDeactivated,
+		arg.ID,
+	)
+	return err
+}
+
+const updateUserCredentialInfoByUserId = `-- name: UpdateUserCredentialInfoByUserId :exec
+UPDATE user_credential SET username = ?, email = ? WHERE user_id = ?
+`
+
+type UpdateUserCredentialInfoByUserIdParams struct {
+	Username string
+	Email    string
+	UserID   int64
+}
+
+func (q *Queries) UpdateUserCredentialInfoByUserId(ctx context.Context, arg UpdateUserCredentialInfoByUserIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserCredentialInfoByUserId, arg.Username, arg.Email, arg.UserID)
+	return err
+}
+
 const updateUserInfo = `-- name: UpdateUserInfo :exec
-UPDATE user SET email = ?, username = ?, user_detail = ? WHERE id = ?
+UPDATE user SET username = ?, email = ?, user_detail = ? WHERE id = ?
 `
 
 type UpdateUserInfoParams struct {
-	Email      string
 	Username   string
+	Email      string
 	UserDetail json.RawMessage
 	ID         int64
 }
 
 func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserInfo,
-		arg.Email,
 		arg.Username,
+		arg.Email,
 		arg.UserDetail,
 		arg.ID,
 	)

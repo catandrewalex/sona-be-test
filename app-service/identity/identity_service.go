@@ -13,6 +13,7 @@ type User struct {
 	Email         string            `json:"email"`
 	UserDetail    UserDetail        `json:"userDetail"`
 	PrivilegeType UserPrivilegeType `json:"privilegeType"`
+	IsDeactivated bool              `json:"isDeactivated"`
 	CreatedAt     time.Time         `json:"createdAt"`
 }
 
@@ -23,6 +24,11 @@ const (
 )
 
 type AuthToken string
+
+type UserDetail struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName,omitempty"`
+}
 
 type UserPrivilegeType int32
 
@@ -39,6 +45,8 @@ type IdentityService interface {
 	GetUserById(ctx context.Context, id UserID) (User, error)
 	GetUsersByIds(ctx context.Context, ids []UserID) ([]User, error)
 	InsertUsers(ctx context.Context, specs []InsertUserSpec) ([]UserID, error)
+	UpdateUserInfos(ctx context.Context, specs []UpdateUserInfoSpec) ([]UserID, error)
+	UpdateUserPassword(ctx context.Context, spec UpdateUserPasswordSpec) error
 
 	SignUpUser(ctx context.Context, spec SignUpUserSpec) (UserID, error)
 	LoginUser(ctx context.Context, spec LoginUserSpec) (LoginUserResult, error)
@@ -59,16 +67,25 @@ type InsertUserSpec struct {
 	UserPrivilegeType UserPrivilegeType
 }
 
+type UpdateUserInfoSpec struct {
+	ID                UserID
+	Username          string
+	Email             string
+	UserDetail        UserDetail
+	UserPrivilegeType UserPrivilegeType
+	IsDeactivated     bool
+}
+
+type UpdateUserPasswordSpec struct {
+	ID       UserID
+	Password string
+}
+
 type SignUpUserSpec struct {
 	Email      string
 	Password   string
 	Username   string
 	UserDetail UserDetail
-}
-
-type UserDetail struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName,omitempty"`
 }
 
 type LoginUserSpec struct {

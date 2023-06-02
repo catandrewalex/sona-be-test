@@ -29,8 +29,11 @@ INSERT INTO user (
   ?, ?, ?, ?
 );
 
+-- name: UpdateUser :exec
+UPDATE user SET username = ?, email = ?, user_detail = ?, privilege_type = ?, is_deactivated = ? WHERE id = ?;
+
 -- name: UpdateUserInfo :exec
-UPDATE user SET email = ?, username = ?, user_detail = ? WHERE id = ?;
+UPDATE user SET username = ?, email = ?, user_detail = ? WHERE id = ?;
 
 -- name: UpdateUserPrivilege :exec
 UPDATE user SET privilege_type = ? WHERE id = ?;
@@ -62,8 +65,8 @@ INSERT INTO user_credential (
   ?, ?, ?, ?
 );
 
--- name: UpdateEmailByUserId :exec
-UPDATE user_credential SET email = ? WHERE user_id = ?;
+-- name: UpdateUserCredentialInfoByUserId :exec
+UPDATE user_credential SET username = ?, email = ? WHERE user_id = ?;
 
 -- name: UpdatePasswordByUserId :exec
 UPDATE user_credential SET password = ? WHERE user_id = ?;

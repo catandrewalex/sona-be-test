@@ -290,6 +290,69 @@ func (s *BackendService) InsertUsersHandler(ctx context.Context, req *output.Ins
 	}, nil
 }
 
+func (s *BackendService) UpdateUsersHandler(ctx context.Context, req *output.UpdateUsersRequest) (*output.UpdateUsersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]identity.UpdateUserInfoSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, identity.UpdateUserInfoSpec{
+			ID:                param.ID,
+			Username:          param.Username,
+			Email:             param.Email,
+			UserDetail:        param.UserDetail,
+			UserPrivilegeType: param.UserPrivilegeType,
+			IsDeactivated:     param.IsDeactivated,
+		})
+	}
+
+	userIDs, err := s.identityService.UpdateUserInfos(ctx, specs)
+	if err != nil {
+		errContext := fmt.Sprintf("identityService.UpdateUserInfos()")
+		var validationErr errs.ValidationError
+		if errors.As(err, &validationErr) {
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "Invalid user properties")
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create user")
+	}
+	mainLog.Info("Users created: userIDs='%v'", userIDs)
+
+	users, err := s.identityService.GetUsersByIds(ctx, userIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsersByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateUsersResponse{
+		Data: output.UpdateUserResult{
+			Results: users,
+		},
+		Message: "Successfully updated users",
+	}, nil
+}
+
+func (s *BackendService) UpdateUserPasswordHandler(ctx context.Context, req *output.UpdateUserPasswordRequest) (*output.UpdateUserPasswordResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	err := s.identityService.UpdateUserPassword(ctx, identity.UpdateUserPasswordSpec{
+		ID:       req.ID,
+		Password: req.NewPassword,
+	})
+	if err != nil {
+		var httpErr errs.HTTPError
+		if errors.As(err, &httpErr) {
+			return nil, httpErr
+		}
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.UpdateUserPassword(): %w", err), nil, "Failed to reset password")
+	}
+
+	return &output.UpdateUserPasswordResponse{
+		Message: "Successfully updated password",
+	}, nil
+}
+
 func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.GetTeachersRequest) (*output.GetTeachersResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV

@@ -122,3 +122,38 @@ type InsertUserResult struct {
 func (r InsertUsersRequest) Validate() errs.ValidationError {
 	return nil
 }
+
+type UpdateUsersRequest struct {
+	Data []UpdateUserRequestParam `json:"data"`
+}
+type UpdateUserRequestParam struct {
+	ID                identity.UserID            `json:"id"`
+	Username          string                     `json:"username"`
+	Email             string                     `json:"email"`
+	UserDetail        identity.UserDetail        `json:"userDetail"`
+	UserPrivilegeType identity.UserPrivilegeType `json:"userPrivilegeType"`
+	IsDeactivated     bool                       `json:"isDeactivated,omitempty"` // false is a zero value, so we must allow this to be empty
+}
+type UpdateUsersResponse struct {
+	Data    UpdateUserResult `json:"data"`
+	Message string           `json:"message,omitempty"`
+}
+type UpdateUserResult struct {
+	Results []identity.User `json:"results"`
+}
+
+func (r UpdateUsersRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpdateUserPasswordRequest struct {
+	ID          identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	NewPassword string          `json:"newPassword"`
+}
+type UpdateUserPasswordResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r UpdateUserPasswordRequest) Validate() errs.ValidationError {
+	return nil
+}

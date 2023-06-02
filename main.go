@@ -77,22 +77,26 @@ func main() {
 		authRouter.Get("/users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
 		authRouter.Get("/user/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "ID"))
 		authRouter.Post("/users", jsonSerdeWrapper.WrapFunc(backendService.InsertUsersHandler))
-		// authRouter.Put("/users", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersHandler))
+		authRouter.Put("/users", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersHandler))
+		authRouter.Put("/user/{ID}/password", jsonSerdeWrapper.WrapFunc(backendService.UpdateUserPasswordHandler, "ID"))
 		// authRouter.Delete("/users", jsonSerdeWrapper.WrapFunc(backendService.DeleteUsersHandler))
 
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/teacher/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherByIdHandler, "ID"))
 		authRouter.Post("/teachers", jsonSerdeWrapper.WrapFunc(backendService.InsertTeachersHandler))
 		authRouter.Post("/teachers/new-users", jsonSerdeWrapper.WrapFunc(backendService.InsertTeachersWithNewUsersHandler))
-		// authRouter.Put("/teachers", jsonSerdeWrapper.WrapFunc(backendService.UpdateTeachersHandler))
 		// authRouter.Delete("/teachers", jsonSerdeWrapper.WrapFunc(backendService.DeleteTeachersHandler))
 
 		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 		authRouter.Get("/student/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetStudentByIdHandler, "ID"))
 		authRouter.Post("/students", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsHandler))
 		authRouter.Post("/students/new-users", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsWithNewUsersHandler))
-		// authRouter.Put("/students", jsonSerdeWrapper.WrapFunc(backendService.UpdateStudentsHandler))
 		// authRouter.Delete("/students", jsonSerdeWrapper.WrapFunc(backendService.DeleteStudentsHandler))
+
+		// authRouter.Get("/instruments", jsonSerdeWrapper.WrapFunc(backendService.GetInstrumentsHandler))
+		// authRouter.Get("/instrument/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetInstrumentByIdHandler, "ID"))
+		// authRouter.Post("/instruments", jsonSerdeWrapper.WrapFunc(backendService.InsertInstrumentsHandler))
+		// authRouter.Delete("/instruments", jsonSerdeWrapper.WrapFunc(backendService.DeleteInstrumentsHandler))
 	})
 
 	server := &http.Server{

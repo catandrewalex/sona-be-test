@@ -56,6 +56,7 @@ func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.Pa
 				Email:         teacherRow.Email,
 				UserDetail:    userDetail,
 				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
+				IsDeactivated: util.Int32ToBool(teacherRow.IsDeactivated),
 				CreatedAt:     teacherRow.CreatedAt.Time,
 			},
 		})
@@ -89,6 +90,7 @@ func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.Tea
 			Email:         teacher.Email,
 			UserDetail:    userDetail,
 			PrivilegeType: identity.UserPrivilegeType(teacher.PrivilegeType),
+			IsDeactivated: util.Int32ToBool(teacher.IsDeactivated),
 			CreatedAt:     teacher.CreatedAt.Time,
 		},
 	}, nil
@@ -121,6 +123,7 @@ func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teachin
 				Email:         teacherRow.Email,
 				UserDetail:    userDetail,
 				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
+				IsDeactivated: util.Int32ToBool(teacherRow.IsDeactivated),
 				CreatedAt:     teacherRow.CreatedAt.Time,
 			},
 		})
@@ -204,6 +207,7 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 				Email:         studentRow.Email,
 				UserDetail:    userDetail,
 				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
+				IsDeactivated: util.Int32ToBool(studentRow.IsDeactivated),
 				CreatedAt:     studentRow.CreatedAt.Time,
 			},
 		})
@@ -240,6 +244,7 @@ func (s teachingServiceImpl) GetStudentById(ctx context.Context, id teaching.Stu
 			Email:         student.Email,
 			UserDetail:    userDetail,
 			PrivilegeType: identity.UserPrivilegeType(student.PrivilegeType),
+			IsDeactivated: util.Int32ToBool(student.IsDeactivated),
 			CreatedAt:     student.CreatedAt.Time,
 		},
 	}, nil
@@ -272,6 +277,7 @@ func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teachin
 				Email:         studentRow.Email,
 				UserDetail:    userDetail,
 				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
+				IsDeactivated: util.Int32ToBool(studentRow.IsDeactivated),
 				CreatedAt:     studentRow.CreatedAt.Time,
 			},
 		})

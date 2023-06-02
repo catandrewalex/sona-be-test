@@ -76,6 +76,7 @@ func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.Pagin
 			Email:         userRow.Email,
 			UserDetail:    userDetail,
 			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
+			IsDeactivated: util.Int32ToBool(userRow.IsDeactivated),
 			CreatedAt:     userRow.CreatedAt.Time,
 		})
 	}
@@ -106,6 +107,7 @@ func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID
 		Email:         user.Email,
 		UserDetail:    userDetail,
 		PrivilegeType: identity.UserPrivilegeType(user.PrivilegeType),
+		IsDeactivated: util.Int32ToBool(user.IsDeactivated),
 		CreatedAt:     user.CreatedAt.Time,
 	}, nil
 }
@@ -135,6 +137,7 @@ func (s identityServiceImpl) GetUsersByIds(ctx context.Context, ids []identity.U
 			Email:         userRow.Email,
 			UserDetail:    userDetail,
 			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
+			IsDeactivated: util.Int32ToBool(userRow.IsDeactivated),
 			CreatedAt:     userRow.CreatedAt.Time,
 		})
 	}
@@ -202,7 +205,7 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 		})
 		wrappedErr = errs.WrapMySQLError(err)
 		if wrappedErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredentia(): %w", wrappedErr)
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredential(): %w", wrappedErr)
 		}
 
 		userIds = append(userIds, identity.UserID(userID))
@@ -216,6 +219,77 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 	}
 
 	return userIds, nil
+}
+
+func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identity.UpdateUserInfoSpec) ([]identity.UserID, error) {
+	userDetails := make([][]byte, 0, len(specs))
+	for _, spec := range specs {
+		userDetail, err := json.Marshal(spec.UserDetail)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("marshal UserDetail: %w", err)
+		}
+		userDetails = append(userDetails, userDetail)
+	}
+
+	tx, err := s.mySQLQueries.DB.Begin()
+	if err != nil {
+		return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+	}
+	defer tx.Rollback()
+
+	qtx := s.mySQLQueries.WithTx(tx)
+
+	userIDs := make([]identity.UserID, 0, len(specs))
+	for i, spec := range specs {
+		err := qtx.UpdateUser(ctx, mysql.UpdateUserParams{
+			Username:      spec.Username,
+			Email:         spec.Email,
+			UserDetail:    userDetails[i],
+			PrivilegeType: int32(spec.UserPrivilegeType),
+			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
+			ID:            int64(spec.ID),
+		})
+		wrappedErr := errs.WrapMySQLError(err)
+		if wrappedErr != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUser(): %w", wrappedErr)
+		}
+
+		err = qtx.UpdateUserCredentialInfoByUserId(ctx, mysql.UpdateUserCredentialInfoByUserIdParams{
+			Username: spec.Username,
+			Email:    spec.Email,
+			UserID:   int64(spec.ID),
+		})
+		wrappedErr = errs.WrapMySQLError(err)
+		if wrappedErr != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredential(): %w", wrappedErr)
+		}
+
+		userIDs = append(userIDs, spec.ID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []identity.UserID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return userIDs, nil
+}
+
+func (s identityServiceImpl) UpdateUserPassword(ctx context.Context, spec identity.UpdateUserPasswordSpec) error {
+	hashedPassword, err := hashPassword(spec.Password)
+	if err != nil {
+		return fmt.Errorf("hashPassword(): %w", err)
+	}
+
+	err = s.mySQLQueries.UpdatePasswordByUserId(ctx, mysql.UpdatePasswordByUserIdParams{
+		Password: hashedPassword,
+		UserID:   int64(spec.ID),
+	})
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.UpdatePasswordByUserId(): %v", err)
+	}
+
+	return nil
 }
 
 func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignUpUserSpec) (identity.UserID, error) {
@@ -328,18 +402,12 @@ func (s identityServiceImpl) ResetPassword(ctx context.Context, spec identity.Re
 		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("invalid JWT token purpose"), nil, "Invalid reset password token")
 	}
 
-	userID := mainClaims.UserID
-	hashedPassword, err := hashPassword(spec.NewPassword)
-	if err != nil {
-		return fmt.Errorf("hashPassword(): %w", err)
-	}
-
-	err = s.mySQLQueries.UpdatePasswordByUserId(ctx, mysql.UpdatePasswordByUserIdParams{
-		Password: hashedPassword,
-		UserID:   int64(userID),
+	err = s.UpdateUserPassword(ctx, identity.UpdateUserPasswordSpec{
+		ID:       mainClaims.UserID,
+		Password: spec.NewPassword,
 	})
 	if err != nil {
-		return fmt.Errorf("UpdatePasswordByUserId(): %v", err)
+		return fmt.Errorf("UpdateUserPassword(): %v", err)
 	}
 
 	return nil
