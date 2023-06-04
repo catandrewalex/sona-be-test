@@ -97,43 +97,63 @@ func (q *Queries) DeleteClassById(ctx context.Context, id int64) error {
 	return err
 }
 
-const deleteCourseById = `-- name: DeleteCourseById :exec
+const deleteCoursesByIds = `-- name: DeleteCoursesByIds :exec
 DELETE FROM course
-WHERE id = ?
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteCourseById(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteCourseById, id)
+func (q *Queries) DeleteCoursesByIds(ctx context.Context, ids []int64) error {
+	sql := deleteCoursesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
-const deleteGradeById = `-- name: DeleteGradeById :exec
+const deleteGradesByIds = `-- name: DeleteGradesByIds :exec
 DELETE FROM grade
-WHERE id = ?
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteGradeById(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteGradeById, id)
+func (q *Queries) DeleteGradesByIds(ctx context.Context, ids []int64) error {
+	sql := deleteGradesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
-const deleteInstrumentById = `-- name: DeleteInstrumentById :exec
+const deleteInstrumentsByIds = `-- name: DeleteInstrumentsByIds :exec
 DELETE FROM instrument
-WHERE id = ?
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteInstrumentById(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteInstrumentById, id)
-	return err
-}
-
-const deleteStudentById = `-- name: DeleteStudentById :exec
-DELETE FROM student
-WHERE id = ?
-`
-
-func (q *Queries) DeleteStudentById(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteStudentById, id)
+func (q *Queries) DeleteInstrumentsByIds(ctx context.Context, ids []int64) error {
+	sql := deleteInstrumentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -177,13 +197,23 @@ func (q *Queries) DeleteStudentEnrollmentByStudentId(ctx context.Context, studen
 	return err
 }
 
-const deleteTeacherById = `-- name: DeleteTeacherById :exec
-DELETE FROM teacher
-WHERE id = ?
+const deleteStudentsByIds = `-- name: DeleteStudentsByIds :exec
+DELETE FROM student
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteTeacherById(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteTeacherById, id)
+func (q *Queries) DeleteStudentsByIds(ctx context.Context, ids []int64) error {
+	sql := deleteStudentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -214,6 +244,26 @@ WHERE teacher_id = ?
 
 func (q *Queries) DeleteTeacherSpecialFeeByTeacherId(ctx context.Context, teacherID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteTeacherSpecialFeeByTeacherId, teacherID)
+	return err
+}
+
+const deleteTeachersByIds = `-- name: DeleteTeachersByIds :exec
+DELETE FROM teacher
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) DeleteTeachersByIds(ctx context.Context, ids []int64) error {
+	sql := deleteTeachersByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 

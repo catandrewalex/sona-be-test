@@ -180,6 +180,20 @@ func (s teachingServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, spe
 	return teacherIDs, nil
 }
 
+func (s teachingServiceImpl) DeleteTeachers(ctx context.Context, ids []teaching.TeacherID) error {
+	idsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt64 = append(idsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteTeachersByIds(ctx, idsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteTeacherByIds(): %w", err)
+	}
+
+	return nil
+}
+
 func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.PaginationSpec) (teaching.GetStudentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
@@ -334,6 +348,20 @@ func (s teachingServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, spe
 	return studentIDs, nil
 }
 
+func (s teachingServiceImpl) DeleteStudents(ctx context.Context, ids []teaching.StudentID) error {
+	idsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt64 = append(idsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteStudentsByIds(ctx, idsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteStudentByIds(): %w", err)
+	}
+
+	return nil
+}
+
 func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util.PaginationSpec) (teaching.GetInstrumentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
@@ -426,6 +454,20 @@ func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teac
 	return instrumentIDs, nil
 }
 
+func (s teachingServiceImpl) DeleteInstruments(ctx context.Context, ids []teaching.InstrumentID) error {
+	idsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt64 = append(idsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteInstrumentsByIds(ctx, idsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteInstrumentsByIds(): %w", err)
+	}
+
+	return nil
+}
+
 func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.PaginationSpec) (teaching.GetGradesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
@@ -516,6 +558,20 @@ func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.
 	}
 
 	return gradeIDs, nil
+}
+
+func (s teachingServiceImpl) DeleteGrades(ctx context.Context, ids []teaching.GradeID) error {
+	idsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt64 = append(idsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteGradesByIds(ctx, idsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteGradeByIds(): %w", err)
+	}
+
+	return nil
 }
 
 func (s teachingServiceImpl) GetCourses(ctx context.Context, pagination util.PaginationSpec) (teaching.GetCoursesResult, error) {
@@ -620,4 +676,18 @@ func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching
 	}
 
 	return courseIDs, nil
+}
+
+func (s teachingServiceImpl) DeleteCourses(ctx context.Context, ids []teaching.CourseID) error {
+	idsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt64 = append(idsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteCoursesByIds(ctx, idsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteCourseByIds(): %w", err)
+	}
+
+	return nil
 }

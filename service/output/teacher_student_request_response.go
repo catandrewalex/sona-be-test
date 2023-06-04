@@ -14,6 +14,8 @@ const (
 	MaxResultsPerPage_GetStudents = Default_MaxResultsPerPage
 )
 
+// ============================== TEACHER ==============================
+
 type GetTeachersRequest struct {
 	PaginationRequest
 }
@@ -79,6 +81,22 @@ func (r InsertTeachersWithNewUsersRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type DeleteTeachersRequest struct {
+	Data []DeleteTeachersRequestParam `json:"data"`
+}
+type DeleteTeachersRequestParam struct {
+	TeacherID teaching.TeacherID `json:"teacherID"`
+}
+type DeleteTeachersResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteTeachersRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== STUDENT ==============================
+
 type GetStudentsRequest struct {
 	PaginationRequest
 }
@@ -141,5 +159,19 @@ type InsertStudentsWithNewUsersResponse struct {
 }
 
 func (r InsertStudentsWithNewUsersRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type DeleteStudentsRequest struct {
+	Data []DeleteStudentsRequestParam `json:"data"`
+}
+type DeleteStudentsRequestParam struct {
+	StudentID teaching.StudentID `json:"studentID"`
+}
+type DeleteStudentsResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteStudentsRequest) Validate() errs.ValidationError {
 	return nil
 }

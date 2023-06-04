@@ -448,6 +448,26 @@ func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, 
 	}, nil
 }
 
+func (s *BackendService) DeleteTeachersHandler(ctx context.Context, req *output.DeleteTeachersRequest) (*output.DeleteTeachersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	teacherIDs := make([]teaching.TeacherID, 0, len(req.Data))
+	for _, param := range req.Data {
+		teacherIDs = append(teacherIDs, param.TeacherID)
+	}
+
+	err := s.teachingService.DeleteTeachers(ctx, teacherIDs)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteTeachers()", "teacher")
+	}
+
+	return &output.DeleteTeachersResponse{
+		Message: "Successfully deleted teachers",
+	}, nil
+}
+
 func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.GetStudentsRequest) (*output.GetStudentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -556,6 +576,26 @@ func (s *BackendService) InsertStudentsWithNewUsersHandler(ctx context.Context, 
 	}, nil
 }
 
+func (s *BackendService) DeleteStudentsHandler(ctx context.Context, req *output.DeleteStudentsRequest) (*output.DeleteStudentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	studentIDs := make([]teaching.StudentID, 0, len(req.Data))
+	for _, param := range req.Data {
+		studentIDs = append(studentIDs, param.StudentID)
+	}
+
+	err := s.teachingService.DeleteStudents(ctx, studentIDs)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteStudents()", "student")
+	}
+
+	return &output.DeleteStudentsResponse{
+		Message: "Successfully deleted students",
+	}, nil
+}
+
 func (s *BackendService) GetInstrumentsHandler(ctx context.Context, req *output.GetInstrumentsRequest) (*output.GetInstrumentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -661,6 +701,26 @@ func (s *BackendService) UpdateInstrumentsHandler(ctx context.Context, req *outp
 	}, nil
 }
 
+func (s *BackendService) DeleteInstrumentsHandler(ctx context.Context, req *output.DeleteInstrumentsRequest) (*output.DeleteInstrumentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]teaching.InstrumentID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.ID)
+	}
+
+	err := s.teachingService.DeleteInstruments(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteInstruments()", "instrument")
+	}
+
+	return &output.DeleteInstrumentsResponse{
+		Message: "Successfully deleted instruments",
+	}, nil
+}
+
 func (s *BackendService) GetGradesHandler(ctx context.Context, req *output.GetGradesRequest) (*output.GetGradesResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -763,6 +823,26 @@ func (s *BackendService) UpdateGradesHandler(ctx context.Context, req *output.Up
 			Results: grades,
 		},
 		Message: "Successfully updated grades",
+	}, nil
+}
+
+func (s *BackendService) DeleteGradesHandler(ctx context.Context, req *output.DeleteGradesRequest) (*output.DeleteGradesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]teaching.GradeID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.ID)
+	}
+
+	err := s.teachingService.DeleteGrades(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteGrades()", "grade")
+	}
+
+	return &output.DeleteGradesResponse{
+		Message: "Successfully deleted grades",
 	}, nil
 }
 
@@ -875,6 +955,26 @@ func (s *BackendService) UpdateCoursesHandler(ctx context.Context, req *output.U
 	}, nil
 }
 
+func (s *BackendService) DeleteCoursesHandler(ctx context.Context, req *output.DeleteCoursesRequest) (*output.DeleteCoursesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]teaching.CourseID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.ID)
+	}
+
+	err := s.teachingService.DeleteCourses(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteCourses()", "course")
+	}
+
+	return &output.DeleteCoursesResponse{
+		Message: "Successfully deleted courses",
+	}, nil
+}
+
 // handleReadError detects non-existing result error (e.g. sql.ErrNoRows) and returns HTTP 404-NotFound. Else, returns HTTP 500.
 func handleReadError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {
@@ -898,5 +998,23 @@ func handleUpsertionError(err error, methodName, entityName string) errs.HTTPErr
 	if errors.As(err, &validationErr) {
 		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, validationErr), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
 	}
-	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create %s", entityName))
+	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create/update %s(s)", entityName))
+}
+
+// handleReadError detects update/insert error due to rule violation (e.g. duplicate entries) and returns HTTP 409-Conflict. Else, returns HTTP 500.
+func handleDeletionError(err error, methodName, entityName string) errs.HTTPError {
+	if err == nil {
+		return nil
+	}
+
+	var validationErr errs.ValidationError
+	if errors.As(err, &validationErr) {
+		return errs.NewHTTPError(
+			http.StatusConflict,
+			fmt.Errorf("%s: %v", methodName, validationErr),
+			validationErr.GetErrorDetail(),
+			fmt.Sprintf("Unable to delete %s(s) as it is still required by another entity. You need to remove all other entities which still refer to this %s(s)", entityName, entityName),
+		)
+	}
+	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to delete %s(s)", entityName))
 }

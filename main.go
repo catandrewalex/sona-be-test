@@ -79,37 +79,36 @@ func main() {
 		authRouter.Post("/users", jsonSerdeWrapper.WrapFunc(backendService.InsertUsersHandler))
 		authRouter.Put("/users", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersHandler))
 		authRouter.Put("/user/{ID}/password", jsonSerdeWrapper.WrapFunc(backendService.UpdateUserPasswordHandler, "ID"))
-		// authRouter.Delete("/users", jsonSerdeWrapper.WrapFunc(backendService.DeleteUsersHandler))
 
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/teacher/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherByIdHandler, "ID"))
 		authRouter.Post("/teachers", jsonSerdeWrapper.WrapFunc(backendService.InsertTeachersHandler))
 		authRouter.Post("/teachers/new-users", jsonSerdeWrapper.WrapFunc(backendService.InsertTeachersWithNewUsersHandler))
-		// authRouter.Delete("/teachers", jsonSerdeWrapper.WrapFunc(backendService.DeleteTeachersHandler))
+		authRouter.Delete("/teachers", jsonSerdeWrapper.WrapFunc(backendService.DeleteTeachersHandler))
 
 		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 		authRouter.Get("/student/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetStudentByIdHandler, "ID"))
 		authRouter.Post("/students", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsHandler))
 		authRouter.Post("/students/new-users", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentsWithNewUsersHandler))
-		// authRouter.Delete("/students", jsonSerdeWrapper.WrapFunc(backendService.DeleteStudentsHandler))
+		authRouter.Delete("/students", jsonSerdeWrapper.WrapFunc(backendService.DeleteStudentsHandler))
 
 		authRouter.Get("/instruments", jsonSerdeWrapper.WrapFunc(backendService.GetInstrumentsHandler))
 		authRouter.Get("/instrument/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetInstrumentByIdHandler, "ID"))
 		authRouter.Post("/instruments", jsonSerdeWrapper.WrapFunc(backendService.InsertInstrumentsHandler))
 		authRouter.Put("/instruments", jsonSerdeWrapper.WrapFunc(backendService.UpdateInstrumentsHandler))
-		// authRouter.Delete("/instruments", jsonSerdeWrapper.WrapFunc(backendService.DeleteInstrumentsHandler))
+		authRouter.Delete("/instruments", jsonSerdeWrapper.WrapFunc(backendService.DeleteInstrumentsHandler))
 
 		authRouter.Get("/grades", jsonSerdeWrapper.WrapFunc(backendService.GetGradesHandler))
 		authRouter.Get("/grade/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetGradeByIdHandler, "ID"))
 		authRouter.Post("/grades", jsonSerdeWrapper.WrapFunc(backendService.InsertGradesHandler))
 		authRouter.Put("/grades", jsonSerdeWrapper.WrapFunc(backendService.UpdateGradesHandler))
-		// authRouter.Delete("/grades", jsonSerdeWrapper.WrapFunc(backendService.DeleteGradesHandler))
+		authRouter.Delete("/grades", jsonSerdeWrapper.WrapFunc(backendService.DeleteGradesHandler))
 
 		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
 		authRouter.Get("/course/{ID}", jsonSerdeWrapper.WrapFunc(backendService.GetCourseByIdHandler, "ID"))
 		authRouter.Post("/courses", jsonSerdeWrapper.WrapFunc(backendService.InsertCoursesHandler))
 		authRouter.Put("/courses", jsonSerdeWrapper.WrapFunc(backendService.UpdateCoursesHandler))
-		// authRouter.Delete("/courses", jsonSerdeWrapper.WrapFunc(backendService.DeleteCoursesHandler))
+		authRouter.Delete("/courses", jsonSerdeWrapper.WrapFunc(backendService.DeleteCoursesHandler))
 	})
 
 	server := &http.Server{

@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	ErrInvalidRequest = errors.New("invalid request")
+	ErrInvalidRequest  = errors.New("invalid request")
+	ErrUserDeactivated = errors.New("user is deactivated")
 )
 
 type Validatable interface {

@@ -85,30 +85,35 @@ type TeachingService interface {
 	GetTeachersByIds(ctx context.Context, ids []TeacherID) ([]Teacher, error)
 	InsertTeachers(ctx context.Context, userIDs []identity.UserID) ([]TeacherID, error)
 	InsertTeachersWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]TeacherID, error)
+	DeleteTeachers(ctx context.Context, ids []TeacherID) error
 
 	GetStudents(ctx context.Context, pagination util.PaginationSpec) (GetStudentsResult, error)
 	GetStudentById(ctx context.Context, id StudentID) (Student, error)
 	GetStudentsByIds(ctx context.Context, ids []StudentID) ([]Student, error)
 	InsertStudents(ctx context.Context, userIDs []identity.UserID) ([]StudentID, error)
 	InsertStudentsWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]StudentID, error)
+	DeleteStudents(ctx context.Context, ids []StudentID) error
 
 	GetInstruments(ctx context.Context, pagination util.PaginationSpec) (GetInstrumentsResult, error)
 	GetInstrumentById(ctx context.Context, id InstrumentID) (Instrument, error)
 	GetInstrumentsByIds(ctx context.Context, ids []InstrumentID) ([]Instrument, error)
 	InsertInstruments(ctx context.Context, specs []InsertInstrumentSpec) ([]InstrumentID, error)
 	UpdateInstruments(ctx context.Context, specs []UpdateInstrumentSpec) ([]InstrumentID, error)
+	DeleteInstruments(ctx context.Context, ids []InstrumentID) error
 
 	GetGrades(ctx context.Context, pagination util.PaginationSpec) (GetGradesResult, error)
 	GetGradeById(ctx context.Context, id GradeID) (Grade, error)
 	GetGradesByIds(ctx context.Context, ids []GradeID) ([]Grade, error)
 	InsertGrades(ctx context.Context, specs []InsertGradeSpec) ([]GradeID, error)
 	UpdateGrades(ctx context.Context, specs []UpdateGradeSpec) ([]GradeID, error)
+	DeleteGrades(ctx context.Context, ids []GradeID) error
 
 	GetCourses(ctx context.Context, pagination util.PaginationSpec) (GetCoursesResult, error)
 	GetCourseById(ctx context.Context, id CourseID) (Course, error)
 	GetCoursesByIds(ctx context.Context, ids []CourseID) ([]Course, error)
 	InsertCourses(ctx context.Context, specs []InsertCourseSpec) ([]CourseID, error)
 	UpdateCourses(ctx context.Context, specs []UpdateCourseSpec) ([]CourseID, error)
+	DeleteCourses(ctx context.Context, ids []CourseID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================

@@ -26,9 +26,9 @@ SELECT Count(*) as total FROM teacher;
 -- name: InsertTeacher :execlastid
 INSERT INTO teacher ( user_id ) VALUES ( ? );
 
--- name: DeleteTeacherById :exec
+-- name: DeleteTeachersByIds :exec
 DELETE FROM teacher
-WHERE id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteTeacherByUserId :exec
 DELETE FROM teacher
@@ -62,9 +62,9 @@ SELECT Count(*) as total FROM student;
 -- name: InsertStudent :execlastid
 INSERT INTO student ( user_id ) VALUES ( ? );
 
--- name: DeleteStudentById :exec
+-- name: DeleteStudentsByIds :exec
 DELETE FROM student
-WHERE id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteStudentByUserId :exec
 DELETE FROM student
@@ -94,9 +94,9 @@ INSERT INTO instrument ( name ) VALUES ( ? );
 UPDATE instrument SET name = ?
 WHERE id = ?;
 
--- name: DeleteInstrumentById :exec
+-- name: DeleteInstrumentsByIds :exec
 DELETE FROM instrument
-WHERE id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== GRADE ============================== */
 -- name: GetGradeById :one
@@ -122,9 +122,9 @@ INSERT INTO grade ( name ) VALUES ( ? );
 UPDATE grade SET name = ?
 WHERE id = ?;
 
--- name: DeleteGradeById :exec
+-- name: DeleteGradesByIds :exec
 DELETE FROM grade
-WHERE id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== COURSE ============================== */
 -- name: GetCourses :many
@@ -189,9 +189,9 @@ WHERE id = ?;
 UPDATE course SET grade_id = ?
 WHERE id = ?;
 
--- name: DeleteCourseById :exec
+-- name: DeleteCoursesByIds :exec
 DELETE FROM course
-WHERE id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== CLASS ============================== */
 -- name: GetClasses :many

@@ -89,6 +89,20 @@ type UpsertInstrumentResult struct {
 	Results []teaching.Instrument `json:"results"`
 }
 
+type DeleteInstrumentsRequest struct {
+	Data []DeleteInstrumentsRequestParam `json:"data"`
+}
+type DeleteInstrumentsRequestParam struct {
+	ID teaching.InstrumentID `json:"id"`
+}
+type DeleteInstrumentsResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteInstrumentsRequest) Validate() errs.ValidationError {
+	return nil
+}
+
 // ============================== GRADE ==============================
 
 type GetGradesRequest struct {
@@ -160,6 +174,20 @@ func (r UpdateGradesRequest) Validate() errs.ValidationError {
 
 type UpsertGradeResult struct {
 	Results []teaching.Grade `json:"results"`
+}
+
+type DeleteGradesRequest struct {
+	Data []DeleteGradesRequestParam `json:"data"`
+}
+type DeleteGradesRequestParam struct {
+	ID teaching.GradeID `json:"id"`
+}
+type DeleteGradesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteGradesRequest) Validate() errs.ValidationError {
+	return nil
 }
 
 // ============================== COURSE ==============================
@@ -237,4 +265,18 @@ func (r UpdateCoursesRequest) Validate() errs.ValidationError {
 
 type UpsertCourseResult struct {
 	Results []teaching.Course `json:"results"`
+}
+
+type DeleteCoursesRequest struct {
+	Data []DeleteCoursesRequestParam `json:"data"`
+}
+type DeleteCoursesRequestParam struct {
+	ID teaching.CourseID `json:"id"`
+}
+type DeleteCoursesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteCoursesRequest) Validate() errs.ValidationError {
+	return nil
 }
