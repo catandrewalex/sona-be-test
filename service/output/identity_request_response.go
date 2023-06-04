@@ -109,7 +109,7 @@ type InsertUserRequestParam struct {
 	Email             string                     `json:"email"`
 	Password          string                     `json:"password"`
 	UserDetail        identity.UserDetail        `json:"userDetail"`
-	UserPrivilegeType identity.UserPrivilegeType `json:"userPrivilegeType"`
+	UserPrivilegeType identity.UserPrivilegeType `json:"privilegeType"`
 }
 type InsertUsersResponse struct {
 	Data    InsertUserResult `json:"data"`
@@ -131,7 +131,7 @@ type UpdateUserRequestParam struct {
 	Username          string                     `json:"username"`
 	Email             string                     `json:"email"`
 	UserDetail        identity.UserDetail        `json:"userDetail"`
-	UserPrivilegeType identity.UserPrivilegeType `json:"userPrivilegeType"`
+	UserPrivilegeType identity.UserPrivilegeType `json:"privilegeType"`
 	IsDeactivated     bool                       `json:"isDeactivated,omitempty"` // false is a zero value, so we must allow this to be empty
 }
 type UpdateUsersResponse struct {
