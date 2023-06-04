@@ -13,7 +13,7 @@ WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetUsers :many
 SELECT * FROM user
-ORDER BY id
+ORDER BY is_deactivated, id
 LIMIT ? OFFSET ?;
 
 -- name: CountUsers :one

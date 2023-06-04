@@ -333,6 +333,10 @@ func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginU
 		return identity.LoginUserResult{}, fmt.Errorf("GetUserById(): %w", err)
 	}
 
+	if user.IsDeactivated {
+		return identity.LoginUserResult{}, fmt.Errorf("userId='%d': %w", user.ID, errs.ErrUserDeactivated)
+	}
+
 	// Create a JWT token
 	tokenString, err := s.jwtService.CreateJWTToken(
 		identity.UserID(userCredential.UserID), identity.UserPrivilegeType(user.PrivilegeType),

@@ -152,7 +152,7 @@ func (q *Queries) GetUserCredentialByUsername(ctx context.Context, username stri
 
 const getUsers = `-- name: GetUsers :many
 SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
-ORDER BY id
+ORDER BY is_deactivated, id
 LIMIT ? OFFSET ?
 `
 

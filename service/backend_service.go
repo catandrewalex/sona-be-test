@@ -135,7 +135,7 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 	mainLog.Info("User created: userID='%d', email='%s', username='%s'", userID, req.Email, req.Username)
 
 	return &output.SignUpResponse{
-		Message: "Successfully signed up user",
+		Message: "User registered successfully",
 	}, nil
 }
 
@@ -154,7 +154,11 @@ func (s *BackendService) LoginHandler(ctx context.Context, req *output.LoginRequ
 		Password:        req.Password,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusUnauthorized, fmt.Errorf("identityService.LoginUser(): %w", err), nil, "Authentication failed")
+		errContext := fmt.Errorf("identityService.LoginUser(): %w", err)
+		if errors.Is(err, errs.ErrUserDeactivated) {
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "This account is deactivated. Please contact system administrator fur further action")
+		}
+		return nil, errs.NewHTTPError(http.StatusUnauthorized, errContext, nil, "Authentication failed")
 	}
 
 	return &output.LoginResponse{
