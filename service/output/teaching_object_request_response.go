@@ -14,6 +14,9 @@ const (
 
 	MaxPage_GetCourses           = Default_MaxPage
 	MaxResultsPerPage_GetCourses = Default_MaxResultsPerPage
+
+	MaxPage_GetClasses           = Default_MaxPage
+	MaxResultsPerPage_GetClasses = Default_MaxResultsPerPage
 )
 
 // ============================== INSTRUMENT ==============================
