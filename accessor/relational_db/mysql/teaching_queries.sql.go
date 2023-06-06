@@ -22,6 +22,17 @@ func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
 	return err
 }
 
+const countClasses = `-- name: CountClasses :one
+SELECT Count(*) as total FROM class
+`
+
+func (q *Queries) CountClasses(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countClasses)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countCourses = `-- name: CountCourses :one
 SELECT Count(*) as total FROM course
 `
@@ -87,13 +98,23 @@ func (q *Queries) DeactivateClass(ctx context.Context, id int64) error {
 	return err
 }
 
-const deleteClassById = `-- name: DeleteClassById :exec
+const deleteClassesByIds = `-- name: DeleteClassesByIds :exec
 DELETE FROM class
-WHERE id = ?
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteClassById(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteClassById, id)
+func (q *Queries) DeleteClassesByIds(ctx context.Context, ids []int64) error {
+	sql := deleteClassesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -167,13 +188,23 @@ func (q *Queries) DeleteStudentByUserId(ctx context.Context, userID int64) error
 	return err
 }
 
-const deleteStudentEnrollmentByClassId = `-- name: DeleteStudentEnrollmentByClassId :exec
+const deleteStudentEnrollmentByClassIds = `-- name: DeleteStudentEnrollmentByClassIds :exec
 DELETE FROM student_enrollment
-WHERE class_id = ?
+WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) DeleteStudentEnrollmentByClassId(ctx context.Context, classID int64) error {
-	_, err := q.db.ExecContext(ctx, deleteStudentEnrollmentByClassId, classID)
+func (q *Queries) DeleteStudentEnrollmentByClassIds(ctx context.Context, ids []int64) error {
+	sql := deleteStudentEnrollmentByClassIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -194,6 +225,26 @@ WHERE student_id = ?
 
 func (q *Queries) DeleteStudentEnrollmentByStudentId(ctx context.Context, studentID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteStudentEnrollmentByStudentId, studentID)
+	return err
+}
+
+const deleteStudentEnrollmentsByIds = `-- name: DeleteStudentEnrollmentsByIds :exec
+DELETE FROM student_enrollment
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) DeleteStudentEnrollmentsByIds(ctx context.Context, ids []int64) error {
+	sql := deleteStudentEnrollmentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -267,8 +318,8 @@ func (q *Queries) DeleteTeachersByIds(ctx context.Context, ids []int64) error {
 	return err
 }
 
-const getClassById = `-- name: GetClassById :one
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+const getClassById = `-- name: GetClassById :many
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
@@ -285,7 +336,7 @@ FROM class
 
     LEFT JOIN student_enrollment AS se ON class.id = se.class_id
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
-WHERE class.id = ? LIMIT 1
+WHERE class.id = ?
 `
 
 type GetClassByIdRow struct {
@@ -295,45 +346,67 @@ type GetClassByIdRow struct {
 	CourseID              int64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
+	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	CourseName            string
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	DefaultFee            int64
 	DefaultDurationMinute int32
 }
 
-func (q *Queries) GetClassById(ctx context.Context, id int64) (GetClassByIdRow, error) {
-	row := q.db.QueryRowContext(ctx, getClassById, id)
-	var i GetClassByIdRow
-	err := row.Scan(
-		&i.ClassID,
-		&i.TransportFee,
-		&i.IsDeactivated,
-		&i.CourseID,
-		&i.TeacherID,
-		&i.StudentID,
-		&i.TeacherUsername,
-		&i.TeacherDetail,
-		&i.CourseName,
-		&i.StudentUsername,
-		&i.StudentDetail,
-		&i.DefaultFee,
-		&i.DefaultDurationMinute,
-	)
-	return i, err
+func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getClassById, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetClassByIdRow
+	for rows.Next() {
+		var i GetClassByIdRow
+		if err := rows.Scan(
+			&i.ClassID,
+			&i.TransportFee,
+			&i.IsDeactivated,
+			&i.CourseID,
+			&i.TeacherID,
+			&i.StudentID,
+			&i.EnrollmentID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.CourseName,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.DefaultFee,
+			&i.DefaultDurationMinute,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getClasses = `-- name: GetClasses :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+WITH class_paginated AS (
+    SELECT id, transport_fee, teacher_id, course_id, is_deactivated FROM class
+    LIMIT ? OFFSET ?
+)
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
     course.default_fee, course.default_duration_minute
-FROM class
+FROM class_paginated
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
@@ -341,10 +414,9 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON class_paginated.id = se.class_id
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
-ORDER BY class.id
-LIMIT ? OFFSET ?
+ORDER BY is_deactivated, class_paginated.id
 `
 
 type GetClassesParams struct {
@@ -359,11 +431,12 @@ type GetClassesRow struct {
 	CourseID              int64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
+	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	CourseName            string
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	DefaultFee            int64
 	DefaultDurationMinute int32
 }
@@ -385,6 +458,94 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 			&i.CourseID,
 			&i.TeacherID,
 			&i.StudentID,
+			&i.EnrollmentID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.CourseName,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.DefaultFee,
+			&i.DefaultDurationMinute,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getClassesByIds = `-- name: GetClassesByIds :many
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+    user_teacher.username AS teacher_username,
+    user_teacher.user_detail AS teacher_detail,
+    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    user_student.username AS student_username,
+    user_student.user_detail AS student_detail,
+    course.default_fee, course.default_duration_minute
+FROM class
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+
+    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
+WHERE class.id in (/*SLICE:ids*/?)
+ORDER BY class.id
+`
+
+type GetClassesByIdsRow struct {
+	ClassID               int64
+	TransportFee          int64
+	IsDeactivated         int32
+	CourseID              int64
+	TeacherID             sql.NullInt64
+	StudentID             sql.NullInt64
+	EnrollmentID          sql.NullInt64
+	TeacherUsername       sql.NullString
+	TeacherDetail         []byte
+	CourseName            string
+	StudentUsername       sql.NullString
+	StudentDetail         []byte
+	DefaultFee            int64
+	DefaultDurationMinute int32
+}
+
+func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClassesByIdsRow, error) {
+	sql := getClassesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetClassesByIdsRow
+	for rows.Next() {
+		var i GetClassesByIdsRow
+		if err := rows.Scan(
+			&i.ClassID,
+			&i.TransportFee,
+			&i.IsDeactivated,
+			&i.CourseID,
+			&i.TeacherID,
+			&i.StudentID,
+			&i.EnrollmentID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
 			&i.CourseName,
@@ -407,7 +568,7 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 }
 
 const getClassesByStudentId = `-- name: GetClassesByStudentId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
@@ -432,8 +593,9 @@ type GetClassesByStudentIdRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
+	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	CourseName            string
 	DefaultFee            int64
 	DefaultDurationMinute int32
@@ -454,6 +616,7 @@ func (q *Queries) GetClassesByStudentId(ctx context.Context, studentID int64) ([
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.TeacherID,
+			&i.EnrollmentID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
 			&i.CourseName,
@@ -474,7 +637,7 @@ func (q *Queries) GetClassesByStudentId(ctx context.Context, studentID int64) ([
 }
 
 const getClassesByTeacherId = `-- name: GetClassesByTeacherId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id, se.id AS enrollment_id,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
@@ -499,9 +662,10 @@ type GetClassesByTeacherIdRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	StudentID             sql.NullInt64
+	EnrollmentID          sql.NullInt64
 	CourseName            string
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	DefaultFee            int64
 	DefaultDurationMinute int32
 }
@@ -521,6 +685,7 @@ func (q *Queries) GetClassesByTeacherId(ctx context.Context, teacherID sql.NullI
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.StudentID,
+			&i.EnrollmentID,
 			&i.CourseName,
 			&i.StudentUsername,
 			&i.StudentDetail,
@@ -1096,12 +1261,50 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 	return items, nil
 }
 
+const getStudentEnrollmentsByIds = `-- name: GetStudentEnrollmentsByIds :many
+SELECT id, student_id, class_id FROM student_enrollment
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+// ============================== STUDENT_ENROLLMENT ==============================
+func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) ([]StudentEnrollment, error) {
+	sql := getStudentEnrollmentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StudentEnrollment
+	for rows.Next() {
+		var i StudentEnrollment
+		if err := rows.Scan(&i.ID, &i.StudentID, &i.ClassID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStudentEnrollmentsByStudentId = `-- name: GetStudentEnrollmentsByStudentId :many
 SELECT id, student_id, class_id FROM student_enrollment
 WHERE student_id = ?
 `
 
-// ============================== STUDENT_ENROLLMENT ==============================
 func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentID int64) ([]StudentEnrollment, error) {
 	rows, err := q.db.QueryContext(ctx, getStudentEnrollmentsByStudentId, studentID)
 	if err != nil {
@@ -1682,6 +1885,28 @@ func (q *Queries) InsertTeacherSpecialFee(ctx context.Context, arg InsertTeacher
 		return 0, err
 	}
 	return result.LastInsertId()
+}
+
+const updateClass = `-- name: UpdateClass :exec
+UPDATE class SET transport_fee = ?, teacher_id = ?, is_deactivated = ?
+WHERE id = ?
+`
+
+type UpdateClassParams struct {
+	TransportFee  int64
+	TeacherID     sql.NullInt64
+	IsDeactivated int32
+	ID            int64
+}
+
+func (q *Queries) UpdateClass(ctx context.Context, arg UpdateClassParams) error {
+	_, err := q.db.ExecContext(ctx, updateClass,
+		arg.TransportFee,
+		arg.TeacherID,
+		arg.IsDeactivated,
+		arg.ID,
+	)
+	return err
 }
 
 const updateClassCourse = `-- name: UpdateClassCourse :exec

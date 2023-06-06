@@ -195,7 +195,34 @@ WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== CLASS ============================== */
 -- name: GetClasses :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+WITH class_paginated AS (
+    SELECT * FROM class
+    LIMIT ? OFFSET ?
+)
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+    user_teacher.username AS teacher_username,
+    user_teacher.user_detail AS teacher_detail,
+    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    user_student.username AS student_username,
+    user_student.user_detail AS student_detail,
+    course.default_fee, course.default_duration_minute
+FROM class_paginated
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+
+    LEFT JOIN student_enrollment AS se ON class_paginated.id = se.class_id
+    LEFT JOIN user AS user_student ON se.student_id = user_student.id
+ORDER BY is_deactivated, class_paginated.id;
+
+-- name: CountClasses :one
+SELECT Count(*) as total FROM class;
+
+-- name: GetClassesByIds :many
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
@@ -212,11 +239,11 @@ FROM class
 
     LEFT JOIN student_enrollment AS se ON class.id = se.class_id
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
-ORDER BY class.id
-LIMIT ? OFFSET ?;
+WHERE class.id in (sqlc.slice('ids'))
+ORDER BY class.id;
 
 -- name: GetClassesByTeacherId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id, se.id AS enrollment_id,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
@@ -235,7 +262,7 @@ WHERE teacher_id = ?
 ORDER BY class.id;
 
 -- name: GetClassesByStudentId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
@@ -253,8 +280,8 @@ FROM class
 WHERE se.student_id = ?
 ORDER BY class.id;
 
--- name: GetClassById :one
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+-- name: GetClassById :many
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
@@ -271,7 +298,7 @@ FROM class
 
     LEFT JOIN student_enrollment AS se ON class.id = se.class_id
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
-WHERE class.id = ? LIMIT 1;
+WHERE class.id = ?;
 
 -- name: InsertClass :execlastid
 INSERT INTO class (
@@ -279,6 +306,10 @@ INSERT INTO class (
 ) VALUES (
     ?, ?, ?, ?
 );
+
+-- name: UpdateClass :exec
+UPDATE class SET transport_fee = ?, teacher_id = ?, is_deactivated = ?
+WHERE id = ?;
 
 -- name: UpdateClassInfo :exec
 UPDATE class SET transport_fee = ?
@@ -300,11 +331,15 @@ WHERE id = ?;
 UPDATE class SET is_deactivated = 0
 WHERE id = ?;
 
--- name: DeleteClassById :exec
+-- name: DeleteClassesByIds :exec
 DELETE FROM class
-WHERE id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== STUDENT_ENROLLMENT ============================== */
+-- name: GetStudentEnrollmentsByIds :many
+SELECT * FROM student_enrollment
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: GetStudentEnrollmentsByStudentId :many
 SELECT * FROM student_enrollment
 WHERE student_id = ?;
@@ -337,13 +372,17 @@ INSERT INTO student_enrollment (
 DELETE FROM student_enrollment
 WHERE id = ?;
 
+-- name: DeleteStudentEnrollmentsByIds :exec
+DELETE FROM student_enrollment
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: DeleteStudentEnrollmentByStudentId :exec
 DELETE FROM student_enrollment
 WHERE student_id = ?;
 
--- name: DeleteStudentEnrollmentByClassId :exec
+-- name: DeleteStudentEnrollmentByClassIds :exec
 DELETE FROM student_enrollment
-WHERE class_id = ?;
+WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== TEACHER_SPECIAL_FEE ============================== */
 -- name: GetTeacherSpecialFeeById :one

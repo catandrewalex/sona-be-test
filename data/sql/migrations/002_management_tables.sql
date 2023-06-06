@@ -57,7 +57,8 @@ CREATE TABLE student_enrollment
   class_id BIGINT unsigned NOT NULL,
   -- `student_enrollment` is an entity for many-to-many relationship
   FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE,
-  FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE
+  FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,
+  UNIQUE KEY `student_id--class_id` (`student_id`, `class_id`)
 );
 
 CREATE TABLE enrollment_payment

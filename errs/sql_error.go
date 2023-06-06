@@ -13,6 +13,8 @@ const (
 	MySQL_ErrorNumber_DuplicateEntry    = 1062
 	MySQL_ErrorNumber_RowIsReferenced_1 = 1217
 	MySQL_ErrorNumber_RowIsReferenced_2 = 1451
+	MySQL_ErrorNumber_NoReferencedRow_1 = 1216
+	MySQL_ErrorNumber_NoReferencedRow_2 = 1452
 )
 
 var regexExtractTextInsideQuotes = regexp.MustCompile(`'([^']+)'`)
@@ -34,6 +36,8 @@ func WrapMySQLError(err error) error {
 			wrappedErr = convertDuplicateKeyErrToValidationErr(*mySQLErr)
 		} else if mySQLErr.Number == MySQL_ErrorNumber_RowIsReferenced_1 || mySQLErr.Number == MySQL_ErrorNumber_RowIsReferenced_2 {
 			wrappedErr = convertRowIsReferencedErrToValidationErr(*mySQLErr)
+		} else if mySQLErr.Number == MySQL_ErrorNumber_NoReferencedRow_1 || mySQLErr.Number == MySQL_ErrorNumber_NoReferencedRow_2 {
+			wrappedErr = convertNoReferencedRowErrToValidationErr(*mySQLErr)
 		}
 	} else {
 		panic("WrapMySQLError received an unsupported error type")
@@ -64,9 +68,21 @@ func convertRowIsReferencedErrToValidationErr(mySQLError goMySQL.MySQLError) Val
 	detail := make(ValidationErrorDetail, 0)
 
 	if mySQLError.Number == MySQL_ErrorNumber_RowIsReferenced_1 || mySQLError.Number == MySQL_ErrorNumber_RowIsReferenced_2 {
-		detail[ClientMessageKey_NonField] = "unable to delete as the object(s) is being referenced by another entity. try deleting the referencing entity first."
+		detail[ClientMessageKey_NonField] = "unable to update or delete as the object(s) is being referenced by another entity. try deleting the referencing entity first."
 	} else {
 		panic("received invalid MySQLError, not a 'row is referenced' error")
+	}
+
+	return NewValidationError(&mySQLError, detail)
+}
+
+func convertNoReferencedRowErrToValidationErr(mySQLError goMySQL.MySQLError) ValidationError {
+	detail := make(ValidationErrorDetail, 0)
+
+	if mySQLError.Number == MySQL_ErrorNumber_NoReferencedRow_1 || mySQLError.Number == MySQL_ErrorNumber_NoReferencedRow_2 {
+		detail[ClientMessageKey_NonField] = "unable to create or update as the referred object(s) doesn't exist. try creating the entity first."
+	} else {
+		panic("received invalid MySQLError, not a 'no referenced row' error")
 	}
 
 	return NewValidationError(&mySQLError, detail)

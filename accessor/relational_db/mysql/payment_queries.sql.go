@@ -282,13 +282,13 @@ type GetTeacherSalariesRow struct {
 	Duration                int32
 	TeacherID               sql.NullInt64
 	TeacherUsername         sql.NullString
-	TeacherDetail           json.RawMessage
+	TeacherDetail           []byte
 	ClassID                 sql.NullInt64
 	CourseID                sql.NullInt64
 	CourseName              string
 	StudentID               sql.NullInt64
 	StudentUsername         sql.NullString
-	StudentDetail           json.RawMessage
+	StudentDetail           []byte
 }
 
 func (q *Queries) GetTeacherSalaries(ctx context.Context) ([]GetTeacherSalariesRow, error) {

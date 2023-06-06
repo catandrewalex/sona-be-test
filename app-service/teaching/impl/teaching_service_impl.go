@@ -2,6 +2,7 @@ package impl
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -10,8 +11,15 @@ import (
 	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
+	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
+	"sonamusica-backend/logging"
 	"sonamusica-backend/network"
+)
+
+var (
+	configObject = config.Get()
+	mainLog      = logging.NewGoLogger("TeachingService", logging.GetLevel(configObject.LogLevel))
 )
 
 type teachingServiceImpl struct {
@@ -150,9 +158,9 @@ func (s teachingServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, spe
 	teacherIDs := make([]teaching.TeacherID, 0, len(specs))
 
 	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
-	tx, err := s.mySQLQueries.DB.Begin()
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.TeacherID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+		return []teaching.TeacherID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTx(tx)
@@ -318,9 +326,9 @@ func (s teachingServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, spe
 	studentIDs := make([]teaching.StudentID, 0, len(specs))
 
 	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
-	tx, err := s.mySQLQueries.DB.Begin()
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.StudentID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+		return []teaching.StudentID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTx(tx)
@@ -687,6 +695,197 @@ func (s teachingServiceImpl) DeleteCourses(ctx context.Context, ids []teaching.C
 	err := s.mySQLQueries.DeleteCoursesByIds(ctx, idsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteCourseByIds(): %w", err)
+	}
+
+	return nil
+}
+
+func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec) (teaching.GetClassesResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	classRows, err := s.mySQLQueries.GetClasses(ctx, mysql.GetClassesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return teaching.GetClassesResult{}, fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
+	}
+
+	classes := NewClassesFromGetClassesRow(classRows)
+	totalResults, err := s.mySQLQueries.CountClasses(ctx)
+
+	return teaching.GetClassesResult{
+		Classes:          classes,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s teachingServiceImpl) GetClassById(ctx context.Context, id teaching.ClassID) (teaching.Class, error) {
+	classRows, err := s.mySQLQueries.GetClassById(ctx, int64(id))
+	if err != nil {
+		return teaching.Class{}, fmt.Errorf("mySQLQueries.GetClassById(): %w", err)
+	}
+
+	if len(classRows) == 0 {
+		return teaching.Class{}, sql.ErrNoRows
+	}
+
+	classRowsConverted := make([]mysql.GetClassesRow, 0, len(classRows))
+	for _, row := range classRows {
+		classRowsConverted = append(classRowsConverted, row.ToGetClassesRow())
+	}
+
+	class := NewClassesFromGetClassesRow(classRowsConverted)[0]
+
+	return class, nil
+}
+
+func (s teachingServiceImpl) GetClassesByIds(ctx context.Context, ids []teaching.ClassID) ([]teaching.Class, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	classRows, err := s.mySQLQueries.GetClassesByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.Class{}, fmt.Errorf("mySQLQueries.GetClassesByIds(): %w", err)
+	}
+
+	classRowsConverted := make([]mysql.GetClassesRow, 0, len(classRows))
+	for _, row := range classRows {
+		classRowsConverted = append(classRowsConverted, row.ToGetClassesRow())
+	}
+
+	classes := NewClassesFromGetClassesRow(classRowsConverted)
+
+	return classes, nil
+}
+
+func (s teachingServiceImpl) InsertClasses(ctx context.Context, specs []teaching.InsertClassSpec) ([]teaching.ClassID, error) {
+	classIDs := make([]teaching.ClassID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.ClassID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
+	for _, spec := range specs {
+		classID, err := qtx.InsertClass(ctx, mysql.InsertClassParams{
+			TransportFee: spec.TransportFee,
+			TeacherID:    sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != teaching.TeacherID_None},
+			CourseID:     int64(spec.CourseID),
+		})
+		if err != nil {
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.ClassID{}, fmt.Errorf("qtx.InsertClass(): %w", wrappedErr)
+		}
+		classIDs = append(classIDs, teaching.ClassID(classID))
+
+		for _, studentId := range spec.StudentIDs {
+			err := qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
+				StudentID: int64(studentId),
+				ClassID:   classID,
+			})
+			if err != nil {
+				wrappedErr := errs.WrapMySQLError(err)
+				return []teaching.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", wrappedErr)
+			}
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return classIDs, nil
+}
+
+func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching.UpdateClassSpec) ([]teaching.ClassID, error) {
+	classIDs := make([]teaching.ClassID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.ClassID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
+	for _, spec := range specs {
+		// Updated class
+		err := s.mySQLQueries.UpdateClass(ctx, mysql.UpdateClassParams{
+			TransportFee:  spec.TransportFee,
+			TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != teaching.TeacherID_None},
+			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
+			ID:            int64(spec.ID),
+		})
+		if err != nil {
+			return []teaching.ClassID{}, fmt.Errorf("qtx.UpdateClass(): %w", err)
+		}
+		classIDs = append(classIDs, spec.ID)
+
+		// Added students
+		for _, studentId := range spec.AddedStudentIDs {
+			err = qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
+				StudentID: int64(studentId),
+				ClassID:   int64(spec.ID),
+			})
+			if err != nil {
+				wrappedErr := errs.WrapMySQLError(err)
+				return []teaching.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", wrappedErr)
+			}
+		}
+
+		// Removed enrollments
+		idsInt := make([]int64, 0, len(spec.DeletedEnrollmentIDs))
+		for _, deletedEnrollmentID := range spec.DeletedEnrollmentIDs {
+			idsInt = append(idsInt, int64(deletedEnrollmentID))
+		}
+		err = qtx.DeleteStudentEnrollmentsByIds(ctx, idsInt)
+		if err != nil {
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.ClassID{}, fmt.Errorf("qtx.DeleteStudentEnrollmentsByIds(): %w", wrappedErr)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return classIDs, nil
+}
+
+func (s teachingServiceImpl) DeleteClasses(ctx context.Context, ids []teaching.ClassID) error {
+	idsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt64 = append(idsInt64, int64(id))
+	}
+
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
+	err = qtx.DeleteStudentEnrollmentByClassIds(ctx, idsInt64)
+	if err != nil {
+		wrappedErr := errs.WrapMySQLError(err)
+		return fmt.Errorf("qtx.DeleteStudentEnrollmentByClassIds(): %w", wrappedErr)
+	}
+
+	err = qtx.DeleteClassesByIds(ctx, idsInt64)
+	if err != nil {
+		wrappedErr := errs.WrapMySQLError(err)
+		return fmt.Errorf("qtx.DeleteClassesByIds(): %w", wrappedErr)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return nil

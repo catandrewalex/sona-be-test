@@ -2,9 +2,11 @@ package identity
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"sonamusica-backend/app-service/util"
+	"sonamusica-backend/logging"
 )
 
 type User struct {
@@ -52,6 +54,15 @@ type IdentityService interface {
 	LoginUser(ctx context.Context, spec LoginUserSpec) (LoginUserResult, error)
 	ForgotPassword(ctx context.Context, spec ForgotPasswordSpec) error
 	ResetPassword(ctx context.Context, spec ResetPasswordSpec) error
+}
+
+func UnmarshalUserDetail(jsonRaw json.RawMessage, logger logging.Logger) UserDetail {
+	var userDetail UserDetail
+	err := json.Unmarshal(jsonRaw, &userDetail)
+	if err != nil {
+		logger.Warn("Unable to unmarshal UserDetail=%q: %v", jsonRaw, err)
+	}
+	return userDetail
 }
 
 type GetUsersResult struct {

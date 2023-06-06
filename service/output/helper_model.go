@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 
+	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/errs"
 )
 
@@ -45,4 +46,12 @@ type PaginationResponse struct {
 	TotalPages   int `json:"totalPages"`
 	TotalResults int `json:"totalResults"`
 	CurrentPage  int `json:"currentPage"`
+}
+
+func NewPaginationResponse(paginationResult util.PaginationResult) PaginationResponse {
+	return PaginationResponse{
+		TotalPages:   paginationResult.TotalPages,
+		TotalResults: paginationResult.TotalResults,
+		CurrentPage:  paginationResult.CurrentPage,
+	}
 }

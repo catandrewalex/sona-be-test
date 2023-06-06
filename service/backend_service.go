@@ -222,16 +222,12 @@ func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUse
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), nil, "Failed to get users")
 	}
 
-	paginationResult := getUsersResult.PaginationResult
+	paginationResponse := output.NewPaginationResponse(getUsersResult.PaginationResult)
 
 	return &output.GetUsersResponse{
 		Data: output.GetUsersResult{
-			Results: getUsersResult.Users,
-			PaginationResponse: output.PaginationResponse{
-				TotalPages:   paginationResult.TotalPages,
-				TotalResults: paginationResult.TotalResults,
-				CurrentPage:  paginationResult.CurrentPage,
-			},
+			Results:            getUsersResult.Users,
+			PaginationResponse: paginationResponse,
 		},
 	}, nil
 }
@@ -353,16 +349,12 @@ func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.Get
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachers(): %w", err), nil, "Failed to get teachers")
 	}
 
-	paginationResult := getTeachersResult.PaginationResult
+	paginationResponse := output.NewPaginationResponse(getTeachersResult.PaginationResult)
 
 	return &output.GetTeachersResponse{
 		Data: output.GetTeachersResult{
-			Results: getTeachersResult.Teachers,
-			PaginationResponse: output.PaginationResponse{
-				TotalPages:   paginationResult.TotalPages,
-				TotalResults: paginationResult.TotalResults,
-				CurrentPage:  paginationResult.CurrentPage,
-			},
+			Results:            getTeachersResult.Teachers,
+			PaginationResponse: paginationResponse,
 		},
 	}, nil
 }
@@ -481,16 +473,12 @@ func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.Get
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudents(): %w", err), nil, "Failed to get students")
 	}
 
-	paginationResult := getStudentsResult.PaginationResult
+	paginationResponse := output.NewPaginationResponse(getStudentsResult.PaginationResult)
 
 	return &output.GetStudentsResponse{
 		Data: output.GetStudentsResult{
-			Results: getStudentsResult.Students,
-			PaginationResponse: output.PaginationResponse{
-				TotalPages:   paginationResult.TotalPages,
-				TotalResults: paginationResult.TotalResults,
-				CurrentPage:  paginationResult.CurrentPage,
-			},
+			Results:            getStudentsResult.Students,
+			PaginationResponse: paginationResponse,
 		},
 	}, nil
 }
@@ -609,16 +597,12 @@ func (s *BackendService) GetInstrumentsHandler(ctx context.Context, req *output.
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstruments(): %w", err), nil, "Failed to get instruments")
 	}
 
-	paginationResult := getInstrumentsResult.PaginationResult
+	paginationResponse := output.NewPaginationResponse(getInstrumentsResult.PaginationResult)
 
 	return &output.GetInstrumentsResponse{
 		Data: output.GetInstrumentsResult{
-			Results: getInstrumentsResult.Instruments,
-			PaginationResponse: output.PaginationResponse{
-				TotalPages:   paginationResult.TotalPages,
-				TotalResults: paginationResult.TotalResults,
-				CurrentPage:  paginationResult.CurrentPage,
-			},
+			Results:            getInstrumentsResult.Instruments,
+			PaginationResponse: paginationResponse,
 		},
 	}, nil
 }
@@ -734,16 +718,12 @@ func (s *BackendService) GetGradesHandler(ctx context.Context, req *output.GetGr
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGrades(): %w", err), nil, "Failed to get grades")
 	}
 
-	paginationResult := getGradesResult.PaginationResult
+	paginationResponse := output.NewPaginationResponse(getGradesResult.PaginationResult)
 
 	return &output.GetGradesResponse{
 		Data: output.GetGradesResult{
-			Results: getGradesResult.Grades,
-			PaginationResponse: output.PaginationResponse{
-				TotalPages:   paginationResult.TotalPages,
-				TotalResults: paginationResult.TotalResults,
-				CurrentPage:  paginationResult.CurrentPage,
-			},
+			Results:            getGradesResult.Grades,
+			PaginationResponse: paginationResponse,
 		},
 	}, nil
 }
@@ -859,16 +839,12 @@ func (s *BackendService) GetCoursesHandler(ctx context.Context, req *output.GetC
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCourses(): %w", err), nil, "Failed to get courses")
 	}
 
-	paginationResult := getCoursesResult.PaginationResult
+	paginationResponse := output.NewPaginationResponse(getCoursesResult.PaginationResult)
 
 	return &output.GetCoursesResponse{
 		Data: output.GetCoursesResult{
-			Results: getCoursesResult.Courses,
-			PaginationResponse: output.PaginationResponse{
-				TotalPages:   paginationResult.TotalPages,
-				TotalResults: paginationResult.TotalResults,
-				CurrentPage:  paginationResult.CurrentPage,
-			},
+			Results:            getCoursesResult.Courses,
+			PaginationResponse: paginationResponse,
 		},
 	}, nil
 }
@@ -975,6 +951,134 @@ func (s *BackendService) DeleteCoursesHandler(ctx context.Context, req *output.D
 	}, nil
 }
 
+func (s *BackendService) GetClassesHandler(ctx context.Context, req *output.GetClassesRequest) (*output.GetClassesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getClassesResult, err := s.teachingService.GetClasses(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClasses(): %w", err), nil, "Failed to get classes")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getClassesResult.PaginationResult)
+
+	return &output.GetClassesResponse{
+		Data: output.GetClassesResult{
+			Results:            getClassesResult.Classes,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetClassByIdHandler(ctx context.Context, req *output.GetClassRequest) (*output.GetClassResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	class, err := s.teachingService.GetClassById(ctx, req.ID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetClassById()", "class")
+	}
+
+	return &output.GetClassResponse{
+		Data: class,
+	}, nil
+}
+
+func (s *BackendService) InsertClassesHandler(ctx context.Context, req *output.InsertClassesRequest) (*output.InsertClassesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.InsertClassSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.InsertClassSpec{
+			TeacherID:    param.TeacherID,
+			StudentIDs:   param.StudentIDs,
+			CourseID:     param.CourseID,
+			TransportFee: param.TransportFee,
+		})
+	}
+
+	classIDs, err := s.teachingService.InsertClasses(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.InsertClasses()", "class")
+	}
+	mainLog.Info("Classes created: classIDs='%v'", classIDs)
+
+	classes, err := s.teachingService.GetClassesByIds(ctx, classIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClassesByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertClassesResponse{
+		Data: output.UpsertClassResult{
+			Results: classes,
+		},
+		Message: "Successfully created classes",
+	}, nil
+}
+
+func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.UpdateClassesRequest) (*output.UpdateClassesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.UpdateClassSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.UpdateClassSpec{
+			ID:                   param.ID,
+			TeacherID:            param.TeacherID,
+			AddedStudentIDs:      *param.AddedStudentIDs,
+			DeletedEnrollmentIDs: *param.DeletedEnrollmentIDs,
+			TransportFee:         param.TransportFee,
+			IsDeactivated:        param.IsDeactivated,
+		})
+	}
+
+	classIDs, err := s.teachingService.UpdateClasses(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.UpdateClasses()", "class")
+	}
+	mainLog.Info("Classes updated: classIDs='%v'", classIDs)
+
+	classes, err := s.teachingService.GetClassesByIds(ctx, classIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClassesByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateClassesResponse{
+		Data: output.UpsertClassResult{
+			Results: classes,
+		},
+		Message: "Successfully updated classes",
+	}, nil
+}
+
+func (s *BackendService) DeleteClassesHandler(ctx context.Context, req *output.DeleteClassesRequest) (*output.DeleteClassesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]teaching.ClassID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.ID)
+	}
+
+	err := s.teachingService.DeleteClasses(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteClasses()", "class")
+	}
+
+	return &output.DeleteClassesResponse{
+		Message: "Successfully deleted classes",
+	}, nil
+}
+
 // handleReadError detects non-existing result error (e.g. sql.ErrNoRows) and returns HTTP 404-NotFound. Else, returns HTTP 500.
 func handleReadError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {
@@ -998,7 +1102,7 @@ func handleUpsertionError(err error, methodName, entityName string) errs.HTTPErr
 	if errors.As(err, &validationErr) {
 		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, validationErr), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
 	}
-	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create/update %s(s)", entityName))
+	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create or update %s(s)", entityName))
 }
 
 // handleReadError detects update/insert error due to rule violation (e.g. duplicate entries) and returns HTTP 409-Conflict. Else, returns HTTP 500.

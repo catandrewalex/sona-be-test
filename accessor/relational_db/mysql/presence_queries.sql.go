@@ -8,7 +8,6 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"time"
 )
 
@@ -86,13 +85,13 @@ type GetPresenceByIdRow struct {
 	Duration              int32
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	ClassID               sql.NullInt64
 	CourseID              sql.NullInt64
 	CourseName            string
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	CourseFeeValue        int32
 	TransportFeeValue     int32
 }
@@ -150,13 +149,13 @@ type GetPresencesRow struct {
 	Duration              int32
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	ClassID               sql.NullInt64
 	CourseID              sql.NullInt64
 	CourseName            string
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	CourseFeeValue        int32
 	TransportFeeValue     int32
 }
@@ -230,13 +229,13 @@ type GetPresencesByClassIdRow struct {
 	Duration              int32
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	ClassID               sql.NullInt64
 	CourseID              sql.NullInt64
 	CourseName            string
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	CourseFeeValue        int32
 	TransportFeeValue     int32
 }
@@ -310,13 +309,13 @@ type GetPresencesByTeacherIdRow struct {
 	Duration              int32
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
-	TeacherDetail         json.RawMessage
+	TeacherDetail         []byte
 	ClassID               sql.NullInt64
 	CourseID              sql.NullInt64
 	CourseName            string
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
-	StudentDetail         json.RawMessage
+	StudentDetail         []byte
 	CourseFeeValue        int32
 	TransportFeeValue     int32
 }

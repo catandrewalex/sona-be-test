@@ -37,6 +37,38 @@ type Course struct {
 	DefaultDurationMinute int32  `json:"defaultDurationMinute"`
 }
 
+type Class struct {
+	ID                 ClassID                       `json:"id"`
+	TeacherInfo        *Class_TeacherInfo            `json:"teacherInfo,omitempty"` // class without teacher is a valid class
+	StudentEnrollments []Class_StudentEnrollmentInfo `json:"studentEnrollments"`
+	Course             Course                        `json:"course"`
+	TransportFee       int64                         `json:"transportFee"`
+	IsDeactivated      bool                          `json:"isDeactivated"`
+}
+
+type Class_TeacherInfo struct {
+	TeacherID  TeacherID           `json:"teacherId"`
+	Username   string              `json:"username"`
+	UserDetail identity.UserDetail `json:"userDetail"`
+}
+
+type Class_StudentEnrollmentInfo struct {
+	ID          StudentEnrollmentID    `json:"id"`
+	StudentInfo Enrollment_StudentInfo `json:"studentInfo"`
+}
+
+type StudentEnrollment struct {
+	ID          StudentEnrollmentID    `json:"id"`
+	StudentInfo Enrollment_StudentInfo `json:"studentInfo"`
+	ClassID     ClassID                `json:"classId"`
+}
+
+type Enrollment_StudentInfo struct {
+	StudentID  StudentID           `json:"studentId"`
+	Username   string              `json:"username"`
+	UserDetail identity.UserDetail `json:"userDetail"`
+}
+
 type TeacherID int64
 type StudentID int64
 type InstrumentID int64
@@ -114,6 +146,13 @@ type TeachingService interface {
 	InsertCourses(ctx context.Context, specs []InsertCourseSpec) ([]CourseID, error)
 	UpdateCourses(ctx context.Context, specs []UpdateCourseSpec) ([]CourseID, error)
 	DeleteCourses(ctx context.Context, ids []CourseID) error
+
+	GetClasses(ctx context.Context, pagination util.PaginationSpec) (GetClassesResult, error)
+	GetClassById(ctx context.Context, id ClassID) (Class, error)
+	GetClassesByIds(ctx context.Context, ids []ClassID) ([]Class, error)
+	InsertClasses(ctx context.Context, specs []InsertClassSpec) ([]ClassID, error)
+	UpdateClasses(ctx context.Context, specs []UpdateClassSpec) ([]ClassID, error)
+	DeleteClasses(ctx context.Context, ids []ClassID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -178,4 +217,27 @@ type UpdateCourseSpec struct {
 	ID                    CourseID
 	DefaultFee            int64
 	DefaultDurationMinute int32
+}
+
+// ============================== COURSE ==============================
+
+type GetClassesResult struct {
+	Classes          []Class
+	PaginationResult util.PaginationResult
+}
+
+type InsertClassSpec struct {
+	TeacherID    TeacherID
+	StudentIDs   []StudentID
+	CourseID     CourseID
+	TransportFee int64
+}
+
+type UpdateClassSpec struct {
+	ID                   ClassID
+	TeacherID            TeacherID
+	AddedStudentIDs      []StudentID
+	DeletedEnrollmentIDs []StudentEnrollmentID
+	TransportFee         int64
+	IsDeactivated        bool
 }

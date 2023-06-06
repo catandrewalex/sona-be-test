@@ -283,3 +283,97 @@ type DeleteCoursesResponse struct {
 func (r DeleteCoursesRequest) Validate() errs.ValidationError {
 	return nil
 }
+
+// ============================== CLASS ==============================
+
+type GetClassesRequest struct {
+	PaginationRequest
+}
+type GetClassesResponse struct {
+	Data    GetClassesResult `json:"data"`
+	Message string           `json:"message,omitempty"`
+}
+type GetClassesResult struct {
+	Results []teaching.Class `json:"results"`
+	PaginationResponse
+}
+
+func (r GetClassesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetClasses, MaxResultsPerPage_GetClasses); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetClassRequest struct {
+	ID teaching.ClassID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+}
+type GetClassResponse struct {
+	Data    teaching.Class `json:"data"`
+	Message string         `json:"message,omitempty"`
+}
+
+func (r GetClassRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertClassesRequest struct {
+	Data []InsertClassesRequestParam `json:"data"`
+}
+type InsertClassesRequestParam struct {
+	TeacherID    teaching.TeacherID   `json:"teacherId"`
+	StudentIDs   []teaching.StudentID `json:"studentIds"`
+	CourseID     teaching.CourseID    `json:"courseId"`
+	TransportFee int64                `json:"transportFee,omitempty"`
+}
+type InsertClassesResponse struct {
+	Data    UpsertClassResult `json:"data"`
+	Message string            `json:"message,omitempty"`
+}
+
+func (r InsertClassesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpdateClassesRequest struct {
+	Data []UpdateClassesRequestParam `json:"data"`
+}
+type UpdateClassesRequestParam struct {
+	ID                   teaching.ClassID                `json:"id"`
+	TeacherID            teaching.TeacherID              `json:"teacherId"`
+	AddedStudentIDs      *[]teaching.StudentID           `json:"addedStudentIds"`
+	DeletedEnrollmentIDs *[]teaching.StudentEnrollmentID `json:"deletedEnrollmentIds"`
+	TransportFee         int64                           `json:"transportFee,omitempty"`
+	IsDeactivated        bool                            `json:"isDeactivated,omitempty"`
+}
+type UpdateClassesResponse struct {
+	Data    UpsertClassResult `json:"data"`
+	Message string            `json:"message,omitempty"`
+}
+
+func (r UpdateClassesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpsertClassResult struct {
+	Results []teaching.Class `json:"results"`
+}
+
+type DeleteClassesRequest struct {
+	Data []DeleteClassesRequestParam `json:"data"`
+}
+type DeleteClassesRequestParam struct {
+	ID teaching.ClassID `json:"id"`
+}
+type DeleteClassesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteClassesRequest) Validate() errs.ValidationError {
+	return nil
+}
