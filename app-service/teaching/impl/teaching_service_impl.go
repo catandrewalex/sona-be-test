@@ -283,7 +283,7 @@ func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util
 		return teaching.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
 	}
 
-	instruments := NewInstrumentsFromMySQLInstrument(instrumentRows)
+	instruments := NewInstrumentsFromMySQLInstruments(instrumentRows)
 
 	totalResults, err := s.mySQLQueries.CountInstruments(ctx)
 	if err != nil {
@@ -302,7 +302,7 @@ func (s teachingServiceImpl) GetInstrumentById(ctx context.Context, id teaching.
 		return teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
 	}
 
-	instrument := NewInstrumentsFromMySQLInstrument([]mysql.Instrument{instrumentRow})[0]
+	instrument := NewInstrumentsFromMySQLInstruments([]mysql.Instrument{instrumentRow})[0]
 
 	return instrument, nil
 }
@@ -318,7 +318,7 @@ func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teac
 		return []teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
 	}
 
-	instruments := NewInstrumentsFromMySQLInstrument(instrumentRows)
+	instruments := NewInstrumentsFromMySQLInstruments(instrumentRows)
 
 	return instruments, nil
 }
@@ -405,7 +405,7 @@ func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.Pagi
 		return teaching.GetGradesResult{}, fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
 	}
 
-	grades := NewGradesFromMySQLGrade(gradeRows)
+	grades := NewGradesFromMySQLGrades(gradeRows)
 
 	totalResults, err := s.mySQLQueries.CountGrades(ctx)
 	if err != nil {
@@ -424,7 +424,7 @@ func (s teachingServiceImpl) GetGradeById(ctx context.Context, id teaching.Grade
 		return teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
 	}
 
-	grade := NewGradesFromMySQLGrade([]mysql.Grade{gradeRow})[0]
+	grade := NewGradesFromMySQLGrades([]mysql.Grade{gradeRow})[0]
 
 	return grade, nil
 }
@@ -440,7 +440,7 @@ func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.
 		return []teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
 	}
 
-	grades := NewGradesFromMySQLGrade(gradeRows)
+	grades := NewGradesFromMySQLGrades(gradeRows)
 
 	return grades, nil
 }

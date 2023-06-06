@@ -106,8 +106,8 @@ type InsertUsersRequest struct {
 }
 type InsertUserRequestParam struct {
 	Username          string                     `json:"username"`
-	Email             string                     `json:"email"`
-	Password          string                     `json:"password"`
+	Email             string                     `json:"email,omitempty"`    // admin may not know the user's email. empty is much preferable than invalid email
+	Password          string                     `json:"password,omitempty"` // we allow password to be empty --> the user won't be able to login
 	UserDetail        identity.UserDetail        `json:"userDetail"`
 	UserPrivilegeType identity.UserPrivilegeType `json:"privilegeType"`
 }

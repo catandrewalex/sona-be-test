@@ -62,26 +62,12 @@ func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.Pagin
 		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.GetUsers(): %w", err)
 	}
 
-	users := make([]identity.User, 0, len(userRows))
-	for _, userRow := range userRows {
-		var userDetail identity.UserDetail
-		err = json.Unmarshal(userRow.UserDetail, &userDetail)
-		if err != nil {
-			return identity.GetUsersResult{}, fmt.Errorf("json.Unmarshal(): %w", err)
-		}
-
-		users = append(users, identity.User{
-			ID:            identity.UserID(userRow.ID),
-			Username:      userRow.Username,
-			Email:         userRow.Email,
-			UserDetail:    userDetail,
-			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
-			IsDeactivated: util.Int32ToBool(userRow.IsDeactivated),
-			CreatedAt:     userRow.CreatedAt.Time,
-		})
-	}
+	users := NewUsersFromMySQLUsers(userRows)
 
 	totalResults, err := s.mySQLQueries.CountUsers(ctx)
+	if err != nil {
+		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.CountUsers(): %w", err)
+	}
 
 	return identity.GetUsersResult{
 		Users:            users,
@@ -90,26 +76,14 @@ func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.Pagin
 }
 
 func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID) (identity.User, error) {
-	user, err := s.mySQLQueries.GetUserById(ctx, int64(id))
+	userRow, err := s.mySQLQueries.GetUserById(ctx, int64(id))
 	if err != nil {
 		return identity.User{}, fmt.Errorf("mySQLQueries.GetUserById(): %w", err)
 	}
 
-	var userDetail identity.UserDetail
-	err = json.Unmarshal(user.UserDetail, &userDetail)
-	if err != nil {
-		return identity.User{}, fmt.Errorf("json.Unmarshal(): %w", err)
-	}
+	user := NewUsersFromMySQLUsers([]mysql.User{userRow})[0]
 
-	return identity.User{
-		ID:            identity.UserID(user.ID),
-		Username:      user.Username,
-		Email:         user.Email,
-		UserDetail:    userDetail,
-		PrivilegeType: identity.UserPrivilegeType(user.PrivilegeType),
-		IsDeactivated: util.Int32ToBool(user.IsDeactivated),
-		CreatedAt:     user.CreatedAt.Time,
-	}, nil
+	return user, nil
 }
 
 func (s identityServiceImpl) GetUsersByIds(ctx context.Context, ids []identity.UserID) ([]identity.User, error) {
@@ -123,24 +97,7 @@ func (s identityServiceImpl) GetUsersByIds(ctx context.Context, ids []identity.U
 		return []identity.User{}, fmt.Errorf("mySQLQueries.GetUsersByIds(): %w", err)
 	}
 
-	users := make([]identity.User, 0, len(userRows))
-	for _, userRow := range userRows {
-		var userDetail identity.UserDetail
-		err = json.Unmarshal(userRow.UserDetail, &userDetail)
-		if err != nil {
-			return []identity.User{}, fmt.Errorf("json.Unmarshal(): %w", err)
-		}
-
-		users = append(users, identity.User{
-			ID:            identity.UserID(userRow.ID),
-			Username:      userRow.Username,
-			Email:         userRow.Email,
-			UserDetail:    userDetail,
-			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
-			IsDeactivated: util.Int32ToBool(userRow.IsDeactivated),
-			CreatedAt:     userRow.CreatedAt.Time,
-		})
-	}
+	users := NewUsersFromMySQLUsers(userRows)
 
 	return users, nil
 }

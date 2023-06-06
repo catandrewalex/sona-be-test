@@ -47,7 +47,7 @@ func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []teachin
 	return students
 }
 
-func NewInstrumentsFromMySQLInstrument(instrumentRows []mysql.Instrument) []teaching.Instrument {
+func NewInstrumentsFromMySQLInstruments(instrumentRows []mysql.Instrument) []teaching.Instrument {
 	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
 	for _, instrumentRow := range instrumentRows {
 		instruments = append(instruments, teaching.Instrument{
@@ -59,7 +59,7 @@ func NewInstrumentsFromMySQLInstrument(instrumentRows []mysql.Instrument) []teac
 	return instruments
 }
 
-func NewGradesFromMySQLGrade(gradeRows []mysql.Grade) []teaching.Grade {
+func NewGradesFromMySQLGrades(gradeRows []mysql.Grade) []teaching.Grade {
 	grades := make([]teaching.Grade, 0, len(gradeRows))
 	for _, gradeRow := range gradeRows {
 		grades = append(grades, teaching.Grade{
