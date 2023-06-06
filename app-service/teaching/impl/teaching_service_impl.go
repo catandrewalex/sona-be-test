@@ -3,7 +3,6 @@ package impl
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
 	"sonamusica-backend/accessor/relational_db"
@@ -48,29 +47,12 @@ func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.Pa
 		return teaching.GetTeachersResult{}, fmt.Errorf("mySQLQueries.GetTeachers(): %w", err)
 	}
 
-	teachers := make([]teaching.Teacher, 0, len(teacherRows))
-	for _, teacherRow := range teacherRows {
-		var userDetail identity.UserDetail
-		err = json.Unmarshal(teacherRow.UserDetail, &userDetail)
-		if err != nil {
-			return teaching.GetTeachersResult{}, fmt.Errorf("json.Unmarshal(): %w", err)
-		}
-
-		teachers = append(teachers, teaching.Teacher{
-			TeacherID: teaching.TeacherID(teacherRow.ID),
-			User: identity.User{
-				ID:            identity.UserID(teacherRow.UserID),
-				Username:      teacherRow.Username,
-				Email:         teacherRow.Email,
-				UserDetail:    userDetail,
-				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
-				IsDeactivated: util.Int32ToBool(teacherRow.IsDeactivated),
-				CreatedAt:     teacherRow.CreatedAt.Time,
-			},
-		})
-	}
+	teachers := NewTeachersFromGetTeachersRow(teacherRows)
 
 	totalResults, err := s.mySQLQueries.CountTeachers(ctx)
+	if err != nil {
+		return teaching.GetTeachersResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
 
 	return teaching.GetTeachersResult{
 		Teachers:         teachers,
@@ -79,29 +61,14 @@ func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.Pa
 }
 
 func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.TeacherID) (teaching.Teacher, error) {
-	teacher, err := s.mySQLQueries.GetTeacherById(ctx, int64(id))
+	teacherRow, err := s.mySQLQueries.GetTeacherById(ctx, int64(id))
 	if err != nil {
 		return teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetTeacherById(): %w", err)
 	}
 
-	var userDetail identity.UserDetail
-	err = json.Unmarshal(teacher.UserDetail, &userDetail)
-	if err != nil {
-		return teaching.Teacher{}, fmt.Errorf("json.Unmarshal(): %w", err)
-	}
+	teacher := NewTeachersFromGetTeachersRow([]mysql.GetTeachersRow{teacherRow.ToGetTeachersRow()})[0]
 
-	return teaching.Teacher{
-		TeacherID: teaching.TeacherID(teacher.ID),
-		User: identity.User{
-			ID:            identity.UserID(teacher.UserID),
-			Username:      teacher.Username,
-			Email:         teacher.Email,
-			UserDetail:    userDetail,
-			PrivilegeType: identity.UserPrivilegeType(teacher.PrivilegeType),
-			IsDeactivated: util.Int32ToBool(teacher.IsDeactivated),
-			CreatedAt:     teacher.CreatedAt.Time,
-		},
-	}, nil
+	return teacher, nil
 }
 
 func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teaching.TeacherID) ([]teaching.Teacher, error) {
@@ -115,27 +82,12 @@ func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teachin
 		return []teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetTeachersByIds(): %w", err)
 	}
 
-	teachers := make([]teaching.Teacher, 0, len(teacherRows))
+	teacherRowsConverted := make([]mysql.GetTeachersRow, 0, len(teacherRows))
 	for _, teacherRow := range teacherRows {
-		var userDetail identity.UserDetail
-		err = json.Unmarshal(teacherRow.UserDetail, &userDetail)
-		if err != nil {
-			return []teaching.Teacher{}, fmt.Errorf("json.Unmarshal(): %w", err)
-		}
-
-		teachers = append(teachers, teaching.Teacher{
-			TeacherID: teaching.TeacherID(teacherRow.ID),
-			User: identity.User{
-				ID:            identity.UserID(teacherRow.UserID),
-				Username:      teacherRow.Username,
-				Email:         teacherRow.Email,
-				UserDetail:    userDetail,
-				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
-				IsDeactivated: util.Int32ToBool(teacherRow.IsDeactivated),
-				CreatedAt:     teacherRow.CreatedAt.Time,
-			},
-		})
+		teacherRowsConverted = append(teacherRowsConverted, teacherRow.ToGetTeachersRow())
 	}
+
+	teachers := NewTeachersFromGetTeachersRow(teacherRowsConverted)
 
 	return teachers, nil
 }
@@ -213,27 +165,7 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 		return teaching.GetStudentsResult{}, fmt.Errorf("mySQLQueries.GetStudents(): %w", err)
 	}
 
-	students := make([]teaching.Student, 0, len(studentRows))
-	for _, studentRow := range studentRows {
-		var userDetail identity.UserDetail
-		err = json.Unmarshal(studentRow.UserDetail, &userDetail)
-		if err != nil {
-			return teaching.GetStudentsResult{}, fmt.Errorf("json.Unmarshal(): %w", err)
-		}
-
-		students = append(students, teaching.Student{
-			StudentID: teaching.StudentID(studentRow.ID),
-			User: identity.User{
-				ID:            identity.UserID(studentRow.UserID),
-				Username:      studentRow.Username,
-				Email:         studentRow.Email,
-				UserDetail:    userDetail,
-				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
-				IsDeactivated: util.Int32ToBool(studentRow.IsDeactivated),
-				CreatedAt:     studentRow.CreatedAt.Time,
-			},
-		})
-	}
+	students := NewStudentsFromGetStudentsRow(studentRows)
 
 	totalResults, err := s.mySQLQueries.CountStudents(ctx)
 	if err != nil {
@@ -247,29 +179,14 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 }
 
 func (s teachingServiceImpl) GetStudentById(ctx context.Context, id teaching.StudentID) (teaching.Student, error) {
-	student, err := s.mySQLQueries.GetStudentById(ctx, int64(id))
+	studentRow, err := s.mySQLQueries.GetStudentById(ctx, int64(id))
 	if err != nil {
 		return teaching.Student{}, fmt.Errorf("mySQLQueries.GetStudentById(): %w", err)
 	}
 
-	var userDetail identity.UserDetail
-	err = json.Unmarshal(student.UserDetail, &userDetail)
-	if err != nil {
-		return teaching.Student{}, fmt.Errorf("json.Unmarshal(): %w", err)
-	}
+	student := NewStudentsFromGetStudentsRow([]mysql.GetStudentsRow{studentRow.ToGetStudentsRow()})[0]
 
-	return teaching.Student{
-		StudentID: teaching.StudentID(student.ID),
-		User: identity.User{
-			ID:            identity.UserID(student.UserID),
-			Username:      student.Username,
-			Email:         student.Email,
-			UserDetail:    userDetail,
-			PrivilegeType: identity.UserPrivilegeType(student.PrivilegeType),
-			IsDeactivated: util.Int32ToBool(student.IsDeactivated),
-			CreatedAt:     student.CreatedAt.Time,
-		},
-	}, nil
+	return student, nil
 }
 
 func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teaching.StudentID) ([]teaching.Student, error) {
@@ -283,27 +200,12 @@ func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teachin
 		return []teaching.Student{}, fmt.Errorf("mySQLQueries.GetStudentsByIds(): %w", err)
 	}
 
-	students := make([]teaching.Student, 0, len(studentRows))
+	studentRowsConverted := make([]mysql.GetStudentsRow, 0, len(studentRows))
 	for _, studentRow := range studentRows {
-		var userDetail identity.UserDetail
-		err = json.Unmarshal(studentRow.UserDetail, &userDetail)
-		if err != nil {
-			return []teaching.Student{}, fmt.Errorf("json.Unmarshal(): %w", err)
-		}
-
-		students = append(students, teaching.Student{
-			StudentID: teaching.StudentID(studentRow.ID),
-			User: identity.User{
-				ID:            identity.UserID(studentRow.UserID),
-				Username:      studentRow.Username,
-				Email:         studentRow.Email,
-				UserDetail:    userDetail,
-				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
-				IsDeactivated: util.Int32ToBool(studentRow.IsDeactivated),
-				CreatedAt:     studentRow.CreatedAt.Time,
-			},
-		})
+		studentRowsConverted = append(studentRowsConverted, studentRow.ToGetStudentsRow())
 	}
+
+	students := NewStudentsFromGetStudentsRow(studentRowsConverted)
 
 	return students, nil
 }
@@ -381,15 +283,12 @@ func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util
 		return teaching.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
 	}
 
-	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
-	for _, instrumentRow := range instrumentRows {
-		instruments = append(instruments, teaching.Instrument{
-			ID:   teaching.InstrumentID(instrumentRow.ID),
-			Name: instrumentRow.Name,
-		})
-	}
+	instruments := NewInstrumentsFromMySQLInstrument(instrumentRows)
 
 	totalResults, err := s.mySQLQueries.CountInstruments(ctx)
+	if err != nil {
+		return teaching.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
 
 	return teaching.GetInstrumentsResult{
 		Instruments:      instruments,
@@ -398,15 +297,14 @@ func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util
 }
 
 func (s teachingServiceImpl) GetInstrumentById(ctx context.Context, id teaching.InstrumentID) (teaching.Instrument, error) {
-	instrument, err := s.mySQLQueries.GetInstrumentById(ctx, int64(id))
+	instrumentRow, err := s.mySQLQueries.GetInstrumentById(ctx, int64(id))
 	if err != nil {
 		return teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
 	}
 
-	return teaching.Instrument{
-		ID:   teaching.InstrumentID(instrument.ID),
-		Name: instrument.Name,
-	}, nil
+	instrument := NewInstrumentsFromMySQLInstrument([]mysql.Instrument{instrumentRow})[0]
+
+	return instrument, nil
 }
 
 func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teaching.InstrumentID) ([]teaching.Instrument, error) {
@@ -420,13 +318,7 @@ func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teac
 		return []teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
 	}
 
-	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
-	for _, instrumentRow := range instrumentRows {
-		instruments = append(instruments, teaching.Instrument{
-			ID:   teaching.InstrumentID(instrumentRow.ID),
-			Name: instrumentRow.Name,
-		})
-	}
+	instruments := NewInstrumentsFromMySQLInstrument(instrumentRows)
 
 	return instruments, nil
 }
@@ -434,12 +326,25 @@ func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teac
 func (s teachingServiceImpl) InsertInstruments(ctx context.Context, specs []teaching.InsertInstrumentSpec) ([]teaching.InstrumentID, error) {
 	instrumentIDs := make([]teaching.InstrumentID, 0, len(specs))
 
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.InstrumentID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
 	for _, spec := range specs {
-		instrumentID, err := s.mySQLQueries.InsertInstrument(ctx, spec.Name)
+		instrumentID, err := qtx.InsertInstrument(ctx, spec.Name)
 		if err != nil {
-			return []teaching.InstrumentID{}, fmt.Errorf("qtx.InsertInstrument(): %w", err)
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.InstrumentID{}, fmt.Errorf("qtx.InsertInstrument(): %w", wrappedErr)
 		}
 		instrumentIDs = append(instrumentIDs, teaching.InstrumentID(instrumentID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return instrumentIDs, nil
@@ -448,15 +353,28 @@ func (s teachingServiceImpl) InsertInstruments(ctx context.Context, specs []teac
 func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teaching.UpdateInstrumentSpec) ([]teaching.InstrumentID, error) {
 	instrumentIDs := make([]teaching.InstrumentID, 0, len(specs))
 
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.InstrumentID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
 	for _, spec := range specs {
-		err := s.mySQLQueries.UpdateInstrument(ctx, mysql.UpdateInstrumentParams{
+		err := qtx.UpdateInstrument(ctx, mysql.UpdateInstrumentParams{
 			Name: spec.Name,
 			ID:   int64(spec.ID),
 		})
 		if err != nil {
-			return []teaching.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", err)
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", wrappedErr)
 		}
 		instrumentIDs = append(instrumentIDs, spec.ID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return instrumentIDs, nil
@@ -487,15 +405,12 @@ func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.Pagi
 		return teaching.GetGradesResult{}, fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
 	}
 
-	grades := make([]teaching.Grade, 0, len(gradeRows))
-	for _, gradeRow := range gradeRows {
-		grades = append(grades, teaching.Grade{
-			ID:   teaching.GradeID(gradeRow.ID),
-			Name: gradeRow.Name,
-		})
-	}
+	grades := NewGradesFromMySQLGrade(gradeRows)
 
 	totalResults, err := s.mySQLQueries.CountGrades(ctx)
+	if err != nil {
+		return teaching.GetGradesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
 
 	return teaching.GetGradesResult{
 		Grades:           grades,
@@ -504,15 +419,14 @@ func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.Pagi
 }
 
 func (s teachingServiceImpl) GetGradeById(ctx context.Context, id teaching.GradeID) (teaching.Grade, error) {
-	grade, err := s.mySQLQueries.GetGradeById(ctx, int64(id))
+	gradeRow, err := s.mySQLQueries.GetGradeById(ctx, int64(id))
 	if err != nil {
 		return teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
 	}
 
-	return teaching.Grade{
-		ID:   teaching.GradeID(grade.ID),
-		Name: grade.Name,
-	}, nil
+	grade := NewGradesFromMySQLGrade([]mysql.Grade{gradeRow})[0]
+
+	return grade, nil
 }
 
 func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.GradeID) ([]teaching.Grade, error) {
@@ -526,13 +440,7 @@ func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.
 		return []teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
 	}
 
-	grades := make([]teaching.Grade, 0, len(gradeRows))
-	for _, gradeRow := range gradeRows {
-		grades = append(grades, teaching.Grade{
-			ID:   teaching.GradeID(gradeRow.ID),
-			Name: gradeRow.Name,
-		})
-	}
+	grades := NewGradesFromMySQLGrade(gradeRows)
 
 	return grades, nil
 }
@@ -540,12 +448,25 @@ func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.
 func (s teachingServiceImpl) InsertGrades(ctx context.Context, specs []teaching.InsertGradeSpec) ([]teaching.GradeID, error) {
 	gradeIDs := make([]teaching.GradeID, 0, len(specs))
 
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.GradeID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
 	for _, spec := range specs {
-		gradeID, err := s.mySQLQueries.InsertGrade(ctx, spec.Name)
+		gradeID, err := qtx.InsertGrade(ctx, spec.Name)
 		if err != nil {
-			return []teaching.GradeID{}, fmt.Errorf("qtx.InsertGrade(): %w", err)
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.GradeID{}, fmt.Errorf("qtx.InsertGrade(): %w", wrappedErr)
 		}
 		gradeIDs = append(gradeIDs, teaching.GradeID(gradeID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return gradeIDs, nil
@@ -554,15 +475,28 @@ func (s teachingServiceImpl) InsertGrades(ctx context.Context, specs []teaching.
 func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.UpdateGradeSpec) ([]teaching.GradeID, error) {
 	gradeIDs := make([]teaching.GradeID, 0, len(specs))
 
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.GradeID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
 	for _, spec := range specs {
-		err := s.mySQLQueries.UpdateGrade(ctx, mysql.UpdateGradeParams{
+		err := qtx.UpdateGrade(ctx, mysql.UpdateGradeParams{
 			Name: spec.Name,
 			ID:   int64(spec.ID),
 		})
 		if err != nil {
-			return []teaching.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", err)
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", wrappedErr)
 		}
 		gradeIDs = append(gradeIDs, spec.ID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return gradeIDs, nil
@@ -593,17 +527,12 @@ func (s teachingServiceImpl) GetCourses(ctx context.Context, pagination util.Pag
 		return teaching.GetCoursesResult{}, fmt.Errorf("mySQLQueries.GetCourses(): %w", err)
 	}
 
-	courses := make([]teaching.Course, 0, len(courseRows))
-	for _, courseRow := range courseRows {
-		courses = append(courses, teaching.Course{
-			ID:                    teaching.CourseID(courseRow.CourseID),
-			CompleteName:          courseRow.CourseName,
-			DefaultFee:            courseRow.DefaultFee,
-			DefaultDurationMinute: courseRow.DefaultDurationMinute,
-		})
-	}
+	courses := NewCoursesFromGetCoursesRow(courseRows)
 
 	totalResults, err := s.mySQLQueries.CountCourses(ctx)
+	if err != nil {
+		return teaching.GetCoursesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
 
 	return teaching.GetCoursesResult{
 		Courses:          courses,
@@ -612,17 +541,14 @@ func (s teachingServiceImpl) GetCourses(ctx context.Context, pagination util.Pag
 }
 
 func (s teachingServiceImpl) GetCourseById(ctx context.Context, id teaching.CourseID) (teaching.Course, error) {
-	course, err := s.mySQLQueries.GetCourseById(ctx, int64(id))
+	courseRow, err := s.mySQLQueries.GetCourseById(ctx, int64(id))
 	if err != nil {
 		return teaching.Course{}, fmt.Errorf("mySQLQueries.GetCourseById(): %w", err)
 	}
 
-	return teaching.Course{
-		ID:                    teaching.CourseID(course.CourseID),
-		CompleteName:          course.CourseName,
-		DefaultFee:            course.DefaultFee,
-		DefaultDurationMinute: course.DefaultDurationMinute,
-	}, nil
+	course := NewCoursesFromGetCoursesRow([]mysql.GetCoursesRow{courseRow.ToGetCoursesRow()})[0]
+
+	return course, nil
 }
 
 func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching.CourseID) ([]teaching.Course, error) {
@@ -636,15 +562,12 @@ func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching
 		return []teaching.Course{}, fmt.Errorf("mySQLQueries.GetCoursesByIds(): %w", err)
 	}
 
-	courses := make([]teaching.Course, 0, len(courseRows))
-	for _, courseRow := range courseRows {
-		courses = append(courses, teaching.Course{
-			ID:                    teaching.CourseID(courseRow.CourseID),
-			CompleteName:          courseRow.CourseName,
-			DefaultFee:            courseRow.DefaultFee,
-			DefaultDurationMinute: courseRow.DefaultDurationMinute,
-		})
+	courseRowsConverted := make([]mysql.GetCoursesRow, 0, len(courseRows))
+	for _, row := range courseRows {
+		courseRowsConverted = append(courseRowsConverted, row.ToGetCoursesRow())
 	}
+
+	courses := NewCoursesFromGetCoursesRow(courseRowsConverted)
 
 	return courses, nil
 }
@@ -652,17 +575,30 @@ func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching
 func (s teachingServiceImpl) InsertCourses(ctx context.Context, specs []teaching.InsertCourseSpec) ([]teaching.CourseID, error) {
 	courseIDs := make([]teaching.CourseID, 0, len(specs))
 
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.CourseID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
 	for _, spec := range specs {
-		courseID, err := s.mySQLQueries.InsertCourse(ctx, mysql.InsertCourseParams{
+		courseID, err := qtx.InsertCourse(ctx, mysql.InsertCourseParams{
 			DefaultFee:            spec.DefaultFee,
 			DefaultDurationMinute: spec.DefaultDurationMinute,
 			InstrumentID:          int64(spec.InstrumentID),
 			GradeID:               int64(spec.GradeID),
 		})
 		if err != nil {
-			return []teaching.CourseID{}, fmt.Errorf("qtx.InsertCourse(): %w", err)
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.CourseID{}, fmt.Errorf("qtx.InsertCourse(): %w", wrappedErr)
 		}
 		courseIDs = append(courseIDs, teaching.CourseID(courseID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return courseIDs, nil
@@ -671,16 +607,29 @@ func (s teachingServiceImpl) InsertCourses(ctx context.Context, specs []teaching
 func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching.UpdateCourseSpec) ([]teaching.CourseID, error) {
 	courseIDs := make([]teaching.CourseID, 0, len(specs))
 
+	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.CourseID{}, fmt.Errorf("mySQLQueries.DB.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTx(tx)
+
 	for _, spec := range specs {
-		err := s.mySQLQueries.UpdateCourseInfo(ctx, mysql.UpdateCourseInfoParams{
+		err := qtx.UpdateCourseInfo(ctx, mysql.UpdateCourseInfoParams{
 			DefaultFee:            spec.DefaultFee,
 			DefaultDurationMinute: spec.DefaultDurationMinute,
 			ID:                    int64(spec.ID),
 		})
 		if err != nil {
-			return []teaching.CourseID{}, fmt.Errorf("qtx.UpdateCourse(): %w", err)
+			wrappedErr := errs.WrapMySQLError(err)
+			return []teaching.CourseID{}, fmt.Errorf("qtx.UpdateCourseInfo(): %w", wrappedErr)
 		}
 		courseIDs = append(courseIDs, spec.ID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return courseIDs, nil
@@ -712,7 +661,11 @@ func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.Pag
 	}
 
 	classes := NewClassesFromGetClassesRow(classRows)
+
 	totalResults, err := s.mySQLQueries.CountClasses(ctx)
+	if err != nil {
+		return teaching.GetClassesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
 
 	return teaching.GetClassesResult{
 		Classes:          classes,

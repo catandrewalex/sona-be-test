@@ -7,6 +7,84 @@ import (
 	"sonamusica-backend/app-service/util"
 )
 
+func NewTeachersFromGetTeachersRow(teacherRows []mysql.GetTeachersRow) []teaching.Teacher {
+	teachers := make([]teaching.Teacher, 0, len(teacherRows))
+	for _, teacherRow := range teacherRows {
+		teachers = append(teachers, teaching.Teacher{
+			TeacherID: teaching.TeacherID(teacherRow.ID),
+			User: identity.User{
+				ID:            identity.UserID(teacherRow.UserID),
+				Username:      teacherRow.Username,
+				Email:         teacherRow.Email,
+				UserDetail:    identity.UnmarshalUserDetail(teacherRow.UserDetail, mainLog),
+				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
+				IsDeactivated: util.Int32ToBool(teacherRow.IsDeactivated),
+				CreatedAt:     teacherRow.CreatedAt.Time,
+			},
+		})
+	}
+
+	return teachers
+}
+
+func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []teaching.Student {
+	students := make([]teaching.Student, 0, len(studentRows))
+	for _, studentRow := range studentRows {
+		students = append(students, teaching.Student{
+			StudentID: teaching.StudentID(studentRow.ID),
+			User: identity.User{
+				ID:            identity.UserID(studentRow.UserID),
+				Username:      studentRow.Username,
+				Email:         studentRow.Email,
+				UserDetail:    identity.UnmarshalUserDetail(studentRow.UserDetail, mainLog),
+				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
+				IsDeactivated: util.Int32ToBool(studentRow.IsDeactivated),
+				CreatedAt:     studentRow.CreatedAt.Time,
+			},
+		})
+	}
+
+	return students
+}
+
+func NewInstrumentsFromMySQLInstrument(instrumentRows []mysql.Instrument) []teaching.Instrument {
+	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
+	for _, instrumentRow := range instrumentRows {
+		instruments = append(instruments, teaching.Instrument{
+			ID:   teaching.InstrumentID(instrumentRow.ID),
+			Name: instrumentRow.Name,
+		})
+	}
+
+	return instruments
+}
+
+func NewGradesFromMySQLGrade(gradeRows []mysql.Grade) []teaching.Grade {
+	grades := make([]teaching.Grade, 0, len(gradeRows))
+	for _, gradeRow := range gradeRows {
+		grades = append(grades, teaching.Grade{
+			ID:   teaching.GradeID(gradeRow.ID),
+			Name: gradeRow.Name,
+		})
+	}
+
+	return grades
+}
+
+func NewCoursesFromGetCoursesRow(courseRows []mysql.GetCoursesRow) []teaching.Course {
+	courses := make([]teaching.Course, 0, len(courseRows))
+	for _, courseRow := range courseRows {
+		courses = append(courses, teaching.Course{
+			ID:                    teaching.CourseID(courseRow.CourseID),
+			CompleteName:          courseRow.CourseName,
+			DefaultFee:            courseRow.DefaultFee,
+			DefaultDurationMinute: courseRow.DefaultDurationMinute,
+		})
+	}
+
+	return courses
+}
+
 func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Class {
 	classes := make([]teaching.Class, 0, len(classRows))
 
