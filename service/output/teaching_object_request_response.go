@@ -46,7 +46,7 @@ func (r GetInstrumentsRequest) Validate() errs.ValidationError {
 }
 
 type GetInstrumentRequest struct {
-	ID teaching.InstrumentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	InstrumentID teaching.InstrumentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetInstrumentResponse struct {
 	Data    teaching.Instrument `json:"data"`
@@ -76,7 +76,7 @@ type UpdateInstrumentsRequest struct {
 	Data []UpdateInstrumentsRequestParam `json:"data"`
 }
 type UpdateInstrumentsRequestParam struct {
-	ID teaching.InstrumentID `json:"id"`
+	InstrumentID teaching.InstrumentID `json:"instrumentId"`
 	InsertInstrumentsRequestParam
 }
 type UpdateInstrumentsResponse struct {
@@ -96,7 +96,7 @@ type DeleteInstrumentsRequest struct {
 	Data []DeleteInstrumentsRequestParam `json:"data"`
 }
 type DeleteInstrumentsRequestParam struct {
-	ID teaching.InstrumentID `json:"id"`
+	InstrumentID teaching.InstrumentID `json:"instrumentId"`
 }
 type DeleteInstrumentsResponse struct {
 	Message string `json:"message,omitempty"`
@@ -133,7 +133,7 @@ func (r GetGradesRequest) Validate() errs.ValidationError {
 }
 
 type GetGradeRequest struct {
-	ID teaching.GradeID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	GradeID teaching.GradeID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetGradeResponse struct {
 	Data    teaching.Grade `json:"data"`
@@ -163,7 +163,7 @@ type UpdateGradesRequest struct {
 	Data []UpdateGradesRequestParam `json:"data"`
 }
 type UpdateGradesRequestParam struct {
-	ID teaching.GradeID `json:"id"`
+	GradeID teaching.GradeID `json:"gradeId"`
 	InsertGradesRequestParam
 }
 type UpdateGradesResponse struct {
@@ -183,7 +183,7 @@ type DeleteGradesRequest struct {
 	Data []DeleteGradesRequestParam `json:"data"`
 }
 type DeleteGradesRequestParam struct {
-	ID teaching.GradeID `json:"id"`
+	GradeID teaching.GradeID `json:"gradeId"`
 }
 type DeleteGradesResponse struct {
 	Message string `json:"message,omitempty"`
@@ -220,7 +220,7 @@ func (r GetCoursesRequest) Validate() errs.ValidationError {
 }
 
 type GetCourseRequest struct {
-	ID teaching.CourseID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	CourseID teaching.CourseID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetCourseResponse struct {
 	Data    teaching.Course `json:"data"`
@@ -253,7 +253,7 @@ type UpdateCoursesRequest struct {
 	Data []UpdateCoursesRequestParam `json:"data"`
 }
 type UpdateCoursesRequestParam struct {
-	ID                    teaching.CourseID `json:"id"`
+	CourseID              teaching.CourseID `json:"courseId"`
 	DefaultFee            int64             `json:"defaultFee"`
 	DefaultDurationMinute int32             `json:"defaultDurationMinute"`
 }
@@ -274,7 +274,7 @@ type DeleteCoursesRequest struct {
 	Data []DeleteCoursesRequestParam `json:"data"`
 }
 type DeleteCoursesRequestParam struct {
-	ID teaching.CourseID `json:"id"`
+	CourseID teaching.CourseID `json:"courseId"`
 }
 type DeleteCoursesResponse struct {
 	Message string `json:"message,omitempty"`
@@ -311,7 +311,7 @@ func (r GetClassesRequest) Validate() errs.ValidationError {
 }
 
 type GetClassRequest struct {
-	ID teaching.ClassID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	ClassID teaching.ClassID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetClassResponse struct {
 	Data    teaching.Class `json:"data"`
@@ -344,7 +344,7 @@ type UpdateClassesRequest struct {
 	Data []UpdateClassesRequestParam `json:"data"`
 }
 type UpdateClassesRequestParam struct {
-	ID                   teaching.ClassID                `json:"id"`
+	ClassID              teaching.ClassID                `json:"classId"`
 	TeacherID            teaching.TeacherID              `json:"teacherId"`
 	AddedStudentIDs      *[]teaching.StudentID           `json:"addedStudentIds"`
 	DeletedEnrollmentIDs *[]teaching.StudentEnrollmentID `json:"deletedEnrollmentIds"`
@@ -368,7 +368,7 @@ type DeleteClassesRequest struct {
 	Data []DeleteClassesRequestParam `json:"data"`
 }
 type DeleteClassesRequestParam struct {
-	ID teaching.ClassID `json:"id"`
+	ClassID teaching.ClassID `json:"classId"`
 }
 type DeleteClassesResponse struct {
 	Message string `json:"message,omitempty"`

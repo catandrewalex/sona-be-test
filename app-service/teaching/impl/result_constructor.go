@@ -13,7 +13,7 @@ func NewTeachersFromGetTeachersRow(teacherRows []mysql.GetTeachersRow) []teachin
 		teachers = append(teachers, teaching.Teacher{
 			TeacherID: teaching.TeacherID(teacherRow.ID),
 			User: identity.User{
-				ID:            identity.UserID(teacherRow.UserID),
+				UserID:        identity.UserID(teacherRow.UserID),
 				Username:      teacherRow.Username,
 				Email:         teacherRow.Email,
 				UserDetail:    identity.UnmarshalUserDetail(teacherRow.UserDetail, mainLog),
@@ -33,7 +33,7 @@ func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []teachin
 		students = append(students, teaching.Student{
 			StudentID: teaching.StudentID(studentRow.ID),
 			User: identity.User{
-				ID:            identity.UserID(studentRow.UserID),
+				UserID:        identity.UserID(studentRow.UserID),
 				Username:      studentRow.Username,
 				Email:         studentRow.Email,
 				UserDetail:    identity.UnmarshalUserDetail(studentRow.UserDetail, mainLog),
@@ -51,8 +51,8 @@ func NewInstrumentsFromMySQLInstruments(instrumentRows []mysql.Instrument) []tea
 	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
 	for _, instrumentRow := range instrumentRows {
 		instruments = append(instruments, teaching.Instrument{
-			ID:   teaching.InstrumentID(instrumentRow.ID),
-			Name: instrumentRow.Name,
+			InstrumentID: teaching.InstrumentID(instrumentRow.ID),
+			Name:         instrumentRow.Name,
 		})
 	}
 
@@ -63,8 +63,8 @@ func NewGradesFromMySQLGrades(gradeRows []mysql.Grade) []teaching.Grade {
 	grades := make([]teaching.Grade, 0, len(gradeRows))
 	for _, gradeRow := range gradeRows {
 		grades = append(grades, teaching.Grade{
-			ID:   teaching.GradeID(gradeRow.ID),
-			Name: gradeRow.Name,
+			GradeID: teaching.GradeID(gradeRow.ID),
+			Name:    gradeRow.Name,
 		})
 	}
 
@@ -75,7 +75,7 @@ func NewCoursesFromGetCoursesRow(courseRows []mysql.GetCoursesRow) []teaching.Co
 	courses := make([]teaching.Course, 0, len(courseRows))
 	for _, courseRow := range courseRows {
 		courses = append(courses, teaching.Course{
-			ID:                    teaching.CourseID(courseRow.CourseID),
+			CourseID:              teaching.CourseID(courseRow.CourseID),
 			CompleteName:          courseRow.CourseName,
 			DefaultFee:            courseRow.DefaultFee,
 			DefaultDurationMinute: courseRow.DefaultDurationMinute,
@@ -105,7 +105,7 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 			studentId := teaching.StudentID(classRow.StudentID.Int64)
 			if classRow.StudentID.Valid && studentId != teaching.StudentID_None {
 				studentEnrollments = append(studentEnrollments, teaching.Class_StudentEnrollmentInfo{
-					ID: teaching.StudentEnrollmentID(classRow.EnrollmentID.Int64),
+					StudentEnrollmentID: teaching.StudentEnrollmentID(classRow.EnrollmentID.Int64),
 					StudentInfo: teaching.Enrollment_StudentInfo{
 						StudentID:  studentId,
 						Username:   classRow.StudentUsername.String,
@@ -115,14 +115,14 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 			}
 
 			course := teaching.Course{
-				ID:                    teaching.CourseID(classRow.CourseID),
+				CourseID:              teaching.CourseID(classRow.CourseID),
 				CompleteName:          classRow.CourseName,
 				DefaultFee:            classRow.DefaultFee,
 				DefaultDurationMinute: classRow.DefaultDurationMinute,
 			}
 
 			classes = append(classes, teaching.Class{
-				ID:                 teaching.ClassID(classRow.ClassID),
+				ClassID:            teaching.ClassID(classRow.ClassID),
 				TeacherInfo:        teacherInfo,
 				StudentEnrollments: studentEnrollments,
 				Course:             course,
@@ -135,7 +135,7 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 			if classRow.StudentID.Valid && studentId != teaching.StudentID_None {
 				prevIdx := len(classes) - 1
 				classes[prevIdx].StudentEnrollments = append(classes[prevIdx].StudentEnrollments, teaching.Class_StudentEnrollmentInfo{
-					ID: teaching.StudentEnrollmentID(classRow.EnrollmentID.Int64),
+					StudentEnrollmentID: teaching.StudentEnrollmentID(classRow.EnrollmentID.Int64),
 					StudentInfo: teaching.Enrollment_StudentInfo{
 						StudentID:  studentId,
 						Username:   classRow.StudentUsername.String,

@@ -18,17 +18,17 @@ type Student struct {
 }
 
 type Instrument struct {
-	ID   InstrumentID `json:"id"`
-	Name string       `json:"name"`
+	InstrumentID InstrumentID `json:"instrumentId"`
+	Name         string       `json:"name"`
 }
 
 type Grade struct {
-	ID   GradeID `json:"id"`
-	Name string  `json:"name"`
+	GradeID GradeID `json:"gradeId"`
+	Name    string  `json:"name"`
 }
 
 type Course struct {
-	ID CourseID `json:"id"`
+	CourseID CourseID `json:"courseId"`
 	// CompleteName = strings.Join(" ", Instrument.Name, Grade.Name).
 	//
 	// We don't append the object as grade & instrument ARE NOT going to have any other property.
@@ -38,7 +38,7 @@ type Course struct {
 }
 
 type Class struct {
-	ID                 ClassID                       `json:"id"`
+	ClassID            ClassID                       `json:"classId"`
 	TeacherInfo        *Class_TeacherInfo            `json:"teacherInfo,omitempty"` // class without teacher is a valid class
 	StudentEnrollments []Class_StudentEnrollmentInfo `json:"studentEnrollments"`
 	Course             Course                        `json:"course"`
@@ -53,14 +53,14 @@ type Class_TeacherInfo struct {
 }
 
 type Class_StudentEnrollmentInfo struct {
-	ID          StudentEnrollmentID    `json:"id"`
-	StudentInfo Enrollment_StudentInfo `json:"studentInfo"`
+	StudentEnrollmentID StudentEnrollmentID    `json:"studentEnrollmentId"`
+	StudentInfo         Enrollment_StudentInfo `json:"studentInfo"`
 }
 
 type StudentEnrollment struct {
-	ID          StudentEnrollmentID    `json:"id"`
-	StudentInfo Enrollment_StudentInfo `json:"studentInfo"`
-	ClassID     ClassID                `json:"classId"`
+	StudentEnrollmentID StudentEnrollmentID    `json:"studentEnrollmentId"`
+	StudentInfo         Enrollment_StudentInfo `json:"studentInfo"`
+	ClassID             ClassID                `json:"classId"`
 }
 
 type Enrollment_StudentInfo struct {
@@ -179,8 +179,8 @@ type InsertInstrumentSpec struct {
 }
 
 type UpdateInstrumentSpec struct {
-	ID   InstrumentID
-	Name string
+	InstrumentID InstrumentID
+	Name         string
 }
 
 // ============================== GRADE ==============================
@@ -195,8 +195,8 @@ type InsertGradeSpec struct {
 }
 
 type UpdateGradeSpec struct {
-	ID   GradeID
-	Name string
+	GradeID GradeID
+	Name    string
 }
 
 // ============================== COURSE ==============================
@@ -214,7 +214,7 @@ type InsertCourseSpec struct {
 }
 
 type UpdateCourseSpec struct {
-	ID                    CourseID
+	CourseID              CourseID
 	DefaultFee            int64
 	DefaultDurationMinute int32
 }
@@ -234,7 +234,7 @@ type InsertClassSpec struct {
 }
 
 type UpdateClassSpec struct {
-	ID                   ClassID
+	ClassID              ClassID
 	TeacherID            TeacherID
 	AddedStudentIDs      []StudentID
 	DeletedEnrollmentIDs []StudentEnrollmentID

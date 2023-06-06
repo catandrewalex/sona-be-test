@@ -159,7 +159,7 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, rType reflect.Type
 
 	elemValue := reflect.ValueOf(elem).Elem()
 
-	// Set field value from URL params
+	// Set field value from URL params (this is used for URL with pattern like: "GET /user/18" -> get user with UserID==18)
 	for _, urlParamKey := range urlParamKeys {
 		urlParamValue := chi.URLParam(r, urlParamKey)
 		logging.HTTPServerLogger.Debug("Found urlParam: key = %q, value = %q", urlParamKey, urlParamValue)

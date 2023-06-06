@@ -204,7 +204,7 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 			UserDetail:    userDetails[i],
 			PrivilegeType: int32(spec.UserPrivilegeType),
 			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
-			ID:            int64(spec.ID),
+			ID:            int64(spec.UserID),
 		})
 		wrappedErr := errs.WrapMySQLError(err)
 		if wrappedErr != nil {
@@ -214,14 +214,14 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 		err = qtx.UpdateUserCredentialInfoByUserId(ctx, mysql.UpdateUserCredentialInfoByUserIdParams{
 			Username: spec.Username,
 			Email:    spec.Email,
-			UserID:   int64(spec.ID),
+			UserID:   int64(spec.UserID),
 		})
 		wrappedErr = errs.WrapMySQLError(err)
 		if wrappedErr != nil {
 			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUserCredentialInfoByUserId(): %w", wrappedErr)
 		}
 
-		userIDs = append(userIDs, spec.ID)
+		userIDs = append(userIDs, spec.UserID)
 	}
 
 	err = tx.Commit()
@@ -240,7 +240,7 @@ func (s identityServiceImpl) UpdateUserPassword(ctx context.Context, spec identi
 
 	err = s.mySQLQueries.UpdatePasswordByUserId(ctx, mysql.UpdatePasswordByUserIdParams{
 		Password: hashedPassword,
-		UserID:   int64(spec.ID),
+		UserID:   int64(spec.UserID),
 	})
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.UpdatePasswordByUserId(): %v", err)
@@ -291,7 +291,7 @@ func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginU
 	}
 
 	if user.IsDeactivated {
-		return identity.LoginUserResult{}, fmt.Errorf("userId='%d': %w", user.ID, errs.ErrUserDeactivated)
+		return identity.LoginUserResult{}, fmt.Errorf("userId='%d': %w", user.UserID, errs.ErrUserDeactivated)
 	}
 
 	// Create a JWT token
@@ -364,7 +364,7 @@ func (s identityServiceImpl) ResetPassword(ctx context.Context, spec identity.Re
 	}
 
 	err = s.UpdateUserPassword(ctx, identity.UpdateUserPasswordSpec{
-		ID:       mainClaims.UserID,
+		UserID:   mainClaims.UserID,
 		Password: spec.NewPassword,
 	})
 	if err != nil {

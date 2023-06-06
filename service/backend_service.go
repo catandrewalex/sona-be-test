@@ -237,7 +237,7 @@ func (s *BackendService) GetUserByIdHandler(ctx context.Context, req *output.Get
 		return nil, errV
 	}
 
-	user, err := s.identityService.GetUserById(ctx, req.ID)
+	user, err := s.identityService.GetUserById(ctx, req.UserID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetUserById()", "user")
 	}
@@ -290,7 +290,7 @@ func (s *BackendService) UpdateUsersHandler(ctx context.Context, req *output.Upd
 	specs := make([]identity.UpdateUserInfoSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, identity.UpdateUserInfoSpec{
-			ID:                param.ID,
+			UserID:            param.UserID,
 			Username:          param.Username,
 			Email:             param.Email,
 			UserDetail:        param.UserDetail,
@@ -324,7 +324,7 @@ func (s *BackendService) UpdateUserPasswordHandler(ctx context.Context, req *out
 	}
 
 	err := s.identityService.UpdateUserPassword(ctx, identity.UpdateUserPasswordSpec{
-		ID:       req.ID,
+		UserID:   req.UserID,
 		Password: req.NewPassword,
 	})
 	if err != nil {
@@ -364,7 +364,7 @@ func (s *BackendService) GetTeacherByIdHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	teacher, err := s.teachingService.GetTeacherById(ctx, req.ID)
+	teacher, err := s.teachingService.GetTeacherById(ctx, req.TeacherID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetTeacherById()", "teacher")
 	}
@@ -488,7 +488,7 @@ func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	student, err := s.teachingService.GetStudentById(ctx, req.ID)
+	student, err := s.teachingService.GetStudentById(ctx, req.StudentID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetStudentById()", "student")
 	}
@@ -612,7 +612,7 @@ func (s *BackendService) GetInstrumentByIdHandler(ctx context.Context, req *outp
 		return nil, errV
 	}
 
-	instrument, err := s.teachingService.GetInstrumentById(ctx, req.ID)
+	instrument, err := s.teachingService.GetInstrumentById(ctx, req.InstrumentID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetInstrumentById()", "instrument")
 	}
@@ -661,8 +661,8 @@ func (s *BackendService) UpdateInstrumentsHandler(ctx context.Context, req *outp
 	specs := make([]teaching.UpdateInstrumentSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, teaching.UpdateInstrumentSpec{
-			ID:   param.ID,
-			Name: param.Name,
+			InstrumentID: param.InstrumentID,
+			Name:         param.Name,
 		})
 	}
 
@@ -692,7 +692,7 @@ func (s *BackendService) DeleteInstrumentsHandler(ctx context.Context, req *outp
 
 	ids := make([]teaching.InstrumentID, 0, len(req.Data))
 	for _, param := range req.Data {
-		ids = append(ids, param.ID)
+		ids = append(ids, param.InstrumentID)
 	}
 
 	err := s.teachingService.DeleteInstruments(ctx, ids)
@@ -733,7 +733,7 @@ func (s *BackendService) GetGradeByIdHandler(ctx context.Context, req *output.Ge
 		return nil, errV
 	}
 
-	grade, err := s.teachingService.GetGradeById(ctx, req.ID)
+	grade, err := s.teachingService.GetGradeById(ctx, req.GradeID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetGradeById()", "grade")
 	}
@@ -782,8 +782,8 @@ func (s *BackendService) UpdateGradesHandler(ctx context.Context, req *output.Up
 	specs := make([]teaching.UpdateGradeSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, teaching.UpdateGradeSpec{
-			ID:   param.ID,
-			Name: param.Name,
+			GradeID: param.GradeID,
+			Name:    param.Name,
 		})
 	}
 
@@ -813,7 +813,7 @@ func (s *BackendService) DeleteGradesHandler(ctx context.Context, req *output.De
 
 	ids := make([]teaching.GradeID, 0, len(req.Data))
 	for _, param := range req.Data {
-		ids = append(ids, param.ID)
+		ids = append(ids, param.GradeID)
 	}
 
 	err := s.teachingService.DeleteGrades(ctx, ids)
@@ -854,7 +854,7 @@ func (s *BackendService) GetCourseByIdHandler(ctx context.Context, req *output.G
 		return nil, errV
 	}
 
-	course, err := s.teachingService.GetCourseById(ctx, req.ID)
+	course, err := s.teachingService.GetCourseById(ctx, req.CourseID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetCourseById()", "course")
 	}
@@ -906,7 +906,7 @@ func (s *BackendService) UpdateCoursesHandler(ctx context.Context, req *output.U
 	specs := make([]teaching.UpdateCourseSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, teaching.UpdateCourseSpec{
-			ID:                    param.ID,
+			CourseID:              param.CourseID,
 			DefaultFee:            param.DefaultFee,
 			DefaultDurationMinute: param.DefaultDurationMinute,
 		})
@@ -938,7 +938,7 @@ func (s *BackendService) DeleteCoursesHandler(ctx context.Context, req *output.D
 
 	ids := make([]teaching.CourseID, 0, len(req.Data))
 	for _, param := range req.Data {
-		ids = append(ids, param.ID)
+		ids = append(ids, param.CourseID)
 	}
 
 	err := s.teachingService.DeleteCourses(ctx, ids)
@@ -979,7 +979,7 @@ func (s *BackendService) GetClassByIdHandler(ctx context.Context, req *output.Ge
 		return nil, errV
 	}
 
-	class, err := s.teachingService.GetClassById(ctx, req.ID)
+	class, err := s.teachingService.GetClassById(ctx, req.ClassID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetClassById()", "class")
 	}
@@ -1031,7 +1031,7 @@ func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.U
 	specs := make([]teaching.UpdateClassSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, teaching.UpdateClassSpec{
-			ID:                   param.ID,
+			ClassID:              param.ClassID,
 			TeacherID:            param.TeacherID,
 			AddedStudentIDs:      *param.AddedStudentIDs,
 			DeletedEnrollmentIDs: *param.DeletedEnrollmentIDs,
@@ -1066,7 +1066,7 @@ func (s *BackendService) DeleteClassesHandler(ctx context.Context, req *output.D
 
 	ids := make([]teaching.ClassID, 0, len(req.Data))
 	for _, param := range req.Data {
-		ids = append(ids, param.ID)
+		ids = append(ids, param.ClassID)
 	}
 
 	err := s.teachingService.DeleteClasses(ctx, ids)

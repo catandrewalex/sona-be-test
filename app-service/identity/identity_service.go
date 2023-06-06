@@ -10,7 +10,7 @@ import (
 )
 
 type User struct {
-	ID            UserID            `json:"id"`
+	UserID        UserID            `json:"userId"`
 	Username      string            `json:"username"`
 	Email         string            `json:"email"`
 	UserDetail    UserDetail        `json:"userDetail"`
@@ -79,7 +79,7 @@ type InsertUserSpec struct {
 }
 
 type UpdateUserInfoSpec struct {
-	ID                UserID
+	UserID            UserID
 	Username          string
 	Email             string
 	UserDetail        UserDetail
@@ -88,7 +88,7 @@ type UpdateUserInfoSpec struct {
 }
 
 type UpdateUserPasswordSpec struct {
-	ID       UserID
+	UserID   UserID
 	Password string
 }
 

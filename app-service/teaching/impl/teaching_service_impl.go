@@ -363,13 +363,13 @@ func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teac
 	for _, spec := range specs {
 		err := qtx.UpdateInstrument(ctx, mysql.UpdateInstrumentParams{
 			Name: spec.Name,
-			ID:   int64(spec.ID),
+			ID:   int64(spec.InstrumentID),
 		})
 		if err != nil {
 			wrappedErr := errs.WrapMySQLError(err)
 			return []teaching.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", wrappedErr)
 		}
-		instrumentIDs = append(instrumentIDs, spec.ID)
+		instrumentIDs = append(instrumentIDs, spec.InstrumentID)
 	}
 
 	err = tx.Commit()
@@ -485,13 +485,13 @@ func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.
 	for _, spec := range specs {
 		err := qtx.UpdateGrade(ctx, mysql.UpdateGradeParams{
 			Name: spec.Name,
-			ID:   int64(spec.ID),
+			ID:   int64(spec.GradeID),
 		})
 		if err != nil {
 			wrappedErr := errs.WrapMySQLError(err)
 			return []teaching.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", wrappedErr)
 		}
-		gradeIDs = append(gradeIDs, spec.ID)
+		gradeIDs = append(gradeIDs, spec.GradeID)
 	}
 
 	err = tx.Commit()
@@ -618,13 +618,13 @@ func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching
 		err := qtx.UpdateCourseInfo(ctx, mysql.UpdateCourseInfoParams{
 			DefaultFee:            spec.DefaultFee,
 			DefaultDurationMinute: spec.DefaultDurationMinute,
-			ID:                    int64(spec.ID),
+			ID:                    int64(spec.CourseID),
 		})
 		if err != nil {
 			wrappedErr := errs.WrapMySQLError(err)
 			return []teaching.CourseID{}, fmt.Errorf("qtx.UpdateCourseInfo(): %w", wrappedErr)
 		}
-		courseIDs = append(courseIDs, spec.ID)
+		courseIDs = append(courseIDs, spec.CourseID)
 	}
 
 	err = tx.Commit()
@@ -772,18 +772,18 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 			TransportFee:  spec.TransportFee,
 			TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != teaching.TeacherID_None},
 			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
-			ID:            int64(spec.ID),
+			ID:            int64(spec.ClassID),
 		})
 		if err != nil {
 			return []teaching.ClassID{}, fmt.Errorf("qtx.UpdateClass(): %w", err)
 		}
-		classIDs = append(classIDs, spec.ID)
+		classIDs = append(classIDs, spec.ClassID)
 
 		// Added students
 		for _, studentId := range spec.AddedStudentIDs {
 			err = qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
 				StudentID: int64(studentId),
-				ClassID:   int64(spec.ID),
+				ClassID:   int64(spec.ClassID),
 			})
 			if err != nil {
 				wrappedErr := errs.WrapMySQLError(err)

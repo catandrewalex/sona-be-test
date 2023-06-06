@@ -10,7 +10,7 @@ func NewUsersFromMySQLUsers(userRows []mysql.User) []identity.User {
 	users := make([]identity.User, 0, len(userRows))
 	for _, userRow := range userRows {
 		users = append(users, identity.User{
-			ID:            identity.UserID(userRow.ID),
+			UserID:        identity.UserID(userRow.ID),
 			Username:      userRow.Username,
 			Email:         userRow.Email,
 			UserDetail:    identity.UnmarshalUserDetail(userRow.UserDetail, mainLog),

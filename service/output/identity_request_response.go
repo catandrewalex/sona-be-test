@@ -90,7 +90,7 @@ func (r GetUsersRequest) Validate() errs.ValidationError {
 }
 
 type GetUserRequest struct {
-	ID identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	UserID identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetUserResponse struct {
 	Data    identity.User `json:"data"`
@@ -127,7 +127,7 @@ type UpdateUsersRequest struct {
 	Data []UpdateUserRequestParam `json:"data"`
 }
 type UpdateUserRequestParam struct {
-	ID                identity.UserID            `json:"id"`
+	UserID            identity.UserID            `json:"userId"`
 	Username          string                     `json:"username"`
 	Email             string                     `json:"email"`
 	UserDetail        identity.UserDetail        `json:"userDetail"`
@@ -147,7 +147,7 @@ func (r UpdateUsersRequest) Validate() errs.ValidationError {
 }
 
 type UpdateUserPasswordRequest struct {
-	ID          identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	UserID      identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	NewPassword string          `json:"newPassword"`
 }
 type UpdateUserPasswordResponse struct {
