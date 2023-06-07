@@ -128,7 +128,7 @@ WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== COURSE ============================== */
 -- name: GetCourses :many
-SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
 FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
@@ -139,14 +139,14 @@ LIMIT ? OFFSET ?;
 SELECT Count(*) as total FROM course;
 
 -- name: GetCoursesByIds :many
-SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
 FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
 WHERE course.id IN (sqlc.slice('ids'));
 
 -- name: GetCoursesByInstrumentId :many
-SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
 FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
@@ -155,7 +155,7 @@ ORDER BY course.id
 LIMIT ? OFFSET ?;
 
 -- name: GetCoursesByGradeId :many
-SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
 FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
@@ -164,7 +164,7 @@ ORDER BY course.id
 LIMIT ? OFFSET ?;
 
 -- name: GetCourseById :one
-SELECT course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee, default_duration_minute
+SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
 FROM course
     JOIN instrument ON instrument_id = instrument.id
     JOIN grade ON grade_id = grade.id
@@ -202,7 +202,7 @@ WITH class_paginated AS (
 SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
-    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
     course.default_fee, course.default_duration_minute
@@ -225,7 +225,7 @@ SELECT Count(*) as total FROM class;
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
-    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
     course.default_fee, course.default_duration_minute
@@ -244,7 +244,7 @@ ORDER BY class.id;
 
 -- name: GetClassesByTeacherId :many
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id, se.id AS enrollment_id,
-    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
     course.default_fee, course.default_duration_minute
@@ -265,7 +265,7 @@ ORDER BY class.id;
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
-    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    sqlc.embed(instrument), sqlc.embed(grade),
     course.default_fee, course.default_duration_minute
 FROM class
     JOIN course ON course_id = course.id
@@ -284,7 +284,7 @@ ORDER BY class.id;
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
-    CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
     course.default_fee, course.default_duration_minute
@@ -351,7 +351,7 @@ WHERE class_id = ?;
 -- name: GetStudentEnrollments :many
 SELECT se.id as student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id AS class_id, class.transport_fee AS class_transport_fee, course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, course.default_fee AS course_default_fee
+    class.id AS class_id, class.transport_fee AS class_transport_fee, course_id, sqlc.embed(instrument), sqlc.embed(grade), course.default_fee AS course_default_fee
 FROM student_enrollment as se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -388,7 +388,7 @@ WHERE id IN (sqlc.slice('ids'));
 -- name: GetTeacherSpecialFeeById :one
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee AS original_course_fee
+    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -400,7 +400,7 @@ WHERE teacher_special_fee.id = ? LIMIT 1;
 -- name: GetTeacherSpecialFeesByTeacherId :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name, default_fee AS original_course_fee
+    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id

@@ -76,7 +76,8 @@ func NewCoursesFromGetCoursesRow(courseRows []mysql.GetCoursesRow) []teaching.Co
 	for _, courseRow := range courseRows {
 		courses = append(courses, teaching.Course{
 			CourseID:              teaching.CourseID(courseRow.CourseID),
-			CompleteName:          courseRow.CourseName,
+			Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{courseRow.Instrument})[0],
+			Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{courseRow.Grade})[0],
 			DefaultFee:            courseRow.DefaultFee,
 			DefaultDurationMinute: courseRow.DefaultDurationMinute,
 		})
@@ -116,7 +117,8 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 
 			course := teaching.Course{
 				CourseID:              teaching.CourseID(classRow.CourseID),
-				CompleteName:          classRow.CourseName,
+				Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{classRow.Instrument})[0],
+				Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{classRow.Grade})[0],
 				DefaultFee:            classRow.DefaultFee,
 				DefaultDurationMinute: classRow.DefaultDurationMinute,
 			}

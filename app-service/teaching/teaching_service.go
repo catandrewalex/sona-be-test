@@ -28,13 +28,11 @@ type Grade struct {
 }
 
 type Course struct {
-	CourseID CourseID `json:"courseId"`
-	// CompleteName = strings.Join(" ", Instrument.Name, Grade.Name).
-	//
-	// We don't append the object as grade & instrument ARE NOT going to have any other property.
-	CompleteName          string `json:"completeName"`
-	DefaultFee            int64  `json:"defaultFee"`
-	DefaultDurationMinute int32  `json:"defaultDurationMinute"`
+	CourseID              CourseID   `json:"courseId"`
+	Instrument            Instrument `json:"instrument"`
+	Grade                 Grade      `json:"grade"`
+	DefaultFee            int64      `json:"defaultFee"`
+	DefaultDurationMinute int32      `json:"defaultDurationMinute"`
 }
 
 type Class struct {
