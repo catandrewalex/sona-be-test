@@ -12,9 +12,21 @@ type Teacher struct {
 	User      identity.User `json:"user"`
 }
 
+// TeacherInfo_Minimal is a subset of struct Teacher that must have the same schema.
+type TeacherInfo_Minimal struct {
+	TeacherID        TeacherID                 `json:"teacherId"`
+	UserInfo_Minimal identity.UserInfo_Minimal `json:"user"`
+}
+
 type Student struct {
 	StudentID StudentID     `json:"studentId"`
 	User      identity.User `json:"user"`
+}
+
+// StudentInfo_Minimal is a subset of struct Student that must have the same schema.
+type StudentInfo_Minimal struct {
+	StudentID        StudentID                 `json:"studentId"`
+	UserInfo_Minimal identity.UserInfo_Minimal `json:"user"`
 }
 
 type Instrument struct {
@@ -36,35 +48,12 @@ type Course struct {
 }
 
 type Class struct {
-	ClassID            ClassID                       `json:"classId"`
-	TeacherInfo        *Class_TeacherInfo            `json:"teacherInfo,omitempty"` // class without teacher is a valid class
-	StudentEnrollments []Class_StudentEnrollmentInfo `json:"studentEnrollments"`
-	Course             Course                        `json:"course"`
-	TransportFee       int64                         `json:"transportFee"`
-	IsDeactivated      bool                          `json:"isDeactivated"`
-}
-
-type Class_TeacherInfo struct {
-	TeacherID  TeacherID           `json:"teacherId"`
-	Username   string              `json:"username"`
-	UserDetail identity.UserDetail `json:"userDetail"`
-}
-
-type Class_StudentEnrollmentInfo struct {
-	StudentEnrollmentID StudentEnrollmentID    `json:"studentEnrollmentId"`
-	StudentInfo         Enrollment_StudentInfo `json:"studentInfo"`
-}
-
-type StudentEnrollment struct {
-	StudentEnrollmentID StudentEnrollmentID    `json:"studentEnrollmentId"`
-	StudentInfo         Enrollment_StudentInfo `json:"studentInfo"`
-	ClassID             ClassID                `json:"classId"`
-}
-
-type Enrollment_StudentInfo struct {
-	StudentID  StudentID           `json:"studentId"`
-	Username   string              `json:"username"`
-	UserDetail identity.UserDetail `json:"userDetail"`
+	ClassID              ClassID               `json:"classId"`
+	TeacherInfo_Minimal  *TeacherInfo_Minimal  `json:"teacher,omitempty"` // class without teacher is a valid class
+	StudentInfos_Minimal []StudentInfo_Minimal `json:"students"`
+	Course               Course                `json:"course"`
+	TransportFee         int64                 `json:"transportFee"`
+	IsDeactivated        bool                  `json:"isDeactivated"`
 }
 
 type TeacherID int64

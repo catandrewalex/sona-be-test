@@ -350,7 +350,7 @@ func (q *Queries) EnableStudentEnrollment(ctx context.Context, id int64) error {
 }
 
 const getClassById = `-- name: GetClassById :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -377,7 +377,6 @@ type GetClassByIdRow struct {
 	CourseID              int64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
-	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
 	Instrument            Instrument
@@ -404,7 +403,6 @@ func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow
 			&i.CourseID,
 			&i.TeacherID,
 			&i.StudentID,
-			&i.EnrollmentID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
 			&i.Instrument.ID,
@@ -435,7 +433,7 @@ WITH class_paginated AS (
     WHERE class.is_deactivated IN (/*SLICE:isDeactivateds*/?)
     LIMIT ? OFFSET ?
 )
-SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -468,7 +466,6 @@ type GetClassesRow struct {
 	CourseID              int64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
-	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
 	Instrument            Instrument
@@ -508,7 +505,6 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 			&i.CourseID,
 			&i.TeacherID,
 			&i.StudentID,
-			&i.EnrollmentID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
 			&i.Instrument.ID,
@@ -534,7 +530,7 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 }
 
 const getClassesByIds = `-- name: GetClassesByIds :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -562,7 +558,6 @@ type GetClassesByIdsRow struct {
 	CourseID              int64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
-	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
 	Instrument            Instrument
@@ -599,7 +594,6 @@ func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClasse
 			&i.CourseID,
 			&i.TeacherID,
 			&i.StudentID,
-			&i.EnrollmentID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
 			&i.Instrument.ID,
@@ -625,7 +619,7 @@ func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClasse
 }
 
 const getClassesByStudentId = `-- name: GetClassesByStudentId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -650,7 +644,6 @@ type GetClassesByStudentIdRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
-	EnrollmentID          sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
 	Instrument            Instrument
@@ -674,7 +667,6 @@ func (q *Queries) GetClassesByStudentId(ctx context.Context, studentID int64) ([
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.TeacherID,
-			&i.EnrollmentID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
 			&i.Instrument.ID,
@@ -698,7 +690,7 @@ func (q *Queries) GetClassesByStudentId(ctx context.Context, studentID int64) ([
 }
 
 const getClassesByTeacherId = `-- name: GetClassesByTeacherId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id,
     instrument.id, instrument.name, grade.id, grade.name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
@@ -723,7 +715,6 @@ type GetClassesByTeacherIdRow struct {
 	IsDeactivated         int32
 	CourseID              int64
 	StudentID             sql.NullInt64
-	EnrollmentID          sql.NullInt64
 	Instrument            Instrument
 	Grade                 Grade
 	StudentUsername       sql.NullString
@@ -747,7 +738,6 @@ func (q *Queries) GetClassesByTeacherId(ctx context.Context, teacherID sql.NullI
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.StudentID,
-			&i.EnrollmentID,
 			&i.Instrument.ID,
 			&i.Instrument.Name,
 			&i.Grade.ID,

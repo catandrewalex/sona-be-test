@@ -91,24 +91,26 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 
 	prevClassId := teaching.ClassID_None
 	for _, classRow := range classRows {
-		if classRow.ClassID != int64(prevClassId) {
-			var teacherInfo *teaching.Class_TeacherInfo
+		classId := teaching.ClassID(classRow.ClassID)
+		if classId != prevClassId {
+			var teacherInfo *teaching.TeacherInfo_Minimal
 			teacherId := teaching.TeacherID(classRow.TeacherID.Int64)
 			if classRow.TeacherID.Valid && teacherId != teaching.TeacherID_None {
-				teacherInfo = &teaching.Class_TeacherInfo{
-					TeacherID:  teacherId,
-					Username:   classRow.TeacherUsername.String,
-					UserDetail: identity.UnmarshalUserDetail(classRow.TeacherDetail, mainLog),
+				teacherInfo = &teaching.TeacherInfo_Minimal{
+					TeacherID: teacherId,
+					UserInfo_Minimal: identity.UserInfo_Minimal{
+						Username:   classRow.TeacherUsername.String,
+						UserDetail: identity.UnmarshalUserDetail(classRow.TeacherDetail, mainLog),
+					},
 				}
 			}
 
-			studentEnrollments := make([]teaching.Class_StudentEnrollmentInfo, 0)
+			studentInfos := make([]teaching.StudentInfo_Minimal, 0)
 			studentId := teaching.StudentID(classRow.StudentID.Int64)
 			if classRow.StudentID.Valid && studentId != teaching.StudentID_None {
-				studentEnrollments = append(studentEnrollments, teaching.Class_StudentEnrollmentInfo{
-					StudentEnrollmentID: teaching.StudentEnrollmentID(classRow.EnrollmentID.Int64),
-					StudentInfo: teaching.Enrollment_StudentInfo{
-						StudentID:  studentId,
+				studentInfos = append(studentInfos, teaching.StudentInfo_Minimal{
+					StudentID: studentId,
+					UserInfo_Minimal: identity.UserInfo_Minimal{
 						Username:   classRow.StudentUsername.String,
 						UserDetail: identity.UnmarshalUserDetail(classRow.StudentDetail, mainLog),
 					},
@@ -124,22 +126,21 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 			}
 
 			classes = append(classes, teaching.Class{
-				ClassID:            teaching.ClassID(classRow.ClassID),
-				TeacherInfo:        teacherInfo,
-				StudentEnrollments: studentEnrollments,
-				Course:             course,
-				TransportFee:       classRow.TransportFee,
-				IsDeactivated:      util.Int32ToBool(classRow.IsDeactivated),
+				ClassID:              classId,
+				TeacherInfo_Minimal:  teacherInfo,
+				StudentInfos_Minimal: studentInfos,
+				Course:               course,
+				TransportFee:         classRow.TransportFee,
+				IsDeactivated:        util.Int32ToBool(classRow.IsDeactivated),
 			})
 		} else {
 			// Populate students
 			studentId := teaching.StudentID(classRow.StudentID.Int64)
 			if classRow.StudentID.Valid && studentId != teaching.StudentID_None {
 				prevIdx := len(classes) - 1
-				classes[prevIdx].StudentEnrollments = append(classes[prevIdx].StudentEnrollments, teaching.Class_StudentEnrollmentInfo{
-					StudentEnrollmentID: teaching.StudentEnrollmentID(classRow.EnrollmentID.Int64),
-					StudentInfo: teaching.Enrollment_StudentInfo{
-						StudentID:  studentId,
+				classes[prevIdx].StudentInfos_Minimal = append(classes[prevIdx].StudentInfos_Minimal, teaching.StudentInfo_Minimal{
+					StudentID: studentId,
+					UserInfo_Minimal: identity.UserInfo_Minimal{
 						Username:   classRow.StudentUsername.String,
 						UserDetail: identity.UnmarshalUserDetail(classRow.StudentDetail, mainLog),
 					},

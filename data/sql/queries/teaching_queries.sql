@@ -200,7 +200,7 @@ WITH class_paginated AS (
     WHERE class.is_deactivated IN (sqlc.slice('isDeactivateds'))
     LIMIT ? OFFSET ?
 )
-SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
@@ -224,7 +224,7 @@ SELECT Count(*) as total FROM class
 WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
 
 -- name: GetClassesByIds :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
@@ -245,7 +245,7 @@ WHERE class.id in (sqlc.slice('ids'))
 ORDER BY class.id;
 
 -- name: GetClassesByTeacherId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id,
     sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
@@ -264,7 +264,7 @@ WHERE teacher_id = ?
 ORDER BY class.id;
 
 -- name: GetClassesByStudentId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
@@ -283,7 +283,7 @@ WHERE se.student_id = ?
 ORDER BY class.id;
 
 -- name: GetClassById :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),

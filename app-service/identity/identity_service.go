@@ -19,6 +19,12 @@ type User struct {
 	CreatedAt     time.Time         `json:"createdAt"`
 }
 
+// UserInfo_Minimal is a subset of struct User that must have the same schema.
+type UserInfo_Minimal struct {
+	Username   string     `json:"username"`
+	UserDetail UserDetail `json:"userDetail"`
+}
+
 type UserID int64
 
 const (
