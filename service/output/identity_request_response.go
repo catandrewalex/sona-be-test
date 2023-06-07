@@ -67,6 +67,7 @@ func (r ResetPasswordRequest) Validate() errs.ValidationError {
 
 type GetUsersRequest struct {
 	PaginationRequest
+	IncludeDeactivated bool `json:"includeDeactivated,omitempty"`
 }
 type GetUsersResponse struct {
 	Data    GetUsersResult `json:"data"`

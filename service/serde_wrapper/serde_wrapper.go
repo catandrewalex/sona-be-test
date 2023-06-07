@@ -153,7 +153,7 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, rType reflect.Type
 		urlQueryInJSON := convertURLQueryToJSONString(r.URL.Query().Encode())
 		err := json.Unmarshal(urlQueryInJSON, elem)
 		if err != nil {
-			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.Unmarshal(urlQueryInJSON): %v", err), map[string]string{errs.ClientMessageKey_NonField: "The request doesn't contain JSON and has invalid URL query params!"}, "")
+			return reflect.ValueOf(nil), errs.NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("json.Unmarshal(urlQueryInJSON): %v", err), map[string]string{errs.ClientMessageKey_NonField: "The request doesn't contain JSON and, or has invalid URL query params!"}, "")
 		}
 	}
 
@@ -207,6 +207,8 @@ func convertURLQueryToJSONString(encodedURLQuery string) []byte {
 				jsonStruct[key] = valueInt
 			} else if valueFloat, err := strconv.ParseFloat(value, 64); err == nil {
 				jsonStruct[key] = valueFloat
+			} else if valueBool, err := strconv.ParseBool(value); err == nil {
+				jsonStruct[key] = valueBool
 			} else {
 				jsonStruct[key] = value
 			}

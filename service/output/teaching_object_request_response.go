@@ -288,6 +288,7 @@ func (r DeleteCoursesRequest) Validate() errs.ValidationError {
 
 type GetClassesRequest struct {
 	PaginationRequest
+	IncludeDeactivated bool `json:"includeDeactivated,omitempty"`
 }
 type GetClassesResponse struct {
 	Data    GetClassesResult `json:"data"`

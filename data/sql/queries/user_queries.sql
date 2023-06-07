@@ -13,11 +13,13 @@ WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetUsers :many
 SELECT * FROM user
-ORDER BY is_deactivated, id
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds'))
+ORDER BY id
 LIMIT ? OFFSET ?;
 
 -- name: CountUsers :one
-SELECT Count(*) as total FROM user;
+SELECT Count(*) AS total FROM user
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
 
 -- name: IsUserExist :one
 SELECT EXISTS(SELECT id FROM user WHERE email = ? LIMIT 1);

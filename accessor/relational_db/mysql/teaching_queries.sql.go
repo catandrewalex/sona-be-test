@@ -24,10 +24,21 @@ func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
 
 const countClasses = `-- name: CountClasses :one
 SELECT Count(*) as total FROM class
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?)
 `
 
-func (q *Queries) CountClasses(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countClasses)
+func (q *Queries) CountClasses(ctx context.Context, isdeactivateds []int32) (int64, error) {
+	sql := countClasses
+	var queryParams []interface{}
+	if len(isdeactivateds) > 0 {
+		for _, v := range isdeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(isdeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
@@ -401,6 +412,7 @@ func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow
 const getClasses = `-- name: GetClasses :many
 WITH class_paginated AS (
     SELECT id, transport_fee, teacher_id, course_id, is_deactivated FROM class
+    WHERE class.is_deactivated IN (/*SLICE:isDeactivateds*/?)
     LIMIT ? OFFSET ?
 )
 SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
@@ -420,12 +432,13 @@ FROM class_paginated
 
     LEFT JOIN student_enrollment AS se ON class_paginated.id = se.class_id
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
-ORDER BY is_deactivated, class_paginated.id
+ORDER BY class_paginated.id
 `
 
 type GetClassesParams struct {
-	Limit  int32
-	Offset int32
+	IsDeactivateds []int32
+	Limit          int32
+	Offset         int32
 }
 
 type GetClassesRow struct {
@@ -448,7 +461,19 @@ type GetClassesRow struct {
 
 // ============================== CLASS ==============================
 func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetClassesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getClasses, arg.Limit, arg.Offset)
+	sql := getClasses
+	var queryParams []interface{}
+	if len(arg.IsDeactivateds) > 0 {
+		for _, v := range arg.IsDeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(arg.IsDeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Limit)
+	queryParams = append(queryParams, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
 	if err != nil {
 		return nil, err
 	}

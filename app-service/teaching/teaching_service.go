@@ -145,7 +145,7 @@ type TeachingService interface {
 	UpdateCourses(ctx context.Context, specs []UpdateCourseSpec) ([]CourseID, error)
 	DeleteCourses(ctx context.Context, ids []CourseID) error
 
-	GetClasses(ctx context.Context, pagination util.PaginationSpec) (GetClassesResult, error)
+	GetClasses(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (GetClassesResult, error)
 	GetClassById(ctx context.Context, id ClassID) (Class, error)
 	GetClassesByIds(ctx context.Context, ids []ClassID) ([]Class, error)
 	InsertClasses(ctx context.Context, specs []InsertClassSpec) ([]ClassID, error)

@@ -9,16 +9,16 @@ SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_t
 FROM teacher JOIN user ON teacher.user_id = user.id
 WHERE user_id = ? LIMIT 1;
 
+-- name: GetTeachersByIds :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
+FROM teacher JOIN user ON teacher.user_id = user.id
+WHERE teacher.id IN (sqlc.slice('ids'));
+
 -- name: GetTeachers :many
 SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
 FROM teacher JOIN user ON teacher.user_id = user.id
 ORDER BY teacher.id
 LIMIT ? OFFSET ?;
-
--- name: GetTeachersByIds :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
-FROM teacher JOIN user ON teacher.user_id = user.id
-WHERE teacher.id IN (sqlc.slice('ids'));
 
 -- name: CountTeachers :one
 SELECT Count(*) as total FROM teacher;
@@ -197,6 +197,7 @@ WHERE id IN (sqlc.slice('ids'));
 -- name: GetClasses :many
 WITH class_paginated AS (
     SELECT * FROM class
+    WHERE class.is_deactivated IN (sqlc.slice('isDeactivateds'))
     LIMIT ? OFFSET ?
 )
 SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
@@ -216,10 +217,11 @@ FROM class_paginated
 
     LEFT JOIN student_enrollment AS se ON class_paginated.id = se.class_id
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
-ORDER BY is_deactivated, class_paginated.id;
+ORDER BY class_paginated.id;
 
 -- name: CountClasses :one
-SELECT Count(*) as total FROM class;
+SELECT Count(*) as total FROM class
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
 
 -- name: GetClassesByIds :many
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,

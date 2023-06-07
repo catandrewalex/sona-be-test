@@ -51,12 +51,18 @@ func NewIdentityServiceImpl(mySQLQueries *relational_db.MySQLQueries, smtpAccess
 	}
 }
 
-func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.PaginationSpec) (identity.GetUsersResult, error) {
+func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (identity.GetUsersResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
+	isDeactivatedFilters := []int32{0}
+	if includeDeactivated {
+		isDeactivatedFilters = append(isDeactivatedFilters, 1)
+	}
+
 	userRows, err := s.mySQLQueries.GetUsers(ctx, mysql.GetUsersParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+		IsDeactivateds: isDeactivatedFilters,
+		Limit:          int32(limit),
+		Offset:         int32(offset),
 	})
 	if err != nil {
 		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.GetUsers(): %w", err)
@@ -64,7 +70,7 @@ func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.Pagin
 
 	users := NewUsersFromMySQLUsers(userRows)
 
-	totalResults, err := s.mySQLQueries.CountUsers(ctx)
+	totalResults, err := s.mySQLQueries.CountUsers(ctx, isDeactivatedFilters)
 	if err != nil {
 		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.CountUsers(): %w", err)
 	}

@@ -217,7 +217,7 @@ func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUse
 	getUsersResult, err := s.identityService.GetUsers(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
-	})
+	}, req.IncludeDeactivated)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), nil, "Failed to get users")
 	}
@@ -959,7 +959,7 @@ func (s *BackendService) GetClassesHandler(ctx context.Context, req *output.GetC
 	getClassesResult, err := s.teachingService.GetClasses(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
-	})
+	}, req.IncludeDeactivated)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClasses(): %w", err), nil, "Failed to get classes")
 	}

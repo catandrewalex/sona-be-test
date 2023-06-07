@@ -21,11 +21,22 @@ func (q *Queries) ActivateUser(ctx context.Context, id int64) error {
 }
 
 const countUsers = `-- name: CountUsers :one
-SELECT Count(*) as total FROM user
+SELECT Count(*) AS total FROM user
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?)
 `
 
-func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUsers)
+func (q *Queries) CountUsers(ctx context.Context, isdeactivateds []int32) (int64, error) {
+	sql := countUsers
+	var queryParams []interface{}
+	if len(isdeactivateds) > 0 {
+		for _, v := range isdeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(isdeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
@@ -152,17 +163,31 @@ func (q *Queries) GetUserCredentialByUsername(ctx context.Context, username stri
 
 const getUsers = `-- name: GetUsers :many
 SELECT id, username, email, user_detail, privilege_type, is_deactivated, created_at FROM user
-ORDER BY is_deactivated, id
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?)
+ORDER BY id
 LIMIT ? OFFSET ?
 `
 
 type GetUsersParams struct {
-	Limit  int32
-	Offset int32
+	IsDeactivateds []int32
+	Limit          int32
+	Offset         int32
 }
 
 func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUsers, arg.Limit, arg.Offset)
+	sql := getUsers
+	var queryParams []interface{}
+	if len(arg.IsDeactivateds) > 0 {
+		for _, v := range arg.IsDeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(arg.IsDeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Limit)
+	queryParams = append(queryParams, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
 	if err != nil {
 		return nil, err
 	}

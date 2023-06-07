@@ -649,12 +649,18 @@ func (s teachingServiceImpl) DeleteCourses(ctx context.Context, ids []teaching.C
 	return nil
 }
 
-func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec) (teaching.GetClassesResult, error) {
+func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (teaching.GetClassesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
+	isDeactivatedFilters := []int32{0}
+	if includeDeactivated {
+		isDeactivatedFilters = append(isDeactivatedFilters, 1)
+	}
+
 	classRows, err := s.mySQLQueries.GetClasses(ctx, mysql.GetClassesParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+		IsDeactivateds: isDeactivatedFilters,
+		Limit:          int32(limit),
+		Offset:         int32(offset),
 	})
 	if err != nil {
 		return teaching.GetClassesResult{}, fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
@@ -662,7 +668,7 @@ func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.Pag
 
 	classes := NewClassesFromGetClassesRow(classRows)
 
-	totalResults, err := s.mySQLQueries.CountClasses(ctx)
+	totalResults, err := s.mySQLQueries.CountClasses(ctx, isDeactivatedFilters)
 	if err != nil {
 		return teaching.GetClassesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
