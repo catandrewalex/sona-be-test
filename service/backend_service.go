@@ -1031,12 +1031,11 @@ func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.U
 	specs := make([]teaching.UpdateClassSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, teaching.UpdateClassSpec{
-			ClassID:              param.ClassID,
-			TeacherID:            param.TeacherID,
-			AddedStudentIDs:      *param.AddedStudentIDs,
-			DeletedEnrollmentIDs: *param.DeletedEnrollmentIDs,
-			TransportFee:         param.TransportFee,
-			IsDeactivated:        param.IsDeactivated,
+			ClassID:       param.ClassID,
+			TeacherID:     param.TeacherID,
+			StudentIDs:    param.StudentIDs,
+			TransportFee:  param.TransportFee,
+			IsDeactivated: param.IsDeactivated,
 		})
 	}
 
@@ -1117,7 +1116,7 @@ func handleDeletionError(err error, methodName, entityName string) errs.HTTPErro
 			http.StatusConflict,
 			fmt.Errorf("%s: %v", methodName, validationErr),
 			validationErr.GetErrorDetail(),
-			fmt.Sprintf("Unable to delete %s(s) as it is still required by another entity. You need to remove all other entities which still refer to this %s(s)", entityName, entityName),
+			fmt.Sprintf("Unable to delete %s(s) as it is still required by another entity. You need to remove all other entities which still refer to this %s(s). If removing is not possible, you can deactivate the %s(s)", entityName, entityName, entityName),
 		)
 	}
 	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to delete %s(s)", entityName))

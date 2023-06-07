@@ -55,6 +55,7 @@ CREATE TABLE student_enrollment
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   student_id BIGINT unsigned NOT NULL,
   class_id BIGINT unsigned NOT NULL,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
   -- `student_enrollment` is an entity for many-to-many relationship
   FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE,
   FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE CASCADE,

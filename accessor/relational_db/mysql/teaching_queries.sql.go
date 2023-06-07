@@ -201,19 +201,19 @@ func (q *Queries) DeleteStudentByUserId(ctx context.Context, userID int64) error
 
 const deleteStudentEnrollmentByClassIds = `-- name: DeleteStudentEnrollmentByClassIds :exec
 DELETE FROM student_enrollment
-WHERE id IN (/*SLICE:ids*/?)
+WHERE class_id IN (/*SLICE:classIds*/?)
 `
 
-func (q *Queries) DeleteStudentEnrollmentByClassIds(ctx context.Context, ids []int64) error {
+func (q *Queries) DeleteStudentEnrollmentByClassIds(ctx context.Context, classids []int64) error {
 	sql := deleteStudentEnrollmentByClassIds
 	var queryParams []interface{}
-	if len(ids) > 0 {
-		for _, v := range ids {
+	if len(classids) > 0 {
+		for _, v := range classids {
 			queryParams = append(queryParams, v)
 		}
-		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+		sql = strings.Replace(sql, "/*SLICE:classIds*/?", strings.Repeat(",?", len(classids))[1:], 1)
 	} else {
-		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+		sql = strings.Replace(sql, "/*SLICE:classIds*/?", "NULL", 1)
 	}
 	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
@@ -329,6 +329,26 @@ func (q *Queries) DeleteTeachersByIds(ctx context.Context, ids []int64) error {
 	return err
 }
 
+const disableStudentEnrollment = `-- name: DisableStudentEnrollment :exec
+UPDATE student_enrollment SET is_deleted = 1
+WHERE id = ?
+`
+
+func (q *Queries) DisableStudentEnrollment(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, disableStudentEnrollment, id)
+	return err
+}
+
+const enableStudentEnrollment = `-- name: EnableStudentEnrollment :exec
+UPDATE student_enrollment SET is_deleted = 0
+WHERE id = ?
+`
+
+func (q *Queries) EnableStudentEnrollment(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, enableStudentEnrollment, id)
+	return err
+}
+
 const getClassById = `-- name: GetClassById :many
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id, se.id AS enrollment_id,
     user_teacher.username AS teacher_username,
@@ -345,7 +365,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id = ?
 `
@@ -430,7 +450,7 @@ FROM class_paginated
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class_paginated.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class_paginated.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 ORDER BY class_paginated.id
 `
@@ -529,7 +549,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id in (/*SLICE:ids*/?)
 ORDER BY class.id
@@ -618,7 +638,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE se.student_id = ?
 ORDER BY class.id
@@ -691,7 +711,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE teacher_id = ?
 ORDER BY class.id
@@ -1250,6 +1270,7 @@ FROM student_enrollment as se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0
 ORDER BY se.id
 `
 
@@ -1303,7 +1324,7 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context) ([]GetStudentEnroll
 }
 
 const getStudentEnrollmentsByClassId = `-- name: GetStudentEnrollmentsByClassId :many
-SELECT id, student_id, class_id FROM student_enrollment
+SELECT id, student_id, class_id, is_deleted FROM student_enrollment
 WHERE class_id = ?
 `
 
@@ -1316,7 +1337,12 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 	var items []StudentEnrollment
 	for rows.Next() {
 		var i StudentEnrollment
-		if err := rows.Scan(&i.ID, &i.StudentID, &i.ClassID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.StudentID,
+			&i.ClassID,
+			&i.IsDeleted,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1331,7 +1357,7 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 }
 
 const getStudentEnrollmentsByIds = `-- name: GetStudentEnrollmentsByIds :many
-SELECT id, student_id, class_id FROM student_enrollment
+SELECT id, student_id, class_id, is_deleted FROM student_enrollment
 WHERE id IN (/*SLICE:ids*/?)
 `
 
@@ -1355,7 +1381,12 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 	var items []StudentEnrollment
 	for rows.Next() {
 		var i StudentEnrollment
-		if err := rows.Scan(&i.ID, &i.StudentID, &i.ClassID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.StudentID,
+			&i.ClassID,
+			&i.IsDeleted,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1370,7 +1401,7 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 }
 
 const getStudentEnrollmentsByStudentId = `-- name: GetStudentEnrollmentsByStudentId :many
-SELECT id, student_id, class_id FROM student_enrollment
+SELECT id, student_id, class_id, is_deleted FROM student_enrollment
 WHERE student_id = ?
 `
 
@@ -1383,7 +1414,12 @@ func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentI
 	var items []StudentEnrollment
 	for rows.Next() {
 		var i StudentEnrollment
-		if err := rows.Scan(&i.ID, &i.StudentID, &i.ClassID); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.StudentID,
+			&i.ClassID,
+			&i.IsDeleted,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

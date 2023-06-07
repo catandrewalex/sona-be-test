@@ -69,6 +69,7 @@ type StudentEnrollment struct {
 	ID        int64
 	StudentID int64
 	ClassID   int64
+	IsDeleted int32
 }
 
 type StudentLearningToken struct {

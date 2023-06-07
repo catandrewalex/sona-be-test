@@ -141,12 +141,12 @@ func (s teachingServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, spe
 }
 
 func (s teachingServiceImpl) DeleteTeachers(ctx context.Context, ids []teaching.TeacherID) error {
-	idsInt64 := make([]int64, 0, len(ids))
+	teacherIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		idsInt64 = append(idsInt64, int64(id))
+		teacherIdsInt64 = append(teacherIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteTeachersByIds(ctx, idsInt64)
+	err := s.mySQLQueries.DeleteTeachersByIds(ctx, teacherIdsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteTeacherByIds(): %w", err)
 	}
@@ -259,12 +259,12 @@ func (s teachingServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, spe
 }
 
 func (s teachingServiceImpl) DeleteStudents(ctx context.Context, ids []teaching.StudentID) error {
-	idsInt64 := make([]int64, 0, len(ids))
+	studentIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		idsInt64 = append(idsInt64, int64(id))
+		studentIdsInt64 = append(studentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteStudentsByIds(ctx, idsInt64)
+	err := s.mySQLQueries.DeleteStudentsByIds(ctx, studentIdsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteStudentByIds(): %w", err)
 	}
@@ -381,12 +381,12 @@ func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teac
 }
 
 func (s teachingServiceImpl) DeleteInstruments(ctx context.Context, ids []teaching.InstrumentID) error {
-	idsInt64 := make([]int64, 0, len(ids))
+	instrumentIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		idsInt64 = append(idsInt64, int64(id))
+		instrumentIdsInt64 = append(instrumentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteInstrumentsByIds(ctx, idsInt64)
+	err := s.mySQLQueries.DeleteInstrumentsByIds(ctx, instrumentIdsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteInstrumentsByIds(): %w", err)
 	}
@@ -503,12 +503,12 @@ func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.
 }
 
 func (s teachingServiceImpl) DeleteGrades(ctx context.Context, ids []teaching.GradeID) error {
-	idsInt64 := make([]int64, 0, len(ids))
+	gradeIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		idsInt64 = append(idsInt64, int64(id))
+		gradeIdsInt64 = append(gradeIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteGradesByIds(ctx, idsInt64)
+	err := s.mySQLQueries.DeleteGradesByIds(ctx, gradeIdsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteGradeByIds(): %w", err)
 	}
@@ -636,12 +636,12 @@ func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching
 }
 
 func (s teachingServiceImpl) DeleteCourses(ctx context.Context, ids []teaching.CourseID) error {
-	idsInt64 := make([]int64, 0, len(ids))
+	courseIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		idsInt64 = append(idsInt64, int64(id))
+		courseIdsInt64 = append(courseIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteCoursesByIds(ctx, idsInt64)
+	err := s.mySQLQueries.DeleteCoursesByIds(ctx, courseIdsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteCourseByIds(): %w", err)
 	}
@@ -773,23 +773,29 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 	qtx := s.mySQLQueries.WithTx(tx)
 
 	for _, spec := range specs {
+		classId := int64(spec.ClassID)
 		// Updated class
 		err := s.mySQLQueries.UpdateClass(ctx, mysql.UpdateClassParams{
 			TransportFee:  spec.TransportFee,
 			TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != teaching.TeacherID_None},
 			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
-			ID:            int64(spec.ClassID),
+			ID:            classId,
 		})
 		if err != nil {
 			return []teaching.ClassID{}, fmt.Errorf("qtx.UpdateClass(): %w", err)
 		}
 		classIDs = append(classIDs, spec.ClassID)
 
+		studentDifference, err := calculateClassStudentsDifference(ctx, qtx, spec.ClassID, spec.StudentIDs)
+		if err != nil {
+			return []teaching.ClassID{}, fmt.Errorf("calculateClassStudentsDifference(): %w", err)
+		}
+
 		// Added students
-		for _, studentId := range spec.AddedStudentIDs {
+		for _, studentId := range studentDifference.addedStudentIDs {
 			err = qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
 				StudentID: int64(studentId),
-				ClassID:   int64(spec.ClassID),
+				ClassID:   classId,
 			})
 			if err != nil {
 				wrappedErr := errs.WrapMySQLError(err)
@@ -797,15 +803,28 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 			}
 		}
 
-		// Removed enrollments
-		idsInt := make([]int64, 0, len(spec.DeletedEnrollmentIDs))
-		for _, deletedEnrollmentID := range spec.DeletedEnrollmentIDs {
-			idsInt = append(idsInt, int64(deletedEnrollmentID))
+		// Updated (re-enabled) enrollments
+		for _, updatedEnrollmentID := range studentDifference.enabledStudentEnrollmentIDs {
+			err = qtx.EnableStudentEnrollment(ctx, int64(updatedEnrollmentID))
+			if err != nil {
+				wrappedErr := errs.WrapMySQLError(err)
+				return []teaching.ClassID{}, fmt.Errorf("qtx.EnableStudentEnrollment(): %w", wrappedErr)
+			}
 		}
-		err = qtx.DeleteStudentEnrollmentsByIds(ctx, idsInt)
-		if err != nil {
-			wrappedErr := errs.WrapMySQLError(err)
-			return []teaching.ClassID{}, fmt.Errorf("qtx.DeleteStudentEnrollmentsByIds(): %w", wrappedErr)
+
+		// Delete or disable enrollments
+		for _, disabledEnrollmentID := range studentDifference.disabledStudentEnrollmentIDs {
+			err = qtx.DeleteStudentEnrollmentById(ctx, int64(disabledEnrollmentID))
+			if err == nil {
+				// the enrollment is still deletable (not referenced by any other entity), then no need to disable
+				continue
+			}
+
+			err = qtx.DisableStudentEnrollment(ctx, int64(disabledEnrollmentID))
+			if err != nil {
+				wrappedErr := errs.WrapMySQLError(err)
+				return []teaching.ClassID{}, fmt.Errorf("qtx.DisableStudentEnrollment(): %w", wrappedErr)
+			}
 		}
 	}
 
@@ -817,10 +836,59 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 	return classIDs, nil
 }
 
+type classStudentsDifference struct {
+	addedStudentIDs              []teaching.StudentID
+	enabledStudentEnrollmentIDs  []teaching.StudentEnrollmentID
+	disabledStudentEnrollmentIDs []teaching.StudentEnrollmentID
+}
+
+func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, classId teaching.ClassID, finalStudentIDs []teaching.StudentID) (classStudentsDifference, error) {
+	addedStudentIDs := make([]teaching.StudentID, 0)
+	enabledStudentEnrollmentIDs := make([]teaching.StudentEnrollmentID, 0)
+	disabledStudentEnrollmentIDs := make([]teaching.StudentEnrollmentID, 0)
+
+	enrollments, err := qtx.GetStudentEnrollmentsByClassId(ctx, int64(classId))
+	if err != nil {
+		wrappedErr := errs.WrapMySQLError(err)
+		return classStudentsDifference{}, fmt.Errorf("qtx.GetStudentEnrollmentsByClassId(): %w", wrappedErr)
+	}
+
+	studentIDToEnrollmentIDMap := make(map[teaching.StudentID]teaching.StudentEnrollmentID, len(enrollments))
+	for _, enrollment := range enrollments {
+		studentIDToEnrollmentIDMap[teaching.StudentID(enrollment.StudentID)] = teaching.StudentEnrollmentID(enrollment.ID)
+	}
+
+	requestStudentIDsMap := make(map[teaching.StudentID]bool, 0)
+	for _, studentID := range finalStudentIDs {
+		if enrollmentID, ok := studentIDToEnrollmentIDMap[studentID]; ok {
+			enabledStudentEnrollmentIDs = append(enabledStudentEnrollmentIDs, enrollmentID)
+		} else {
+			addedStudentIDs = append(addedStudentIDs, studentID)
+		}
+		requestStudentIDsMap[studentID] = true
+	}
+	for _, enrollment := range enrollments {
+		if _, ok := requestStudentIDsMap[teaching.StudentID(enrollment.StudentID)]; !ok {
+			disabledStudentEnrollmentIDs = append(disabledStudentEnrollmentIDs, teaching.StudentEnrollmentID(enrollment.ID))
+		}
+	}
+
+	mainLog.Debug("calculateClassStudentsDifference():")
+	mainLog.Debug("finalStudentIDs: %v", finalStudentIDs)
+	mainLog.Debug("enrollments: %+v", enrollments)
+	mainLog.Debug("classStudentsDifference: \n\taddedStudentIDs: %v\n\tenabledStudentEnrollmentIDs: %v\n\tdisabledStudentEnrollmentIDs: %v", addedStudentIDs, enabledStudentEnrollmentIDs, disabledStudentEnrollmentIDs)
+
+	return classStudentsDifference{
+		addedStudentIDs:              addedStudentIDs,
+		enabledStudentEnrollmentIDs:  enabledStudentEnrollmentIDs,
+		disabledStudentEnrollmentIDs: disabledStudentEnrollmentIDs,
+	}, nil
+}
+
 func (s teachingServiceImpl) DeleteClasses(ctx context.Context, ids []teaching.ClassID) error {
-	idsInt64 := make([]int64, 0, len(ids))
+	classIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		idsInt64 = append(idsInt64, int64(id))
+		classIdsInt64 = append(classIdsInt64, int64(id))
 	}
 
 	tx, err := s.mySQLQueries.DB.BeginTx(ctx, nil)
@@ -830,13 +898,13 @@ func (s teachingServiceImpl) DeleteClasses(ctx context.Context, ids []teaching.C
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTx(tx)
 
-	err = qtx.DeleteStudentEnrollmentByClassIds(ctx, idsInt64)
+	err = qtx.DeleteStudentEnrollmentByClassIds(ctx, classIdsInt64)
 	if err != nil {
 		wrappedErr := errs.WrapMySQLError(err)
 		return fmt.Errorf("qtx.DeleteStudentEnrollmentByClassIds(): %w", wrappedErr)
 	}
 
-	err = qtx.DeleteClassesByIds(ctx, idsInt64)
+	err = qtx.DeleteClassesByIds(ctx, classIdsInt64)
 	if err != nil {
 		wrappedErr := errs.WrapMySQLError(err)
 		return fmt.Errorf("qtx.DeleteClassesByIds(): %w", wrappedErr)

@@ -215,7 +215,7 @@ FROM class_paginated
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class_paginated.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class_paginated.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 ORDER BY class_paginated.id;
 
@@ -239,7 +239,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id in (sqlc.slice('ids'))
 ORDER BY class.id;
@@ -258,7 +258,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE teacher_id = ?
 ORDER BY class.id;
@@ -277,7 +277,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE se.student_id = ?
 ORDER BY class.id;
@@ -298,7 +298,7 @@ FROM class
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
 
-    LEFT JOIN student_enrollment AS se ON class.id = se.class_id
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id = ?;
 
@@ -361,6 +361,7 @@ FROM student_enrollment as se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0
 ORDER BY se.id;
 
 -- name: InsertStudentEnrollment :exec
@@ -369,6 +370,14 @@ INSERT INTO student_enrollment (
 ) VALUES (
     ?, ?
 );
+
+-- name: EnableStudentEnrollment :exec
+UPDATE student_enrollment SET is_deleted = 0
+WHERE id = ?;
+
+-- name: DisableStudentEnrollment :exec
+UPDATE student_enrollment SET is_deleted = 1
+WHERE id = ?;
 
 -- name: DeleteStudentEnrollmentById :exec
 DELETE FROM student_enrollment
@@ -384,7 +393,7 @@ WHERE student_id = ?;
 
 -- name: DeleteStudentEnrollmentByClassIds :exec
 DELETE FROM student_enrollment
-WHERE id IN (sqlc.slice('ids'));
+WHERE class_id IN (sqlc.slice('classIds'));
 
 /* ============================== TEACHER_SPECIAL_FEE ============================== */
 -- name: GetTeacherSpecialFeeById :one

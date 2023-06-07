@@ -232,10 +232,9 @@ type InsertClassSpec struct {
 }
 
 type UpdateClassSpec struct {
-	ClassID              ClassID
-	TeacherID            TeacherID
-	AddedStudentIDs      []StudentID
-	DeletedEnrollmentIDs []StudentEnrollmentID
-	TransportFee         int64
-	IsDeactivated        bool
+	ClassID       ClassID
+	TeacherID     TeacherID
+	StudentIDs    []StudentID
+	TransportFee  int64
+	IsDeactivated bool
 }

@@ -345,12 +345,11 @@ type UpdateClassesRequest struct {
 	Data []UpdateClassesRequestParam `json:"data"`
 }
 type UpdateClassesRequestParam struct {
-	ClassID              teaching.ClassID                `json:"classId"`
-	TeacherID            teaching.TeacherID              `json:"teacherId"`
-	AddedStudentIDs      *[]teaching.StudentID           `json:"addedStudentIds"`
-	DeletedEnrollmentIDs *[]teaching.StudentEnrollmentID `json:"deletedEnrollmentIds"`
-	TransportFee         int64                           `json:"transportFee,omitempty"`
-	IsDeactivated        bool                            `json:"isDeactivated,omitempty"`
+	ClassID       teaching.ClassID     `json:"classId"`
+	TeacherID     teaching.TeacherID   `json:"teacherId"`
+	StudentIDs    []teaching.StudentID `json:"StudentIds"`
+	TransportFee  int64                `json:"transportFee,omitempty"`
+	IsDeactivated bool                 `json:"isDeactivated,omitempty"`
 }
 type UpdateClassesResponse struct {
 	Data    UpsertClassResult `json:"data"`
