@@ -128,7 +128,7 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 		errContext := fmt.Sprintf("identityService.SignUpUser()")
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
-			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, validationErr), validationErr.GetErrorDetail(), "")
+			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, err), validationErr.GetErrorDetail(), "")
 		}
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", errContext, err), nil, "Failed to create user")
 	}
@@ -1099,7 +1099,7 @@ func handleUpsertionError(err error, methodName, entityName string) errs.HTTPErr
 
 	var validationErr errs.ValidationError
 	if errors.As(err, &validationErr) {
-		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, validationErr), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
+		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, err), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
 	}
 	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create or update %s(s)", entityName))
 }
@@ -1114,7 +1114,7 @@ func handleDeletionError(err error, methodName, entityName string) errs.HTTPErro
 	if errors.As(err, &validationErr) {
 		return errs.NewHTTPError(
 			http.StatusConflict,
-			fmt.Errorf("%s: %v", methodName, validationErr),
+			fmt.Errorf("%s: %v", methodName, err),
 			validationErr.GetErrorDetail(),
 			fmt.Sprintf("Unable to delete %s(s) as it is still required by another entity. You need to remove all other entities which still refer to this %s(s). If removing is not possible, you can deactivate the %s(s)", entityName, entityName, entityName),
 		)

@@ -139,14 +139,14 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 		tx = existingTx
 		isReusingExistingTx = true
 	} else {
-		tx, err = s.mySQLQueries.DB.Begin()
+		tx, err = s.mySQLQueries.Begin()
 		if err != nil {
 			return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
 		}
 		defer tx.Rollback()
 	}
 
-	qtx := s.mySQLQueries.WithTx(tx)
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
 
 	for i, spec := range specs {
 		userID, err := qtx.InsertUser(ctx, mysql.InsertUserParams{
@@ -155,9 +155,8 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 			UserDetail:    userDetails[i],
 			PrivilegeType: int32(spec.UserPrivilegeType),
 		})
-		wrappedErr := errs.WrapMySQLError(err)
-		if wrappedErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUser(): %w", wrappedErr)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUser(): %w", err)
 		}
 
 		_, err = qtx.InsertUserCredential(ctx, mysql.InsertUserCredentialParams{
@@ -166,9 +165,8 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 			Password: hashedPasswords[i],
 			Email:    spec.Email,
 		})
-		wrappedErr = errs.WrapMySQLError(err)
-		if wrappedErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredential(): %w", wrappedErr)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredential(): %w", err)
 		}
 
 		userIds = append(userIds, identity.UserID(userID))
@@ -194,13 +192,13 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 		userDetails = append(userDetails, userDetail)
 	}
 
-	tx, err := s.mySQLQueries.DB.Begin()
+	tx, err := s.mySQLQueries.Begin()
 	if err != nil {
 		return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
 	}
 	defer tx.Rollback()
 
-	qtx := s.mySQLQueries.WithTx(tx)
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
 
 	userIDs := make([]identity.UserID, 0, len(specs))
 	for i, spec := range specs {
@@ -212,9 +210,8 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
 			ID:            int64(spec.UserID),
 		})
-		wrappedErr := errs.WrapMySQLError(err)
-		if wrappedErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUser(): %w", wrappedErr)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUser(): %w", err)
 		}
 
 		err = qtx.UpdateUserCredentialInfoByUserId(ctx, mysql.UpdateUserCredentialInfoByUserIdParams{
@@ -222,9 +219,8 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 			Email:    spec.Email,
 			UserID:   int64(spec.UserID),
 		})
-		wrappedErr = errs.WrapMySQLError(err)
-		if wrappedErr != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUserCredentialInfoByUserId(): %w", wrappedErr)
+		if err != nil {
+			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUserCredentialInfoByUserId(): %w", err)
 		}
 
 		userIDs = append(userIDs, spec.UserID)

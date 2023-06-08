@@ -5,42 +5,33 @@ import (
 	"database/sql"
 
 	"sonamusica-backend/accessor/relational_db/mysql"
-	"sonamusica-backend/errs"
 )
 
 // MySQLQueries is expected to be constructed using the NewMySQLQueries.
-// This struct is useful for wrapping SQLC's "Queries", which lacks of modification due to code generation.
+// This struct is useful for wrapping SQLC's "Queries", which lacks of modifiability due to code generation.
 //
-//	So far, the main goal is to wrap SQLC's "Queries" with WrapMySQLError.
+// So far, the main goals are:
+//  1. Wrap SQLC's "Queries" with WrapMySQLError()
+//  2. Add shortcut to *sql.DB.Begin() without directly accessing the *sql.DB
 type MySQLQueries struct {
 	mysql.Queries
-	DB *sql.DB
+	db *sql.DB
 }
 
 func NewMySQLQueries(db *sql.DB) *MySQLQueries {
-	wrappedDB := &dbtxWrappedError{db}
+	wrappedDB := &mysql.DBTXWrappedError{DB: db}
 	queries := mysql.New(wrappedDB)
 	return &MySQLQueries{*queries, db}
 }
 
-type dbtxWrappedError struct {
-	db mysql.DBTX
+// Begin() is a wrapper for MySQLQueries.db.Begin(). So that the caller doesn't need to directly access the *sql.DB.
+func (q MySQLQueries) Begin() (*sql.Tx, error) {
+	sqlTx, err := q.db.Begin()
+	return sqlTx, err
 }
 
-func (w dbtxWrappedError) ExecContext(ctx context.Context, sqlQuery string, params ...interface{}) (sql.Result, error) {
-	result, err := w.db.ExecContext(ctx, sqlQuery, params...)
-	return result, errs.WrapMySQLError(err)
-}
-func (w dbtxWrappedError) PrepareContext(ctx context.Context, sqlQuery string) (*sql.Stmt, error) {
-	result, err := w.db.PrepareContext(ctx, sqlQuery)
-	return result, errs.WrapMySQLError(err)
-
-}
-func (w dbtxWrappedError) QueryContext(ctx context.Context, sqlQuery string, params ...interface{}) (*sql.Rows, error) {
-	result, err := w.db.QueryContext(ctx, sqlQuery, params...)
-	return result, errs.WrapMySQLError(err)
-
-}
-func (w dbtxWrappedError) QueryRowContext(ctx context.Context, sqlQuery string, params ...interface{}) *sql.Row {
-	return w.db.QueryRowContext(ctx, sqlQuery, params...)
+// BeginTx() is a wrapper for MySQLQueries.db.BeginTx(). So that the caller doesn't need to directly access the *sql.DB.
+func (q MySQLQueries) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+	sqlTx, err := q.db.BeginTx(ctx, opts)
+	return sqlTx, err
 }
