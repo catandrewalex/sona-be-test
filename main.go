@@ -117,8 +117,9 @@ func main() {
 		authRouter.Delete("/classes", jsonSerdeWrapper.WrapFunc(backendService.DeleteClassesHandler))
 	})
 
+	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)
 	server := &http.Server{
-		Addr:           fmt.Sprintf(":%s", configObject.Port),
+		Addr:           serverAddr,
 		Handler:        baseRouter,
 		ReadTimeout:    2 * configObject.ServerTimeout, // we use 2 times ServerTimeout just for extra layer of timeout assurance
 		WriteTimeout:   2 * configObject.ServerTimeout,
@@ -126,5 +127,6 @@ func main() {
 	}
 
 	logging.AppLogger.Info("Server is starting...")
+	logging.AppLogger.Info("Serving on %s", serverAddr)
 	logging.AppLogger.Error("err: %s", server.ListenAndServe())
 }

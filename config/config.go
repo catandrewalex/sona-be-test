@@ -11,6 +11,7 @@ import (
 )
 
 type Config struct {
+	Host string `envconfig:"LISTEN_HOST" default:"localhost"`
 	Port string `envconfig:"LISTEN_PORT" default:"8080"`
 
 	ServerTimeout time.Duration `envconfig:"SERVER_TIMEOUT" default:"3m"`

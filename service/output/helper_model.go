@@ -31,7 +31,7 @@ func (r PaginationRequest) Validate(maxPage int, maxResultsPerPage int) errs.Val
 	}
 	if maxResultsPerPage > 0 && r.Page > maxResultsPerPage {
 		errorDetail["resultsPerPage"] = "resultsPerPage must be greater than 0"
-	} else if maxResultsPerPage > 0 && r.Page > maxResultsPerPage {
+	} else if maxResultsPerPage > 0 && r.ResultsPerPage > maxResultsPerPage {
 		errorDetail["resultsPerPage"] = fmt.Sprintf("resultsPerPage must be less than %d", maxPage)
 	}
 

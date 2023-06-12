@@ -1104,7 +1104,7 @@ func handleUpsertionError(err error, methodName, entityName string) errs.HTTPErr
 	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create or update %s(s)", entityName))
 }
 
-// handleReadError detects update/insert error due to rule violation (e.g. duplicate entries) and returns HTTP 409-Conflict. Else, returns HTTP 500.
+// handleReadError detects update/insert error due to rule violation (e.g. referred row) and returns HTTP 409-Conflict. Else, returns HTTP 500.
 func handleDeletionError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {
 		return nil
