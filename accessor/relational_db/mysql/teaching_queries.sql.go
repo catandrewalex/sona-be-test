@@ -23,7 +23,7 @@ func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
 }
 
 const countClasses = `-- name: CountClasses :one
-SELECT Count(*) as total FROM class
+SELECT Count(*) AS total FROM class
 WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?)
 `
 
@@ -45,7 +45,7 @@ func (q *Queries) CountClasses(ctx context.Context, isdeactivateds []int32) (int
 }
 
 const countCourses = `-- name: CountCourses :one
-SELECT Count(*) as total FROM course
+SELECT Count(*) AS total FROM course
 `
 
 func (q *Queries) CountCourses(ctx context.Context) (int64, error) {
@@ -56,7 +56,7 @@ func (q *Queries) CountCourses(ctx context.Context) (int64, error) {
 }
 
 const countGrades = `-- name: CountGrades :one
-SELECT Count(*) as total FROM grade
+SELECT Count(*) AS total FROM grade
 `
 
 func (q *Queries) CountGrades(ctx context.Context) (int64, error) {
@@ -67,7 +67,7 @@ func (q *Queries) CountGrades(ctx context.Context) (int64, error) {
 }
 
 const countInstruments = `-- name: CountInstruments :one
-SELECT Count(*) as total FROM instrument
+SELECT Count(*) AS total FROM instrument
 `
 
 func (q *Queries) CountInstruments(ctx context.Context) (int64, error) {
@@ -78,7 +78,7 @@ func (q *Queries) CountInstruments(ctx context.Context) (int64, error) {
 }
 
 const countStudents = `-- name: CountStudents :one
-SELECT Count(*) as total FROM student
+SELECT Count(*) AS total FROM student
 `
 
 func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
@@ -88,8 +88,19 @@ func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const countTeacherSpecialFees = `-- name: CountTeacherSpecialFees :one
+SELECT Count(id) AS total from teacher_special_fee
+`
+
+func (q *Queries) CountTeacherSpecialFees(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTeacherSpecialFees)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countTeachers = `-- name: CountTeachers :one
-SELECT Count(*) as total FROM teacher
+SELECT Count(*) AS total FROM teacher
 `
 
 func (q *Queries) CountTeachers(ctx context.Context) (int64, error) {
@@ -289,6 +300,16 @@ func (q *Queries) DeleteTeacherByUserId(ctx context.Context, userID int64) error
 	return err
 }
 
+const deleteTeacherSpecialFeeByCourseId = `-- name: DeleteTeacherSpecialFeeByCourseId :exec
+DELETE FROM teacher_special_fee
+WHERE course_id = ?
+`
+
+func (q *Queries) DeleteTeacherSpecialFeeByCourseId(ctx context.Context, courseID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteTeacherSpecialFeeByCourseId, courseID)
+	return err
+}
+
 const deleteTeacherSpecialFeeById = `-- name: DeleteTeacherSpecialFeeById :exec
 DELETE FROM teacher_special_fee
 WHERE id = ?
@@ -306,6 +327,26 @@ WHERE teacher_id = ?
 
 func (q *Queries) DeleteTeacherSpecialFeeByTeacherId(ctx context.Context, teacherID int64) error {
 	_, err := q.db.ExecContext(ctx, deleteTeacherSpecialFeeByTeacherId, teacherID)
+	return err
+}
+
+const deleteTeacherSpecialFeesByIds = `-- name: DeleteTeacherSpecialFeesByIds :exec
+DELETE FROM teacher_special_fee
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) DeleteTeacherSpecialFeesByIds(ctx context.Context, ids []int64) error {
+	sql := deleteTeacherSpecialFeesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -1250,10 +1291,10 @@ func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (GetStud
 }
 
 const getStudentEnrollments = `-- name: GetStudentEnrollments :many
-SELECT se.id as student_enrollment_id,
+SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id AS class_id, class.transport_fee AS class_transport_fee, course_id, instrument.id, instrument.name, grade.id, grade.name, course.default_fee AS course_default_fee
-FROM student_enrollment as se
+FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
     JOIN class on se.class_id = class.id
@@ -1629,7 +1670,6 @@ type GetTeacherSpecialFeeByIdRow struct {
 	OriginalCourseFee   int64
 }
 
-// ============================== TEACHER_SPECIAL_FEE ==============================
 func (q *Queries) GetTeacherSpecialFeeById(ctx context.Context, id int64) (GetTeacherSpecialFeeByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getTeacherSpecialFeeById, id)
 	var i GetTeacherSpecialFeeByIdRow
@@ -1647,6 +1687,143 @@ func (q *Queries) GetTeacherSpecialFeeById(ctx context.Context, id int64) (GetTe
 		&i.OriginalCourseFee,
 	)
 	return i, err
+}
+
+const getTeacherSpecialFees = `-- name: GetTeacherSpecialFees :many
+SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
+    teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee AS original_course_fee
+FROM teacher_special_fee
+    JOIN teacher ON teacher_id = teacher.id
+    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    JOIN course on course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+ORDER BY course.id
+LIMIT ? OFFSET ?
+`
+
+type GetTeacherSpecialFeesParams struct {
+	Limit  int32
+	Offset int32
+}
+
+type GetTeacherSpecialFeesRow struct {
+	TeacherSpecialFeeID int64
+	Fee                 int64
+	TeacherID           int64
+	TeacherUsername     string
+	TeacherDetail       json.RawMessage
+	CourseID            int64
+	Instrument          Instrument
+	Grade               Grade
+	OriginalCourseFee   int64
+}
+
+// ============================== TEACHER_SPECIAL_FEE ==============================
+func (q *Queries) GetTeacherSpecialFees(ctx context.Context, arg GetTeacherSpecialFeesParams) ([]GetTeacherSpecialFeesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTeacherSpecialFees, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeacherSpecialFeesRow
+	for rows.Next() {
+		var i GetTeacherSpecialFeesRow
+		if err := rows.Scan(
+			&i.TeacherSpecialFeeID,
+			&i.Fee,
+			&i.TeacherID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.CourseID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+			&i.OriginalCourseFee,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeacherSpecialFeesByIds = `-- name: GetTeacherSpecialFeesByIds :many
+SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
+    teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee AS original_course_fee
+FROM teacher_special_fee
+    JOIN teacher ON teacher_id = teacher.id
+    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    JOIN course on course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE teacher_special_fee.id IN (/*SLICE:ids*/?)
+`
+
+type GetTeacherSpecialFeesByIdsRow struct {
+	TeacherSpecialFeeID int64
+	Fee                 int64
+	TeacherID           int64
+	TeacherUsername     string
+	TeacherDetail       json.RawMessage
+	CourseID            int64
+	Instrument          Instrument
+	Grade               Grade
+	OriginalCourseFee   int64
+}
+
+func (q *Queries) GetTeacherSpecialFeesByIds(ctx context.Context, ids []int64) ([]GetTeacherSpecialFeesByIdsRow, error) {
+	sql := getTeacherSpecialFeesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeacherSpecialFeesByIdsRow
+	for rows.Next() {
+		var i GetTeacherSpecialFeesByIdsRow
+		if err := rows.Scan(
+			&i.TeacherSpecialFeeID,
+			&i.Fee,
+			&i.TeacherID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.CourseID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+			&i.OriginalCourseFee,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getTeacherSpecialFeesByTeacherId = `-- name: GetTeacherSpecialFeesByTeacherId :many
@@ -2135,16 +2312,15 @@ func (q *Queries) UpdateInstrument(ctx context.Context, arg UpdateInstrumentPara
 
 const updateTeacherSpecialFee = `-- name: UpdateTeacherSpecialFee :exec
 UPDATE teacher_special_fee SET fee = ?
-WHERE teacher_id = ? AND course_id = ?
+WHERE id = ?
 `
 
 type UpdateTeacherSpecialFeeParams struct {
-	Fee       int64
-	TeacherID int64
-	CourseID  int64
+	Fee int64
+	ID  int64
 }
 
 func (q *Queries) UpdateTeacherSpecialFee(ctx context.Context, arg UpdateTeacherSpecialFeeParams) error {
-	_, err := q.db.ExecContext(ctx, updateTeacherSpecialFee, arg.Fee, arg.TeacherID, arg.CourseID)
+	_, err := q.db.ExecContext(ctx, updateTeacherSpecialFee, arg.Fee, arg.ID)
 	return err
 }

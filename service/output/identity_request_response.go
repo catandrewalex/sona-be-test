@@ -7,7 +7,7 @@ import (
 
 const (
 	MaxPage_GetUsers           = Default_MaxPage
-	MaxResultsPerPage_GetUsers = 10000
+	MaxResultsPerPage_GetUsers = Default_MaxResultsPerPage
 )
 
 type SignUpRequest struct {

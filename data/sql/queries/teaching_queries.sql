@@ -21,7 +21,7 @@ ORDER BY teacher.id
 LIMIT ? OFFSET ?;
 
 -- name: CountTeachers :one
-SELECT Count(*) as total FROM teacher;
+SELECT Count(*) AS total FROM teacher;
 
 -- name: InsertTeacher :execlastid
 INSERT INTO teacher ( user_id ) VALUES ( ? );
@@ -57,7 +57,7 @@ FROM student JOIN user ON student.user_id = user.id
 WHERE student.id IN (sqlc.slice('ids'));
 
 -- name: CountStudents :one
-SELECT Count(*) as total FROM student;
+SELECT Count(*) AS total FROM student;
 
 -- name: InsertStudent :execlastid
 INSERT INTO student ( user_id ) VALUES ( ? );
@@ -85,7 +85,7 @@ ORDER BY id
 LIMIT ? OFFSET ?;
 
 -- name: CountInstruments :one
-SELECT Count(*) as total FROM instrument;
+SELECT Count(*) AS total FROM instrument;
 
 -- name: InsertInstrument :execlastid
 INSERT INTO instrument ( name ) VALUES ( ? );
@@ -113,7 +113,7 @@ ORDER BY id
 LIMIT ? OFFSET ?;
 
 -- name: CountGrades :one
-SELECT Count(*) as total FROM grade;
+SELECT Count(*) AS total FROM grade;
 
 -- name: InsertGrade :execlastid
 INSERT INTO grade ( name ) VALUES ( ? );
@@ -136,7 +136,7 @@ ORDER BY course.id
 LIMIT ? OFFSET ?;
 
 -- name: CountCourses :one
-SELECT Count(*) as total FROM course;
+SELECT Count(*) AS total FROM course;
 
 -- name: GetCoursesByIds :many
 SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
@@ -220,7 +220,7 @@ FROM class_paginated
 ORDER BY class_paginated.id;
 
 -- name: CountClasses :one
-SELECT Count(*) as total FROM class
+SELECT Count(*) AS total FROM class
 WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
 
 -- name: GetClassesByIds :many
@@ -351,10 +351,10 @@ SELECT * FROM student_enrollment
 WHERE class_id = ?;
 
 -- name: GetStudentEnrollments :many
-SELECT se.id as student_enrollment_id,
+SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id AS class_id, class.transport_fee AS class_transport_fee, course_id, sqlc.embed(instrument), sqlc.embed(grade), course.default_fee AS course_default_fee
-FROM student_enrollment as se
+FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
     JOIN class on se.class_id = class.id
@@ -396,6 +396,22 @@ DELETE FROM student_enrollment
 WHERE class_id IN (sqlc.slice('classIds'));
 
 /* ============================== TEACHER_SPECIAL_FEE ============================== */
+-- name: GetTeacherSpecialFees :many
+SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
+    teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
+FROM teacher_special_fee
+    JOIN teacher ON teacher_id = teacher.id
+    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    JOIN course on course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+ORDER BY course.id
+LIMIT ? OFFSET ?;
+
+-- name: CountTeacherSpecialFees :one
+SELECT Count(id) AS total from teacher_special_fee;
+
 -- name: GetTeacherSpecialFeeById :one
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
@@ -407,6 +423,18 @@ FROM teacher_special_fee
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 WHERE teacher_special_fee.id = ? LIMIT 1;
+
+-- name: GetTeacherSpecialFeesByIds :many
+SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
+    teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
+FROM teacher_special_fee
+    JOIN teacher ON teacher_id = teacher.id
+    JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    JOIN course on course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE teacher_special_fee.id IN (sqlc.slice('ids'));
 
 -- name: GetTeacherSpecialFeesByTeacherId :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
@@ -434,12 +462,20 @@ INSERT INTO teacher_special_fee (
 
 -- name: UpdateTeacherSpecialFee :exec
 UPDATE teacher_special_fee SET fee = ?
-WHERE teacher_id = ? AND course_id = ?;
+WHERE id = ?;
 
 -- name: DeleteTeacherSpecialFeeById :exec
 DELETE FROM teacher_special_fee
 WHERE id = ?;
 
+-- name: DeleteTeacherSpecialFeesByIds :exec
+DELETE FROM teacher_special_fee
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: DeleteTeacherSpecialFeeByTeacherId :exec
 DELETE FROM teacher_special_fee
 WHERE teacher_id = ?;
+
+-- name: DeleteTeacherSpecialFeeByCourseId :exec
+DELETE FROM teacher_special_fee
+WHERE course_id = ?;

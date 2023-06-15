@@ -911,3 +911,134 @@ func (s teachingServiceImpl) DeleteClasses(ctx context.Context, ids []teaching.C
 
 	return nil
 }
+
+func (s teachingServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (teaching.GetTeacherSpecialFeesResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	teacherSpecialFeeRows, err := s.mySQLQueries.GetTeacherSpecialFees(ctx, mysql.GetTeacherSpecialFeesParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return teaching.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFees(): %w", err)
+	}
+
+	teacherSpecialFees := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows)
+
+	totalResults, err := s.mySQLQueries.CountTeacherSpecialFees(ctx)
+	if err != nil {
+		return teaching.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
+
+	return teaching.GetTeacherSpecialFeesResult{
+		TeacherSpecialFees: teacherSpecialFees,
+		PaginationResult:   *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s teachingServiceImpl) GetTeacherSpecialFeeById(ctx context.Context, id teaching.TeacherSpecialFeeID) (teaching.TeacherSpecialFee, error) {
+	teacherSpecialFeeRow, err := s.mySQLQueries.GetTeacherSpecialFeeById(ctx, int64(id))
+	if err != nil {
+		return teaching.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeeById(): %w", err)
+	}
+
+	teacherSpecialFee := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow([]mysql.GetTeacherSpecialFeesRow{teacherSpecialFeeRow.ToGetTeacherSpecialFeesRow()})[0]
+
+	return teacherSpecialFee, nil
+}
+
+func (s teachingServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids []teaching.TeacherSpecialFeeID) ([]teaching.TeacherSpecialFee, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	teacherSpecialFeeRows, err := s.mySQLQueries.GetTeacherSpecialFeesByIds(ctx, idsInt)
+	if err != nil {
+		return []teaching.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByIds(): %w", err)
+	}
+
+	teacherSpecialFeeRowsConverted := make([]mysql.GetTeacherSpecialFeesRow, 0, len(teacherSpecialFeeRows))
+	for _, row := range teacherSpecialFeeRows {
+		teacherSpecialFeeRowsConverted = append(teacherSpecialFeeRowsConverted, row.ToGetTeacherSpecialFeesRow())
+	}
+
+	teacherSpecialFees := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRowsConverted)
+
+	return teacherSpecialFees, nil
+}
+
+func (s teachingServiceImpl) InsertTeacherSpecialFees(ctx context.Context, specs []teaching.InsertTeacherSpecialFeeSpec) ([]teaching.TeacherSpecialFeeID, error) {
+	teacherSpecialFeeIDs := make([]teaching.TeacherSpecialFeeID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		teacherSpecialFeeID, err := qtx.InsertTeacherSpecialFee(ctx, mysql.InsertTeacherSpecialFeeParams{
+			Fee:       spec.Fee,
+			TeacherID: int64(spec.TeacherID),
+			CourseID:  int64(spec.CourseID),
+		})
+		if err != nil {
+
+			return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("qtx.InsertTeacherSpecialFee(): %w", err)
+		}
+		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, teaching.TeacherSpecialFeeID(teacherSpecialFeeID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return teacherSpecialFeeIDs, nil
+}
+
+func (s teachingServiceImpl) UpdateTeacherSpecialFees(ctx context.Context, specs []teaching.UpdateTeacherSpecialFeeSpec) ([]teaching.TeacherSpecialFeeID, error) {
+	teacherSpecialFeeIDs := make([]teaching.TeacherSpecialFeeID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		err := qtx.UpdateTeacherSpecialFee(ctx, mysql.UpdateTeacherSpecialFeeParams{
+			Fee: spec.Fee,
+			ID:  int64(spec.TeacherSpecialFeeID),
+		})
+		if err != nil {
+
+			return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("qtx.UpdateTeacherSpecialFee(): %w", err)
+		}
+		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, spec.TeacherSpecialFeeID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return teacherSpecialFeeIDs, nil
+}
+
+func (s teachingServiceImpl) DeleteTeacherSpecialFees(ctx context.Context, ids []teaching.TeacherSpecialFeeID) error {
+	teacherSpecialFeeIdsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		teacherSpecialFeeIdsInt64 = append(teacherSpecialFeeIdsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIdsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteTeacherSpecialFeeByIds(): %w", err)
+	}
+
+	return nil
+}

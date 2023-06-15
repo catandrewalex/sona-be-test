@@ -1078,6 +1078,129 @@ func (s *BackendService) DeleteClassesHandler(ctx context.Context, req *output.D
 	}, nil
 }
 
+func (s *BackendService) GetTeacherSpecialFeesHandler(ctx context.Context, req *output.GetTeacherSpecialFeesRequest) (*output.GetTeacherSpecialFeesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getTeacherSpecialFeesResult, err := s.teachingService.GetTeacherSpecialFees(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeacherSpecialFees(): %w", err), nil, "Failed to get courses")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getTeacherSpecialFeesResult.PaginationResult)
+
+	return &output.GetTeacherSpecialFeesResponse{
+		Data: output.GetTeacherSpecialFeesResult{
+			Results:            getTeacherSpecialFeesResult.TeacherSpecialFees,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetTeacherSpecialFeeByIdHandler(ctx context.Context, req *output.GetTeacherSpecialFeeRequest) (*output.GetTeacherSpecialFeeResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	teacherSpecialFee, err := s.teachingService.GetTeacherSpecialFeeById(ctx, req.TeacherSpecialFeeID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetTeacherSpecialFeeById()", "teacherSpecialFee")
+	}
+
+	return &output.GetTeacherSpecialFeeResponse{
+		Data: teacherSpecialFee,
+	}, nil
+}
+
+func (s *BackendService) InsertTeacherSpecialFeesHandler(ctx context.Context, req *output.InsertTeacherSpecialFeesRequest) (*output.InsertTeacherSpecialFeesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.InsertTeacherSpecialFeeSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.InsertTeacherSpecialFeeSpec{
+			TeacherID: param.TeacherID,
+			CourseID:  param.CourseID,
+			Fee:       param.Fee,
+		})
+	}
+
+	teacherSpecialFeeIDs, err := s.teachingService.InsertTeacherSpecialFees(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.InsertTeacherSpecialFees()", "teacherSpecialFee")
+	}
+	mainLog.Info("TeacherSpecialFees created: teacherSpecialFeeIDs='%v'", teacherSpecialFeeIDs)
+
+	teacherSpecialFees, err := s.teachingService.GetTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeacherSpecialFeesByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertTeacherSpecialFeesResponse{
+		Data: output.UpsertTeacherSpecialFeeResult{
+			Results: teacherSpecialFees,
+		},
+		Message: "Successfully created teacherSpecialFees",
+	}, nil
+}
+
+func (s *BackendService) UpdateTeacherSpecialFeesHandler(ctx context.Context, req *output.UpdateTeacherSpecialFeesRequest) (*output.UpdateTeacherSpecialFeesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.UpdateTeacherSpecialFeeSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.UpdateTeacherSpecialFeeSpec{
+			TeacherSpecialFeeID: param.TeacherSpecialFeeID,
+			Fee:                 param.Fee,
+		})
+	}
+
+	teacherSpecialFeeIDs, err := s.teachingService.UpdateTeacherSpecialFees(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.UpdateTeacherSpecialFees()", "teacherSpecialFee")
+	}
+	mainLog.Info("TeacherSpecialFees updated: teacherSpecialFeeIDs='%v'", teacherSpecialFeeIDs)
+
+	teacherSpecialFees, err := s.teachingService.GetTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeacherSpecialFeesByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateTeacherSpecialFeesResponse{
+		Data: output.UpsertTeacherSpecialFeeResult{
+			Results: teacherSpecialFees,
+		},
+		Message: "Successfully updated teacherSpecialFees",
+	}, nil
+}
+
+func (s *BackendService) DeleteTeacherSpecialFeesHandler(ctx context.Context, req *output.DeleteTeacherSpecialFeesRequest) (*output.DeleteTeacherSpecialFeesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]teaching.TeacherSpecialFeeID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.TeacherSpecialFeeID)
+	}
+
+	err := s.teachingService.DeleteTeacherSpecialFees(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteTeacherSpecialFees()", "teacherSpecialFee")
+	}
+
+	return &output.DeleteTeacherSpecialFeesResponse{
+		Message: "Successfully deleted teacherSpecialFees",
+	}, nil
+}
+
 // handleReadError detects non-existing result error (e.g. sql.ErrNoRows) and returns HTTP 404-NotFound. Else, returns HTTP 500.
 func handleReadError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {

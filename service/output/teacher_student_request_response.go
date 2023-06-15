@@ -8,10 +8,10 @@ import (
 
 const (
 	MaxPage_GetTeachers           = Default_MaxPage
-	MaxResultsPerPage_GetTeachers = 10000
+	MaxResultsPerPage_GetTeachers = Default_MaxResultsPerPage
 
 	MaxPage_GetStudents           = Default_MaxPage
-	MaxResultsPerPage_GetStudents = 10000
+	MaxResultsPerPage_GetStudents = Default_MaxResultsPerPage
 )
 
 // ============================== TEACHER ==============================

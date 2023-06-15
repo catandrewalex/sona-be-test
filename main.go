@@ -115,6 +115,12 @@ func main() {
 		authRouter.Post("/classes", jsonSerdeWrapper.WrapFunc(backendService.InsertClassesHandler))
 		authRouter.Put("/classes", jsonSerdeWrapper.WrapFunc(backendService.UpdateClassesHandler))
 		authRouter.Delete("/classes", jsonSerdeWrapper.WrapFunc(backendService.DeleteClassesHandler))
+
+		authRouter.Get("/teacherSpecialFees", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSpecialFeesHandler))
+		authRouter.Get("/teacherSpecialFee/{TeacherSpecialFeeID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSpecialFeeByIdHandler, "TeacherSpecialFeeID"))
+		authRouter.Post("/teacherSpecialFees", jsonSerdeWrapper.WrapFunc(backendService.InsertTeacherSpecialFeesHandler))
+		authRouter.Put("/teacherSpecialFees", jsonSerdeWrapper.WrapFunc(backendService.UpdateTeacherSpecialFeesHandler))
+		authRouter.Delete("/teacherSpecialFees", jsonSerdeWrapper.WrapFunc(backendService.DeleteTeacherSpecialFeesHandler))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

@@ -47,6 +47,13 @@ type Course struct {
 	DefaultDurationMinute int32      `json:"defaultDurationMinute"`
 }
 
+// CourseInfo_Minimal is a subset of struct Course that must have the same schema.
+type CourseInfo_Minimal struct {
+	CourseID   CourseID   `json:"courseId"`
+	Instrument Instrument `json:"instrument"`
+	Grade      Grade      `json:"grade"`
+}
+
 type Class struct {
 	ClassID              ClassID               `json:"classId"`
 	TeacherInfo_Minimal  *TeacherInfo_Minimal  `json:"teacher,omitempty"` // class without teacher is a valid class
@@ -54,6 +61,13 @@ type Class struct {
 	Course               Course                `json:"course"`
 	TransportFee         int64                 `json:"transportFee"`
 	IsDeactivated        bool                  `json:"isDeactivated"`
+}
+
+type TeacherSpecialFee struct {
+	TeacherSpecialFeeID TeacherSpecialFeeID `json:"teacherSpecialFeeID"`
+	TeacherInfo         TeacherInfo_Minimal `json:"teacher"`
+	CourseInfo          CourseInfo_Minimal  `json:"course"`
+	Fee                 int64               `json:"fee"`
 }
 
 type TeacherID int64
@@ -140,6 +154,13 @@ type TeachingService interface {
 	InsertClasses(ctx context.Context, specs []InsertClassSpec) ([]ClassID, error)
 	UpdateClasses(ctx context.Context, specs []UpdateClassSpec) ([]ClassID, error)
 	DeleteClasses(ctx context.Context, ids []ClassID) error
+
+	GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (GetTeacherSpecialFeesResult, error)
+	GetTeacherSpecialFeeById(ctx context.Context, id TeacherSpecialFeeID) (TeacherSpecialFee, error)
+	GetTeacherSpecialFeesByIds(ctx context.Context, ids []TeacherSpecialFeeID) ([]TeacherSpecialFee, error)
+	InsertTeacherSpecialFees(ctx context.Context, specs []InsertTeacherSpecialFeeSpec) ([]TeacherSpecialFeeID, error)
+	UpdateTeacherSpecialFees(ctx context.Context, specs []UpdateTeacherSpecialFeeSpec) ([]TeacherSpecialFeeID, error)
+	DeleteTeacherSpecialFees(ctx context.Context, ids []TeacherSpecialFeeID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -226,4 +247,22 @@ type UpdateClassSpec struct {
 	StudentIDs    []StudentID
 	TransportFee  int64
 	IsDeactivated bool
+}
+
+// ============================== TEACHER_SPECIAL_FEE ==============================
+
+type GetTeacherSpecialFeesResult struct {
+	TeacherSpecialFees []TeacherSpecialFee
+	PaginationResult   util.PaginationResult
+}
+
+type InsertTeacherSpecialFeeSpec struct {
+	TeacherID TeacherID
+	CourseID  CourseID
+	Fee       int64
+}
+
+type UpdateTeacherSpecialFeeSpec struct {
+	TeacherSpecialFeeID TeacherSpecialFeeID
+	Fee                 int64
 }

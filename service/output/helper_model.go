@@ -9,7 +9,7 @@ import (
 
 const (
 	Default_MaxPage           = 50
-	Default_MaxResultsPerPage = 100
+	Default_MaxResultsPerPage = 10000
 )
 
 type ErrorResponse struct {

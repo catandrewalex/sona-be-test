@@ -17,6 +17,9 @@ const (
 
 	MaxPage_GetClasses           = Default_MaxPage
 	MaxResultsPerPage_GetClasses = Default_MaxResultsPerPage
+
+	MaxPage_GetTeacherSpecialFees           = Default_MaxPage
+	MaxResultsPerPage_GetTeacherSpecialFees = Default_MaxResultsPerPage
 )
 
 // ============================== INSTRUMENT ==============================
@@ -375,5 +378,94 @@ type DeleteClassesResponse struct {
 }
 
 func (r DeleteClassesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== TEACHER_SPECIAL_FEE ==============================
+
+type GetTeacherSpecialFeesRequest struct {
+	PaginationRequest
+}
+type GetTeacherSpecialFeesResponse struct {
+	Data    GetTeacherSpecialFeesResult `json:"data"`
+	Message string                      `json:"message,omitempty"`
+}
+type GetTeacherSpecialFeesResult struct {
+	Results []teaching.TeacherSpecialFee `json:"results"`
+	PaginationResponse
+}
+
+func (r GetTeacherSpecialFeesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeacherSpecialFees, MaxResultsPerPage_GetTeacherSpecialFees); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetTeacherSpecialFeeRequest struct {
+	TeacherSpecialFeeID teaching.TeacherSpecialFeeID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+}
+type GetTeacherSpecialFeeResponse struct {
+	Data    teaching.TeacherSpecialFee `json:"data"`
+	Message string                     `json:"message,omitempty"`
+}
+
+func (r GetTeacherSpecialFeeRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertTeacherSpecialFeesRequest struct {
+	Data []InsertTeacherSpecialFeesRequestParam `json:"data"`
+}
+type InsertTeacherSpecialFeesRequestParam struct {
+	TeacherID teaching.TeacherID `json:"teacherId"`
+	CourseID  teaching.CourseID  `json:"courseId"`
+	Fee       int64              `json:"fee"`
+}
+type InsertTeacherSpecialFeesResponse struct {
+	Data    UpsertTeacherSpecialFeeResult `json:"data"`
+	Message string                        `json:"message,omitempty"`
+}
+
+func (r InsertTeacherSpecialFeesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpdateTeacherSpecialFeesRequest struct {
+	Data []UpdateTeacherSpecialFeesRequestParam `json:"data"`
+}
+type UpdateTeacherSpecialFeesRequestParam struct {
+	TeacherSpecialFeeID teaching.TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
+	Fee                 int64                        `json:"fee"`
+}
+type UpdateTeacherSpecialFeesResponse struct {
+	Data    UpsertTeacherSpecialFeeResult `json:"data"`
+	Message string                        `json:"message,omitempty"`
+}
+
+func (r UpdateTeacherSpecialFeesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpsertTeacherSpecialFeeResult struct {
+	Results []teaching.TeacherSpecialFee `json:"results"`
+}
+
+type DeleteTeacherSpecialFeesRequest struct {
+	Data []DeleteTeacherSpecialFeesRequestParam `json:"data"`
+}
+type DeleteTeacherSpecialFeesRequestParam struct {
+	TeacherSpecialFeeID teaching.TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
+}
+type DeleteTeacherSpecialFeesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteTeacherSpecialFeesRequest) Validate() errs.ValidationError {
 	return nil
 }

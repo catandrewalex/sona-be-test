@@ -151,3 +151,27 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 
 	return classes
 }
+
+func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []mysql.GetTeacherSpecialFeesRow) []teaching.TeacherSpecialFee {
+	teacherSpecialFees := make([]teaching.TeacherSpecialFee, 0, len(teacherSpecialFeeRows))
+	for _, teacherSpecialFeeRow := range teacherSpecialFeeRows {
+		teacherSpecialFees = append(teacherSpecialFees, teaching.TeacherSpecialFee{
+			TeacherSpecialFeeID: teaching.TeacherSpecialFeeID(teacherSpecialFeeRow.TeacherSpecialFeeID),
+			TeacherInfo: teaching.TeacherInfo_Minimal{
+				TeacherID: teaching.TeacherID(teacherSpecialFeeRow.TeacherID),
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   teacherSpecialFeeRow.TeacherUsername,
+					UserDetail: identity.UnmarshalUserDetail(teacherSpecialFeeRow.TeacherDetail, mainLog),
+				},
+			},
+			CourseInfo: teaching.CourseInfo_Minimal{
+				CourseID:   teaching.CourseID(teacherSpecialFeeRow.CourseID),
+				Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{teacherSpecialFeeRow.Instrument})[0],
+				Grade:      NewGradesFromMySQLGrades([]mysql.Grade{teacherSpecialFeeRow.Grade})[0],
+			},
+			Fee: teacherSpecialFeeRow.Fee,
+		})
+	}
+
+	return teacherSpecialFees
+}
