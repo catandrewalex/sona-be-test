@@ -64,7 +64,7 @@ type Class struct {
 }
 
 type TeacherSpecialFee struct {
-	TeacherSpecialFeeID TeacherSpecialFeeID `json:"teacherSpecialFeeID"`
+	TeacherSpecialFeeID TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
 	TeacherInfo         TeacherInfo_Minimal `json:"teacher"`
 	CourseInfo          CourseInfo_Minimal  `json:"course"`
 	Fee                 int64               `json:"fee"`

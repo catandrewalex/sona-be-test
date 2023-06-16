@@ -56,7 +56,7 @@ type InsertTeachersRequest struct {
 	Data []InsertTeachersRequestParam `json:"data"`
 }
 type InsertTeachersRequestParam struct {
-	UserID identity.UserID `json:"userID"`
+	UserID identity.UserID `json:"userId"`
 }
 type InsertTeachersResponse struct {
 	Data    InsertTeacherResult `json:"data"`
@@ -85,7 +85,7 @@ type DeleteTeachersRequest struct {
 	Data []DeleteTeachersRequestParam `json:"data"`
 }
 type DeleteTeachersRequestParam struct {
-	TeacherID teaching.TeacherID `json:"teacherID"`
+	TeacherID teaching.TeacherID `json:"teacherId"`
 }
 type DeleteTeachersResponse struct {
 	Message string `json:"message,omitempty"`
@@ -137,7 +137,7 @@ type InsertStudentsRequest struct {
 	Data []InsertStudentsRequestParam `json:"data"`
 }
 type InsertStudentsRequestParam struct {
-	UserID identity.UserID `json:"userID"`
+	UserID identity.UserID `json:"userId"`
 }
 type InsertStudentsResponse struct {
 	Data    InsertStudentResult `json:"data"`
@@ -166,7 +166,7 @@ type DeleteStudentsRequest struct {
 	Data []DeleteStudentsRequestParam `json:"data"`
 }
 type DeleteStudentsRequestParam struct {
-	StudentID teaching.StudentID `json:"studentID"`
+	StudentID teaching.StudentID `json:"studentId"`
 }
 type DeleteStudentsResponse struct {
 	Message string `json:"message,omitempty"`

@@ -130,7 +130,7 @@ type UpdateUsersRequest struct {
 type UpdateUserRequestParam struct {
 	UserID            identity.UserID            `json:"userId"`
 	Username          string                     `json:"username"`
-	Email             string                     `json:"email"`
+	Email             string                     `json:"email,omitempty"`
 	UserDetail        identity.UserDetail        `json:"userDetail"`
 	UserPrivilegeType identity.UserPrivilegeType `json:"privilegeType"`
 	IsDeactivated     bool                       `json:"isDeactivated,omitempty"` // false is a zero value, so we must allow this to be empty
