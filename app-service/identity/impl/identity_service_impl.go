@@ -51,7 +51,7 @@ func NewIdentityServiceImpl(mySQLQueries *relational_db.MySQLQueries, smtpAccess
 	}
 }
 
-func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (identity.GetUsersResult, error) {
+func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.PaginationSpec, filter identity.GetUsersFilter, includeDeactivated bool) (identity.GetUsersResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	isDeactivatedFilters := []int32{0}
@@ -59,26 +59,67 @@ func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.Pagin
 		isDeactivatedFilters = append(isDeactivatedFilters, 1)
 	}
 
-	userRows, err := s.mySQLQueries.GetUsers(ctx, mysql.GetUsersParams{
-		IsDeactivateds: isDeactivatedFilters,
-		Limit:          int32(limit),
-		Offset:         int32(offset),
-	})
+	userRows, totalResults, err := s.getUsersWithFilter(ctx, limit, offset, filter, isDeactivatedFilters)
 	if err != nil {
-		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.GetUsers(): %w", err)
+		return identity.GetUsersResult{}, err
 	}
 
 	users := NewUsersFromMySQLUsers(userRows)
-
-	totalResults, err := s.mySQLQueries.CountUsers(ctx, isDeactivatedFilters)
-	if err != nil {
-		return identity.GetUsersResult{}, fmt.Errorf("mySQLQueries.CountUsers(): %w", err)
-	}
 
 	return identity.GetUsersResult{
 		Users:            users,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
+}
+
+func (s identityServiceImpl) getUsersWithFilter(ctx context.Context, limit, offset int, filter identity.GetUsersFilter, isDeactivatedFilters []int32) ([]mysql.User, int64, error) {
+	var userRows []mysql.User
+	var totalResults int64
+	var err error
+	var errCount error
+
+	switch filter {
+	case identity.GetUsersFilter_None:
+		userRows, err = s.mySQLQueries.GetUsers(ctx, mysql.GetUsersParams{
+			IsDeactivateds: isDeactivatedFilters,
+			Limit:          int32(limit),
+			Offset:         int32(offset),
+		})
+		totalResults, errCount = s.mySQLQueries.CountUsers(ctx, isDeactivatedFilters)
+	case identity.GetUsersFilter_NotTeacher:
+		userNotTeacherRows, err2 := s.mySQLQueries.GetUsersNotTeacher(ctx, mysql.GetUsersNotTeacherParams{
+			IsDeactivateds: isDeactivatedFilters,
+			Limit:          int32(limit),
+			Offset:         int32(offset),
+		})
+		err = err2
+		for _, row := range userNotTeacherRows {
+			userRows = append(userRows, row.User)
+		}
+		totalResults, errCount = s.mySQLQueries.CountUsersNotTeacher(ctx, isDeactivatedFilters)
+	case identity.GetUsersFilter_NotStudent:
+		userNotStudentRows, err2 := s.mySQLQueries.GetUsersNotStudent(ctx, mysql.GetUsersNotStudentParams{
+			IsDeactivateds: isDeactivatedFilters,
+			Limit:          int32(limit),
+			Offset:         int32(offset),
+		})
+		err = err2
+		for _, row := range userNotStudentRows {
+			userRows = append(userRows, row.User)
+		}
+		totalResults, errCount = s.mySQLQueries.CountUsersNotStudent(ctx, isDeactivatedFilters)
+	default:
+		panic(fmt.Sprintf("unhandled GetUsersFilter = '%s'", filter))
+	}
+
+	if err != nil {
+		return []mysql.User{}, 0, fmt.Errorf("mySQLQueries.GetUsers() with filter = '%s': %w", filter, err)
+	}
+	if errCount != nil {
+		return []mysql.User{}, 0, fmt.Errorf("mySQLQueries.CountUsers() with filter = '%s': %w", filter, err)
+	}
+
+	return userRows, totalResults, nil
 }
 
 func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID) (identity.User, error) {

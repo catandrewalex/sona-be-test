@@ -217,7 +217,7 @@ func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUse
 	getUsersResult, err := s.identityService.GetUsers(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
-	}, req.IncludeDeactivated)
+	}, req.Filter, req.IncludeDeactivated)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), nil, "Failed to get users")
 	}

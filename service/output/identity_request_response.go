@@ -1,6 +1,7 @@
 package output
 
 import (
+	"fmt"
 	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/errs"
 )
@@ -67,7 +68,8 @@ func (r ResetPasswordRequest) Validate() errs.ValidationError {
 
 type GetUsersRequest struct {
 	PaginationRequest
-	IncludeDeactivated bool `json:"includeDeactivated,omitempty"`
+	Filter             identity.GetUsersFilter `json:"filter,omitempty"`
+	IncludeDeactivated bool                    `json:"includeDeactivated,omitempty"`
 }
 type GetUsersResponse struct {
 	Data    GetUsersResult `json:"data"`
@@ -82,6 +84,10 @@ func (r GetUsersRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if validationErr := r.PaginationRequest.Validate(MaxPage_GetUsers, MaxResultsPerPage_GetUsers); validationErr != nil {
 		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if _, ok := identity.ValidGetUsersFilter[r.Filter]; !ok {
+		errorDetail["filter"] = fmt.Sprintf("invalid filter with value '%s'", r.Filter)
 	}
 
 	if len(errorDetail) > 0 {

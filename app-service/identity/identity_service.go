@@ -48,8 +48,26 @@ const (
 	UserPrivilegeType_Admin     UserPrivilegeType = 400
 )
 
+type GetUsersFilter string
+
+const (
+	GetUsersFilter_None       GetUsersFilter = ""
+	GetUsersFilter_NotTeacher GetUsersFilter = "NOT_TEACHER"
+	GetUsersFilter_NotStudent GetUsersFilter = "NOT_STUDENT"
+)
+
+var ValidGetUsersFilter = map[GetUsersFilter]struct{}{
+	GetUsersFilter_None:       {},
+	GetUsersFilter_NotTeacher: {},
+	GetUsersFilter_NotStudent: {},
+}
+
+func (f GetUsersFilter) String() string {
+	return string(f)
+}
+
 type IdentityService interface {
-	GetUsers(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (GetUsersResult, error)
+	GetUsers(ctx context.Context, pagination util.PaginationSpec, filter GetUsersFilter, includeDeactivated bool) (GetUsersResult, error)
 	GetUserById(ctx context.Context, id UserID) (User, error)
 	GetUsersByIds(ctx context.Context, ids []UserID) ([]User, error)
 	InsertUsers(ctx context.Context, specs []InsertUserSpec) ([]UserID, error)

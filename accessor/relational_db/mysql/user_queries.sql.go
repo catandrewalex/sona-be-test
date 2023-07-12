@@ -42,6 +42,52 @@ func (q *Queries) CountUsers(ctx context.Context, isdeactivateds []int32) (int64
 	return total, err
 }
 
+const countUsersNotStudent = `-- name: CountUsersNotStudent :one
+SELECT Count(*) AS total FROM user
+LEFT JOIN student on user.id = student.user_id
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?) AND student.user_id IS NULL
+`
+
+func (q *Queries) CountUsersNotStudent(ctx context.Context, isdeactivateds []int32) (int64, error) {
+	sql := countUsersNotStudent
+	var queryParams []interface{}
+	if len(isdeactivateds) > 0 {
+		for _, v := range isdeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(isdeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countUsersNotTeacher = `-- name: CountUsersNotTeacher :one
+SELECT Count(*) AS total FROM user
+LEFT JOIN teacher on user.id = teacher.user_id
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?) AND teacher.user_id IS NULL
+`
+
+func (q *Queries) CountUsersNotTeacher(ctx context.Context, isdeactivateds []int32) (int64, error) {
+	sql := countUsersNotTeacher
+	var queryParams []interface{}
+	if len(isdeactivateds) > 0 {
+		for _, v := range isdeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(isdeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const deactivateUser = `-- name: DeactivateUser :exec
 UPDATE user SET is_deactivated = 1 WHERE id = ?
 `
@@ -249,6 +295,128 @@ func (q *Queries) GetUsersByIds(ctx context.Context, ids []int64) ([]User, error
 			&i.PrivilegeType,
 			&i.IsDeactivated,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersNotStudent = `-- name: GetUsersNotStudent :many
+SELECT user.id, user.username, user.email, user.user_detail, user.privilege_type, user.is_deactivated, user.created_at FROM user
+LEFT JOIN student on user.id = student.user_id
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?) AND student.user_id IS NULL
+ORDER BY user.id
+LIMIT ? OFFSET ?
+`
+
+type GetUsersNotStudentParams struct {
+	IsDeactivateds []int32
+	Limit          int32
+	Offset         int32
+}
+
+type GetUsersNotStudentRow struct {
+	User User
+}
+
+func (q *Queries) GetUsersNotStudent(ctx context.Context, arg GetUsersNotStudentParams) ([]GetUsersNotStudentRow, error) {
+	sql := getUsersNotStudent
+	var queryParams []interface{}
+	if len(arg.IsDeactivateds) > 0 {
+		for _, v := range arg.IsDeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(arg.IsDeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Limit)
+	queryParams = append(queryParams, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsersNotStudentRow
+	for rows.Next() {
+		var i GetUsersNotStudentRow
+		if err := rows.Scan(
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.Email,
+			&i.User.UserDetail,
+			&i.User.PrivilegeType,
+			&i.User.IsDeactivated,
+			&i.User.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersNotTeacher = `-- name: GetUsersNotTeacher :many
+SELECT user.id, user.username, user.email, user.user_detail, user.privilege_type, user.is_deactivated, user.created_at FROM user
+LEFT JOIN teacher on user.id = teacher.user_id
+WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?) AND teacher.user_id IS NULL
+ORDER BY user.id
+LIMIT ? OFFSET ?
+`
+
+type GetUsersNotTeacherParams struct {
+	IsDeactivateds []int32
+	Limit          int32
+	Offset         int32
+}
+
+type GetUsersNotTeacherRow struct {
+	User User
+}
+
+func (q *Queries) GetUsersNotTeacher(ctx context.Context, arg GetUsersNotTeacherParams) ([]GetUsersNotTeacherRow, error) {
+	sql := getUsersNotTeacher
+	var queryParams []interface{}
+	if len(arg.IsDeactivateds) > 0 {
+		for _, v := range arg.IsDeactivateds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", strings.Repeat(",?", len(arg.IsDeactivateds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:isDeactivateds*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Limit)
+	queryParams = append(queryParams, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUsersNotTeacherRow
+	for rows.Next() {
+		var i GetUsersNotTeacherRow
+		if err := rows.Scan(
+			&i.User.ID,
+			&i.User.Username,
+			&i.User.Email,
+			&i.User.UserDetail,
+			&i.User.PrivilegeType,
+			&i.User.IsDeactivated,
+			&i.User.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

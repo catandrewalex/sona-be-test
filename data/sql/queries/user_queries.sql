@@ -17,9 +17,33 @@ WHERE is_deactivated IN (sqlc.slice('isDeactivateds'))
 ORDER BY id
 LIMIT ? OFFSET ?;
 
+-- name: GetUsersNotTeacher :many
+SELECT sqlc.embed(user) FROM user
+LEFT JOIN teacher on user.id = teacher.user_id
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds')) AND teacher.user_id IS NULL
+ORDER BY user.id
+LIMIT ? OFFSET ?;
+
+-- name: GetUsersNotStudent :many
+SELECT sqlc.embed(user) FROM user
+LEFT JOIN student on user.id = student.user_id
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds')) AND student.user_id IS NULL
+ORDER BY user.id
+LIMIT ? OFFSET ?;
+
 -- name: CountUsers :one
 SELECT Count(*) AS total FROM user
 WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
+
+-- name: CountUsersNotTeacher :one
+SELECT Count(*) AS total FROM user
+LEFT JOIN teacher on user.id = teacher.user_id
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds')) AND teacher.user_id IS NULL;
+
+-- name: CountUsersNotStudent :one
+SELECT Count(*) AS total FROM user
+LEFT JOIN student on user.id = student.user_id
+WHERE is_deactivated IN (sqlc.slice('isDeactivateds')) AND student.user_id IS NULL;
 
 -- name: IsUserExist :one
 SELECT EXISTS(SELECT id FROM user WHERE email = ? LIMIT 1);
