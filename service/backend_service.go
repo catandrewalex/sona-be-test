@@ -179,7 +179,11 @@ func (s *BackendService) ForgotPasswordHandler(ctx context.Context, req *output.
 		Email: req.Email,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), nil, "Failed to send forgot password request")
+		if errors.Is(err, sql.ErrNoRows) {
+			mainLog.Warn("A ForgotPassword requests provided a non-existing email='%s'", req.Email)
+		} else {
+			return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.ForgotPassword(): %w", err), nil, "Failed to send forgot password request")
+		}
 	}
 
 	return &output.ForgotPasswordResponse{
