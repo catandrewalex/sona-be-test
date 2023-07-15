@@ -813,13 +813,12 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 		for _, disabledEnrollmentID := range studentDifference.disabledStudentEnrollmentIDs {
 			err = qtx.DeleteStudentEnrollmentById(ctx, int64(disabledEnrollmentID))
 			if err == nil {
-				// the enrollment is still deletable (not referenced by any other entity), then no need to disable
+				// the enrollment is still deletable (not referenced by any other entity), then we straightforwardly delete it
 				continue
 			}
 
 			err = qtx.DisableStudentEnrollment(ctx, int64(disabledEnrollmentID))
 			if err != nil {
-
 				return []teaching.ClassID{}, fmt.Errorf("qtx.DisableStudentEnrollment(): %w", err)
 			}
 		}
@@ -854,17 +853,17 @@ func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, c
 		studentIDToEnrollmentIDMap[teaching.StudentID(enrollment.StudentID)] = teaching.StudentEnrollmentID(enrollment.ID)
 	}
 
-	requestStudentIDsMap := make(map[teaching.StudentID]bool, 0)
+	finalStudentIDsMap := make(map[teaching.StudentID]bool, 0)
 	for _, studentID := range finalStudentIDs {
 		if enrollmentID, ok := studentIDToEnrollmentIDMap[studentID]; ok {
 			enabledStudentEnrollmentIDs = append(enabledStudentEnrollmentIDs, enrollmentID)
 		} else {
 			addedStudentIDs = append(addedStudentIDs, studentID)
 		}
-		requestStudentIDsMap[studentID] = true
+		finalStudentIDsMap[studentID] = true
 	}
 	for _, enrollment := range enrollments {
-		if _, ok := requestStudentIDsMap[teaching.StudentID(enrollment.StudentID)]; !ok {
+		if _, ok := finalStudentIDsMap[teaching.StudentID(enrollment.StudentID)]; !ok {
 			disabledStudentEnrollmentIDs = append(disabledStudentEnrollmentIDs, teaching.StudentEnrollmentID(enrollment.ID))
 		}
 	}
