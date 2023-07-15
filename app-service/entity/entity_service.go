@@ -2,6 +2,7 @@ package entity
 
 import (
 	"context"
+	"time"
 
 	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/app-service/util"
@@ -63,11 +64,33 @@ type Class struct {
 	IsDeactivated        bool                  `json:"isDeactivated"`
 }
 
+type ClassInfo_Minimal struct {
+	ClassID       ClassID            `json:"classId"`
+	CourseInfo    CourseInfo_Minimal `json:"course"`
+	TransportFee  int64              `json:"transportFee"`
+	IsDeactivated bool               `json:"isDeactivated"`
+}
+
 type TeacherSpecialFee struct {
 	TeacherSpecialFeeID TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
 	TeacherInfo         TeacherInfo_Minimal `json:"teacher"`
 	CourseInfo          CourseInfo_Minimal  `json:"course"`
 	Fee                 int64               `json:"fee"`
+}
+
+type StudentEnrollment struct {
+	StudentEnrollmentID StudentEnrollmentID `json:"studentEnrollmentID"`
+	StudentInfo         StudentInfo_Minimal `json:"student"`
+	ClassInfo           ClassInfo_Minimal   `json:"class"`
+}
+
+type EnrollmentPayment struct {
+	EnrollmentPaymentID   EnrollmentPaymentID `json:"enrollmentPaymentId"`
+	StudentEnrollmentInfo StudentEnrollment   `json:"studentEnrollment"`
+	PaymentDate           time.Time           `json:"paymentDate"`
+	BalanceTopUp          int32               `json:"balanceTopUp"`
+	Value                 int32               `json:"value"`
+	ValuePenalty          int32               `json:"valuePenalty"`
 }
 
 type TeacherID int64
@@ -81,36 +104,19 @@ type StudentLearningTokenID int64
 type TeacherSpecialFeeID int64
 type PresenceID int64
 
-const (
-	TeacherID_None TeacherID = iota
-)
-const (
-	StudentID_None StudentID = iota
-)
-const (
-	InstrumentID_None InstrumentID = iota
-)
-const (
-	GradeID_None GradeID = iota
-)
-const (
-	CourseID_None CourseID = iota
-)
-const (
-	ClassID_None ClassID = iota
-)
-const (
-	StudentEnrollmentID_None StudentEnrollmentID = iota
-)
-const (
-	StudentLearningTokenID_None StudentLearningTokenID = iota
-)
-const (
-	TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
-)
-const (
-	PresenceID_None PresenceID = iota
-)
+type EnrollmentPaymentID int64
+
+const TeacherID_None TeacherID = iota
+const StudentID_None StudentID = iota
+const InstrumentID_None InstrumentID = iota
+const GradeID_None GradeID = iota
+const CourseID_None CourseID = iota
+const ClassID_None ClassID = iota
+const TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
+const StudentEnrollmentID_None StudentEnrollmentID = iota
+const EnrollmentPaymentID_None EnrollmentPaymentID = iota
+const StudentLearningTokenID_None StudentLearningTokenID = iota
+const PresenceID_None PresenceID = iota
 
 type EntityService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
@@ -161,6 +167,13 @@ type EntityService interface {
 	InsertTeacherSpecialFees(ctx context.Context, specs []InsertTeacherSpecialFeeSpec) ([]TeacherSpecialFeeID, error)
 	UpdateTeacherSpecialFees(ctx context.Context, specs []UpdateTeacherSpecialFeeSpec) ([]TeacherSpecialFeeID, error)
 	DeleteTeacherSpecialFees(ctx context.Context, ids []TeacherSpecialFeeID) error
+
+	GetEnrollmentPayments(ctx context.Context, pagination util.PaginationSpec) (GetEnrollmentPaymentsResult, error)
+	GetEnrollmentPaymentById(ctx context.Context, id EnrollmentPaymentID) (EnrollmentPayment, error)
+	GetEnrollmentPaymentsByIds(ctx context.Context, ids []EnrollmentPaymentID) ([]EnrollmentPayment, error)
+	InsertEnrollmentPayments(ctx context.Context, specs []InsertEnrollmentPaymentSpec) ([]EnrollmentPaymentID, error)
+	UpdateEnrollmentPayments(ctx context.Context, specs []UpdateEnrollmentPaymentSpec) ([]EnrollmentPaymentID, error)
+	DeleteEnrollmentPayments(ctx context.Context, ids []EnrollmentPaymentID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -265,4 +278,27 @@ type InsertTeacherSpecialFeeSpec struct {
 type UpdateTeacherSpecialFeeSpec struct {
 	TeacherSpecialFeeID TeacherSpecialFeeID
 	Fee                 int64
+}
+
+// ============================== ENROLLMENT_PAYMENT ==============================
+
+type GetEnrollmentPaymentsResult struct {
+	EnrollmentPayments []EnrollmentPayment
+	PaginationResult   util.PaginationResult
+}
+
+type InsertEnrollmentPaymentSpec struct {
+	StudentEnrollmentID StudentEnrollmentID
+	PaymentDate         time.Time
+	BalanceTopUp        int32
+	Value               int32
+	ValuePenalty        int32
+}
+
+type UpdateEnrollmentPaymentSpec struct {
+	EnrollmentPaymentID EnrollmentPaymentID
+	PaymentDate         time.Time
+	BalanceTopUp        int32
+	Value               int32
+	ValuePenalty        int32
 }

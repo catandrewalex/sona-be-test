@@ -1041,3 +1041,139 @@ func (s entityServiceImpl) DeleteTeacherSpecialFees(ctx context.Context, ids []e
 
 	return nil
 }
+
+func (s entityServiceImpl) GetEnrollmentPayments(ctx context.Context, pagination util.PaginationSpec) (entity.GetEnrollmentPaymentsResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPayments(ctx, mysql.GetEnrollmentPaymentsParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.GetEnrollmentPayments(): %w", err)
+	}
+
+	enrollmentPayments := NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows)
+
+	totalResults, err := s.mySQLQueries.CountEnrollmentPayments(ctx)
+	if err != nil {
+		return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
+
+	return entity.GetEnrollmentPaymentsResult{
+		EnrollmentPayments: enrollmentPayments,
+		PaginationResult:   *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s entityServiceImpl) GetEnrollmentPaymentById(ctx context.Context, id entity.EnrollmentPaymentID) (entity.EnrollmentPayment, error) {
+	enrollmentPaymentRow, err := s.mySQLQueries.GetEnrollmentPaymentById(ctx, int64(id))
+	if err != nil {
+		return entity.EnrollmentPayment{}, fmt.Errorf("mySQLQueries.GetEnrollmentPaymentById(): %w", err)
+	}
+
+	enrollmentPayment := NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow([]mysql.GetEnrollmentPaymentsRow{enrollmentPaymentRow.ToGetEnrollmentPaymentsRow()})[0]
+
+	return enrollmentPayment, nil
+}
+
+func (s entityServiceImpl) GetEnrollmentPaymentsByIds(ctx context.Context, ids []entity.EnrollmentPaymentID) ([]entity.EnrollmentPayment, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPaymentsByIds(ctx, idsInt)
+	if err != nil {
+		return []entity.EnrollmentPayment{}, fmt.Errorf("mySQLQueries.GetEnrollmentPaymentsByIds(): %w", err)
+	}
+
+	enrollmentPaymentRowsConverted := make([]mysql.GetEnrollmentPaymentsRow, 0, len(enrollmentPaymentRows))
+	for _, row := range enrollmentPaymentRows {
+		enrollmentPaymentRowsConverted = append(enrollmentPaymentRowsConverted, row.ToGetEnrollmentPaymentsRow())
+	}
+
+	enrollmentPayments := NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRowsConverted)
+
+	return enrollmentPayments, nil
+}
+
+func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs []entity.InsertEnrollmentPaymentSpec) ([]entity.EnrollmentPaymentID, error) {
+	enrollmentPaymentIDs := make([]entity.EnrollmentPaymentID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []entity.EnrollmentPaymentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		enrollmentPaymentID, err := qtx.InsertEnrollmentPayment(ctx, mysql.InsertEnrollmentPaymentParams{
+			PaymentDate:  spec.PaymentDate,
+			BalanceTopUp: spec.BalanceTopUp,
+			Value:        spec.Value,
+			ValuePenalty: spec.ValuePenalty,
+			EnrollmentID: sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
+		})
+		if err != nil {
+
+			return []entity.EnrollmentPaymentID{}, fmt.Errorf("qtx.InsertEnrollmentPayment(): %w", err)
+		}
+		enrollmentPaymentIDs = append(enrollmentPaymentIDs, entity.EnrollmentPaymentID(enrollmentPaymentID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []entity.EnrollmentPaymentID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return enrollmentPaymentIDs, nil
+}
+
+func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs []entity.UpdateEnrollmentPaymentSpec) ([]entity.EnrollmentPaymentID, error) {
+	enrollmentPaymentIDs := make([]entity.EnrollmentPaymentID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []entity.EnrollmentPaymentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		err := qtx.UpdateEnrollmentPayment(ctx, mysql.UpdateEnrollmentPaymentParams{
+			PaymentDate:  spec.PaymentDate,
+			BalanceTopUp: spec.BalanceTopUp,
+			Value:        spec.Value,
+			ValuePenalty: spec.ValuePenalty,
+			ID:           int64(spec.EnrollmentPaymentID),
+		})
+		if err != nil {
+
+			return []entity.EnrollmentPaymentID{}, fmt.Errorf("qtx.UpdateEnrollmentPayment(): %w", err)
+		}
+		enrollmentPaymentIDs = append(enrollmentPaymentIDs, spec.EnrollmentPaymentID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []entity.EnrollmentPaymentID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return enrollmentPaymentIDs, nil
+}
+
+func (s entityServiceImpl) DeleteEnrollmentPayments(ctx context.Context, ids []entity.EnrollmentPaymentID) error {
+	enrollmentPaymentIdsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		enrollmentPaymentIdsInt64 = append(enrollmentPaymentIdsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteEnrollmentPaymentsByIds(ctx, enrollmentPaymentIdsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteEnrollmentPaymentByIds(): %w", err)
+	}
+
+	return nil
+}

@@ -1,8 +1,10 @@
 package output
 
 import (
+	"fmt"
 	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/errs"
+	"time"
 )
 
 const (
@@ -20,6 +22,14 @@ const (
 
 	MaxPage_GetTeacherSpecialFees           = Default_MaxPage
 	MaxResultsPerPage_GetTeacherSpecialFees = Default_MaxResultsPerPage
+
+	MaxPage_GetEnrollmentPayments           = Default_MaxPage
+	MaxResultsPerPage_GetEnrollmentPayments = Default_MaxResultsPerPage
+)
+
+const (
+	DateFormat_Date     = "2006-01-02"
+	DateFormat_Datetime = time.RFC3339
 )
 
 // ============================== INSTRUMENT ==============================
@@ -467,5 +477,123 @@ type DeleteTeacherSpecialFeesResponse struct {
 }
 
 func (r DeleteTeacherSpecialFeesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== ENROLLMENT_PAYMENT ==============================
+
+type GetEnrollmentPaymentsRequest struct {
+	PaginationRequest
+}
+type GetEnrollmentPaymentsResponse struct {
+	Data    GetEnrollmentPaymentsResult `json:"data"`
+	Message string                      `json:"message,omitempty"`
+}
+type GetEnrollmentPaymentsResult struct {
+	Results []entity.EnrollmentPayment `json:"results"`
+	PaginationResponse
+}
+
+func (r GetEnrollmentPaymentsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetEnrollmentPayments, MaxResultsPerPage_GetEnrollmentPayments); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetEnrollmentPaymentRequest struct {
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+}
+type GetEnrollmentPaymentResponse struct {
+	Data    entity.EnrollmentPayment `json:"data"`
+	Message string                   `json:"message,omitempty"`
+}
+
+func (r GetEnrollmentPaymentRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertEnrollmentPaymentsRequest struct {
+	Data []InsertEnrollmentPaymentsRequestParam `json:"data"`
+}
+type InsertEnrollmentPaymentsRequestParam struct {
+	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
+	PaymentDate         string                     `json:"paymentDate"` // in format: "2023-05-30"
+	BalanceTopUp        int32                      `json:"balanceTopUp"`
+	Value               int32                      `json:"value,omitempty"`
+	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
+}
+type InsertEnrollmentPaymentsResponse struct {
+	Data    UpsertEnrollmentPaymentResult `json:"data"`
+	Message string                        `json:"message,omitempty"`
+}
+
+func (r InsertEnrollmentPaymentsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for _, datum := range r.Data {
+		if _, err := time.Parse(DateFormat_Date, datum.PaymentDate); err != nil {
+			errorDetail["paymentDate"] = fmt.Sprintf("invalid paymentDate format. accepted date format is %q", DateFormat_Date)
+		}
+		break
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type UpdateEnrollmentPaymentsRequest struct {
+	Data []UpdateEnrollmentPaymentsRequestParam `json:"data"`
+}
+type UpdateEnrollmentPaymentsRequestParam struct {
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+	PaymentDate         string                     `json:"paymentDate"` // in format: "2023-05-30"
+	BalanceTopUp        int32                      `json:"balanceTopUp"`
+	Value               int32                      `json:"value,omitempty"`
+	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
+}
+type UpdateEnrollmentPaymentsResponse struct {
+	Data    UpsertEnrollmentPaymentResult `json:"data"`
+	Message string                        `json:"message,omitempty"`
+}
+
+func (r UpdateEnrollmentPaymentsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for _, datum := range r.Data {
+		if _, err := time.Parse(DateFormat_Date, datum.PaymentDate); err != nil {
+			errorDetail["paymentDate"] = fmt.Sprintf("invalid paymentDate format. accepted date format is %q", DateFormat_Date)
+		}
+		break
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type UpsertEnrollmentPaymentResult struct {
+	Results []entity.EnrollmentPayment `json:"results"`
+}
+
+type DeleteEnrollmentPaymentsRequest struct {
+	Data []DeleteEnrollmentPaymentsRequestParam `json:"data"`
+}
+type DeleteEnrollmentPaymentsRequestParam struct {
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+}
+type DeleteEnrollmentPaymentsResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 	return nil
 }

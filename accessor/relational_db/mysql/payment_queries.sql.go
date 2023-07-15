@@ -9,8 +9,20 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"time"
 )
+
+const countEnrollmentPayments = `-- name: CountEnrollmentPayments :one
+SELECT Count(id) AS total from enrollment_payment
+`
+
+func (q *Queries) CountEnrollmentPayments(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countEnrollmentPayments)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
 
 const deleteEnrollmentPaymentById = `-- name: DeleteEnrollmentPaymentById :exec
 DELETE FROM enrollment_payment
@@ -19,6 +31,26 @@ WHERE id = ?
 
 func (q *Queries) DeleteEnrollmentPaymentById(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteEnrollmentPaymentById, id)
+	return err
+}
+
+const deleteEnrollmentPaymentsByIds = `-- name: DeleteEnrollmentPaymentsByIds :exec
+DELETE FROM enrollment_payment
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) DeleteEnrollmentPaymentsByIds(ctx context.Context, ids []int64) error {
+	sql := deleteEnrollmentPaymentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
 	return err
 }
 
@@ -43,29 +75,73 @@ func (q *Queries) DeleteTeacherSalaryById(ctx context.Context, id int64) error {
 }
 
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
-SELECT id, payment_date, balance_top_up, value, value_penalty, enrollment_id FROM enrollment_payment
-WHERE id = ? LIMIT 1
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM enrollment_payment AS ep
+    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
+
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON class.course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE ep.id = ? LIMIT 1
 `
 
+type GetEnrollmentPaymentByIdRow struct {
+	EnrollmentPaymentID int64
+	PaymentDate         time.Time
+	BalanceTopUp        int32
+	Value               int32
+	ValuePenalty        int32
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
 // ============================== ENROLLMENT_PAYMENT ==============================
-func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (EnrollmentPayment, error) {
+func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEnrollmentPaymentByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getEnrollmentPaymentById, id)
-	var i EnrollmentPayment
+	var i GetEnrollmentPaymentByIdRow
 	err := row.Scan(
-		&i.ID,
+		&i.EnrollmentPaymentID,
 		&i.PaymentDate,
 		&i.BalanceTopUp,
 		&i.Value,
 		&i.ValuePenalty,
-		&i.EnrollmentID,
+		&i.StudentEnrollmentID,
+		&i.StudentID,
+		&i.StudentUsername,
+		&i.StudentDetail,
+		&i.Class.ID,
+		&i.Class.TransportFee,
+		&i.Class.TeacherID,
+		&i.Class.CourseID,
+		&i.Class.IsDeactivated,
+		&i.Course.ID,
+		&i.Course.DefaultFee,
+		&i.Course.DefaultDurationMinute,
+		&i.Course.InstrumentID,
+		&i.Course.GradeID,
+		&i.Instrument.ID,
+		&i.Instrument.Name,
+		&i.Grade.ID,
+		&i.Grade.Name,
 	)
 	return i, err
 }
 
 const getEnrollmentPayments = `-- name: GetEnrollmentPayments :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id AS class_id, class.course_id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
 
@@ -76,7 +152,13 @@ FROM enrollment_payment AS ep
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 ORDER BY ep.id
+LIMIT ? OFFSET ?
 `
+
+type GetEnrollmentPaymentsParams struct {
+	Limit  int32
+	Offset int32
+}
 
 type GetEnrollmentPaymentsRow struct {
 	EnrollmentPaymentID int64
@@ -84,16 +166,18 @@ type GetEnrollmentPaymentsRow struct {
 	BalanceTopUp        int32
 	Value               int32
 	ValuePenalty        int32
+	StudentEnrollmentID int64
 	StudentID           int64
 	StudentUsername     string
 	StudentDetail       json.RawMessage
-	ClassID             int64
-	CourseID            int64
-	CourseName          string
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
 }
 
-func (q *Queries) GetEnrollmentPayments(ctx context.Context) ([]GetEnrollmentPaymentsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEnrollmentPayments)
+func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPaymentsParams) ([]GetEnrollmentPaymentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEnrollmentPayments, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +191,113 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context) ([]GetEnrollmentPay
 			&i.BalanceTopUp,
 			&i.Value,
 			&i.ValuePenalty,
+			&i.StudentEnrollmentID,
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
-			&i.ClassID,
-			&i.CourseID,
-			&i.CourseName,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEnrollmentPaymentsByIds = `-- name: GetEnrollmentPaymentsByIds :many
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM enrollment_payment AS ep
+    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
+
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON class.course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE ep.id IN (/*SLICE:ids*/?)
+`
+
+type GetEnrollmentPaymentsByIdsRow struct {
+	EnrollmentPaymentID int64
+	PaymentDate         time.Time
+	BalanceTopUp        int32
+	Value               int32
+	ValuePenalty        int32
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
+func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) ([]GetEnrollmentPaymentsByIdsRow, error) {
+	sql := getEnrollmentPaymentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEnrollmentPaymentsByIdsRow
+	for rows.Next() {
+		var i GetEnrollmentPaymentsByIdsRow
+		if err := rows.Scan(
+			&i.EnrollmentPaymentID,
+			&i.PaymentDate,
+			&i.BalanceTopUp,
+			&i.Value,
+			&i.ValuePenalty,
+			&i.StudentEnrollmentID,
+			&i.StudentID,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -151,7 +336,7 @@ func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (St
 const getStudentLearningTokens = `-- name: GetStudentLearningTokens :many
 SELECT slt.id AS student_learning_token_id, quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id AS class_id, class.course_id AS course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name
+    class.id AS class_id, class.course_id AS course_id, instrument.id, instrument.name, grade.id, grade.name
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
 
@@ -176,7 +361,8 @@ type GetStudentLearningTokensRow struct {
 	StudentDetail          json.RawMessage
 	ClassID                int64
 	CourseID               int64
-	CourseName             string
+	Instrument             Instrument
+	Grade                  Grade
 }
 
 func (q *Queries) GetStudentLearningTokens(ctx context.Context) ([]GetStudentLearningTokensRow, error) {
@@ -200,7 +386,10 @@ func (q *Queries) GetStudentLearningTokens(ctx context.Context) ([]GetStudentLea
 			&i.StudentDetail,
 			&i.ClassID,
 			&i.CourseID,
-			&i.CourseName,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -255,7 +444,7 @@ const getTeacherSalaries = `-- name: GetTeacherSalaries :many
 SELECT ts.id AS teacher_salary_id, profit_sharing_percentage, added_at,
     presence.id AS presence_id, date, used_student_token_quota, duration,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    class.id AS class_id, course_id, CONCAT_WS(' ', instrument.name, grade.name) AS course_name,
+    class.id AS class_id, course_id, instrument.id, instrument.name, grade.id, grade.name,
     sa.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
@@ -285,7 +474,8 @@ type GetTeacherSalariesRow struct {
 	TeacherDetail           []byte
 	ClassID                 sql.NullInt64
 	CourseID                sql.NullInt64
-	CourseName              string
+	Instrument              Instrument
+	Grade                   Grade
 	StudentID               sql.NullInt64
 	StudentUsername         sql.NullString
 	StudentDetail           []byte
@@ -313,7 +503,10 @@ func (q *Queries) GetTeacherSalaries(ctx context.Context) ([]GetTeacherSalariesR
 			&i.TeacherDetail,
 			&i.ClassID,
 			&i.CourseID,
-			&i.CourseName,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
@@ -431,4 +624,28 @@ func (q *Queries) InsertTeacherSalary(ctx context.Context, arg InsertTeacherSala
 		return 0, err
 	}
 	return result.LastInsertId()
+}
+
+const updateEnrollmentPayment = `-- name: UpdateEnrollmentPayment :exec
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, value = ?, value_penalty = ?
+WHERE id = ?
+`
+
+type UpdateEnrollmentPaymentParams struct {
+	PaymentDate  time.Time
+	BalanceTopUp int32
+	Value        int32
+	ValuePenalty int32
+	ID           int64
+}
+
+func (q *Queries) UpdateEnrollmentPayment(ctx context.Context, arg UpdateEnrollmentPaymentParams) error {
+	_, err := q.db.ExecContext(ctx, updateEnrollmentPayment,
+		arg.PaymentDate,
+		arg.BalanceTopUp,
+		arg.Value,
+		arg.ValuePenalty,
+		arg.ID,
+	)
+	return err
 }

@@ -175,3 +175,38 @@ func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []m
 
 	return teacherSpecialFees
 }
+
+func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []mysql.GetEnrollmentPaymentsRow) []entity.EnrollmentPayment {
+	enrollmentPayments := make([]entity.EnrollmentPayment, 0, len(enrollmentPaymentRows))
+	for _, enrollmentPaymentRow := range enrollmentPaymentRows {
+		enrollmentPayments = append(enrollmentPayments, entity.EnrollmentPayment{
+			EnrollmentPaymentID: entity.EnrollmentPaymentID(enrollmentPaymentRow.EnrollmentPaymentID),
+			StudentEnrollmentInfo: entity.StudentEnrollment{
+				StudentEnrollmentID: entity.StudentEnrollmentID(enrollmentPaymentRow.StudentEnrollmentID),
+				StudentInfo: entity.StudentInfo_Minimal{
+					StudentID: entity.StudentID(enrollmentPaymentRow.StudentID),
+					UserInfo_Minimal: identity.UserInfo_Minimal{
+						Username:   enrollmentPaymentRow.StudentUsername,
+						UserDetail: identity.UnmarshalUserDetail(enrollmentPaymentRow.StudentDetail, mainLog),
+					},
+				},
+				ClassInfo: entity.ClassInfo_Minimal{
+					ClassID: entity.ClassID(enrollmentPaymentRow.Class.ID),
+					CourseInfo: entity.CourseInfo_Minimal{
+						CourseID:   entity.CourseID(enrollmentPaymentRow.Course.ID),
+						Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{enrollmentPaymentRow.Instrument})[0],
+						Grade:      NewGradesFromMySQLGrades([]mysql.Grade{enrollmentPaymentRow.Grade})[0],
+					},
+					TransportFee:  enrollmentPaymentRow.Class.TransportFee,
+					IsDeactivated: util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
+				},
+			},
+			PaymentDate:  enrollmentPaymentRow.PaymentDate,
+			BalanceTopUp: enrollmentPaymentRow.BalanceTopUp,
+			Value:        enrollmentPaymentRow.Value,
+			ValuePenalty: enrollmentPaymentRow.ValuePenalty,
+		})
+	}
+
+	return enrollmentPayments
+}

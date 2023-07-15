@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"database/sql"
 
@@ -1092,7 +1093,7 @@ func (s *BackendService) GetTeacherSpecialFeesHandler(ctx context.Context, req *
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSpecialFees(): %w", err), nil, "Failed to get courses")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSpecialFees(): %w", err), nil, "Failed to get teacherSpecialFees")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getTeacherSpecialFeesResult.PaginationResult)
@@ -1202,6 +1203,142 @@ func (s *BackendService) DeleteTeacherSpecialFeesHandler(ctx context.Context, re
 
 	return &output.DeleteTeacherSpecialFeesResponse{
 		Message: "Successfully deleted teacherSpecialFees",
+	}, nil
+}
+
+func (s *BackendService) GetEnrollmentPaymentsHandler(ctx context.Context, req *output.GetEnrollmentPaymentsRequest) (*output.GetEnrollmentPaymentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getEnrollmentPaymentsResult, err := s.entityService.GetEnrollmentPayments(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPayments(): %w", err), nil, "Failed to get courses")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getEnrollmentPaymentsResult.PaginationResult)
+
+	return &output.GetEnrollmentPaymentsResponse{
+		Data: output.GetEnrollmentPaymentsResult{
+			Results:            getEnrollmentPaymentsResult.EnrollmentPayments,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetEnrollmentPaymentByIdHandler(ctx context.Context, req *output.GetEnrollmentPaymentRequest) (*output.GetEnrollmentPaymentResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	enrollmentPayment, err := s.entityService.GetEnrollmentPaymentById(ctx, req.EnrollmentPaymentID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetEnrollmentPaymentById()", "enrollmentPayment")
+	}
+
+	return &output.GetEnrollmentPaymentResponse{
+		Data: enrollmentPayment,
+	}, nil
+}
+
+func (s *BackendService) InsertEnrollmentPaymentsHandler(ctx context.Context, req *output.InsertEnrollmentPaymentsRequest) (*output.InsertEnrollmentPaymentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]entity.InsertEnrollmentPaymentSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		paymentDate, err := time.Parse(output.DateFormat_Date, param.PaymentDate)
+		if err != nil {
+			return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("time.Parse(): %v", err), nil, "")
+		}
+		specs = append(specs, entity.InsertEnrollmentPaymentSpec{
+			StudentEnrollmentID: param.StudentEnrollmentID,
+			PaymentDate:         paymentDate,
+			BalanceTopUp:        param.BalanceTopUp,
+			Value:               param.Value,
+			ValuePenalty:        param.ValuePenalty,
+		})
+	}
+
+	enrollmentPaymentIDs, err := s.entityService.InsertEnrollmentPayments(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "entityService.InsertEnrollmentPayments()", "enrollmentPayment")
+	}
+	mainLog.Info("EnrollmentPayments created: enrollmentPaymentIDs='%v'", enrollmentPaymentIDs)
+
+	enrollmentPayments, err := s.entityService.GetEnrollmentPaymentsByIds(ctx, enrollmentPaymentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPaymentsByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertEnrollmentPaymentsResponse{
+		Data: output.UpsertEnrollmentPaymentResult{
+			Results: enrollmentPayments,
+		},
+		Message: "Successfully created enrollmentPayments",
+	}, nil
+}
+
+func (s *BackendService) UpdateEnrollmentPaymentsHandler(ctx context.Context, req *output.UpdateEnrollmentPaymentsRequest) (*output.UpdateEnrollmentPaymentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]entity.UpdateEnrollmentPaymentSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		paymentDate, err := time.Parse(output.DateFormat_Date, param.PaymentDate)
+		if err != nil {
+			return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("time.Parse(): %v", err), nil, "")
+		}
+		specs = append(specs, entity.UpdateEnrollmentPaymentSpec{
+			EnrollmentPaymentID: param.EnrollmentPaymentID,
+			PaymentDate:         paymentDate,
+			BalanceTopUp:        param.BalanceTopUp,
+			Value:               param.Value,
+			ValuePenalty:        param.ValuePenalty,
+		})
+	}
+
+	enrollmentPaymentIDs, err := s.entityService.UpdateEnrollmentPayments(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "entityService.UpdateEnrollmentPayments()", "enrollmentPayment")
+	}
+	mainLog.Info("EnrollmentPayments updated: enrollmentPaymentIDs='%v'", enrollmentPaymentIDs)
+
+	enrollmentPayments, err := s.entityService.GetEnrollmentPaymentsByIds(ctx, enrollmentPaymentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPaymentsByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateEnrollmentPaymentsResponse{
+		Data: output.UpsertEnrollmentPaymentResult{
+			Results: enrollmentPayments,
+		},
+		Message: "Successfully updated enrollmentPayments",
+	}, nil
+}
+
+func (s *BackendService) DeleteEnrollmentPaymentsHandler(ctx context.Context, req *output.DeleteEnrollmentPaymentsRequest) (*output.DeleteEnrollmentPaymentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]entity.EnrollmentPaymentID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.EnrollmentPaymentID)
+	}
+
+	err := s.entityService.DeleteEnrollmentPayments(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteEnrollmentPayments()", "enrollmentPayment")
+	}
+
+	return &output.DeleteEnrollmentPaymentsResponse{
+		Message: "Successfully deleted enrollmentPayments",
 	}, nil
 }
 

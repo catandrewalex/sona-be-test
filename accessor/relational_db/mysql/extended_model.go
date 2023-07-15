@@ -45,3 +45,12 @@ func (r GetTeacherSpecialFeesByIdsRow) ToGetTeacherSpecialFeesRow() GetTeacherSp
 func (r GetTeacherSpecialFeesByTeacherIdRow) ToGetTeacherSpecialFeesRow() GetTeacherSpecialFeesRow {
 	return GetTeacherSpecialFeesRow(r)
 }
+
+// ============================== TEACHER_SPECIAL_FEE ==============================
+
+func (r GetEnrollmentPaymentByIdRow) ToGetEnrollmentPaymentsRow() GetEnrollmentPaymentsRow {
+	return GetEnrollmentPaymentsRow(r)
+}
+func (r GetEnrollmentPaymentsByIdsRow) ToGetEnrollmentPaymentsRow() GetEnrollmentPaymentsRow {
+	return GetEnrollmentPaymentsRow(r)
+}
