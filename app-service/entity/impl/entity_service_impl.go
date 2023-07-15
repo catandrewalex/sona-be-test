@@ -7,8 +7,8 @@ import (
 
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/accessor/relational_db/mysql"
+	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/identity"
-	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/logging"
@@ -17,25 +17,25 @@ import (
 
 var (
 	configObject = config.Get()
-	mainLog      = logging.NewGoLogger("TeachingService", logging.GetLevel(configObject.LogLevel))
+	mainLog      = logging.NewGoLogger("EntityService", logging.GetLevel(configObject.LogLevel))
 )
 
-type teachingServiceImpl struct {
+type entityServiceImpl struct {
 	mySQLQueries *relational_db.MySQLQueries
 
 	identityService identity.IdentityService
 }
 
-var _ teaching.TeachingService = (*teachingServiceImpl)(nil)
+var _ entity.EntityService = (*entityServiceImpl)(nil)
 
-func NewTeachingServiceImpl(mySQLQueries *relational_db.MySQLQueries, identityService identity.IdentityService) *teachingServiceImpl {
-	return &teachingServiceImpl{
+func NewEntityServiceImpl(mySQLQueries *relational_db.MySQLQueries, identityService identity.IdentityService) *entityServiceImpl {
+	return &entityServiceImpl{
 		mySQLQueries:    mySQLQueries,
 		identityService: identityService,
 	}
 }
 
-func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.PaginationSpec) (teaching.GetTeachersResult, error) {
+func (s entityServiceImpl) GetTeachers(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeachersResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	teacherRows, err := s.mySQLQueries.GetTeachers(ctx, mysql.GetTeachersParams{
@@ -43,26 +43,26 @@ func (s teachingServiceImpl) GetTeachers(ctx context.Context, pagination util.Pa
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return teaching.GetTeachersResult{}, fmt.Errorf("mySQLQueries.GetTeachers(): %w", err)
+		return entity.GetTeachersResult{}, fmt.Errorf("mySQLQueries.GetTeachers(): %w", err)
 	}
 
 	teachers := NewTeachersFromGetTeachersRow(teacherRows)
 
 	totalResults, err := s.mySQLQueries.CountTeachers(ctx)
 	if err != nil {
-		return teaching.GetTeachersResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetTeachersResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetTeachersResult{
+	return entity.GetTeachersResult{
 		Teachers:         teachers,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.TeacherID) (teaching.Teacher, error) {
+func (s entityServiceImpl) GetTeacherById(ctx context.Context, id entity.TeacherID) (entity.Teacher, error) {
 	teacherRow, err := s.mySQLQueries.GetTeacherById(ctx, int64(id))
 	if err != nil {
-		return teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetTeacherById(): %w", err)
+		return entity.Teacher{}, fmt.Errorf("mySQLQueries.GetTeacherById(): %w", err)
 	}
 
 	teacher := NewTeachersFromGetTeachersRow([]mysql.GetTeachersRow{teacherRow.ToGetTeachersRow()})[0]
@@ -70,7 +70,7 @@ func (s teachingServiceImpl) GetTeacherById(ctx context.Context, id teaching.Tea
 	return teacher, nil
 }
 
-func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teaching.TeacherID) ([]teaching.Teacher, error) {
+func (s entityServiceImpl) GetTeachersByIds(ctx context.Context, ids []entity.TeacherID) ([]entity.Teacher, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -78,7 +78,7 @@ func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teachin
 
 	teacherRows, err := s.mySQLQueries.GetTeachersByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.Teacher{}, fmt.Errorf("mySQLQueries.GetTeachersByIds(): %w", err)
+		return []entity.Teacher{}, fmt.Errorf("mySQLQueries.GetTeachersByIds(): %w", err)
 	}
 
 	teacherRowsConverted := make([]mysql.GetTeachersRow, 0, len(teacherRows))
@@ -91,27 +91,27 @@ func (s teachingServiceImpl) GetTeachersByIds(ctx context.Context, ids []teachin
 	return teachers, nil
 }
 
-func (s teachingServiceImpl) InsertTeachers(ctx context.Context, userIDs []identity.UserID) ([]teaching.TeacherID, error) {
-	teacherIDs := make([]teaching.TeacherID, 0, len(userIDs))
+func (s entityServiceImpl) InsertTeachers(ctx context.Context, userIDs []identity.UserID) ([]entity.TeacherID, error) {
+	teacherIDs := make([]entity.TeacherID, 0, len(userIDs))
 
 	for _, userID := range userIDs {
 		teacherID, err := s.mySQLQueries.InsertTeacher(ctx, int64(userID))
 		if err != nil {
-			return []teaching.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", err)
+			return []entity.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", err)
 		}
-		teacherIDs = append(teacherIDs, teaching.TeacherID(teacherID))
+		teacherIDs = append(teacherIDs, entity.TeacherID(teacherID))
 	}
 
 	return teacherIDs, nil
 }
 
-func (s teachingServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]teaching.TeacherID, error) {
-	teacherIDs := make([]teaching.TeacherID, 0, len(specs))
+func (s entityServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]entity.TeacherID, error) {
+	teacherIDs := make([]entity.TeacherID, 0, len(specs))
 
 	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.TeacherID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.TeacherID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -119,26 +119,26 @@ func (s teachingServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, spe
 	ctxWithSQLTx := network.NewContextWithSQLTx(ctx, tx)
 	userIDs, err := s.identityService.InsertUsers(ctxWithSQLTx, specs)
 	if err != nil {
-		return []teaching.TeacherID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
+		return []entity.TeacherID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
 	}
 
 	for _, userID := range userIDs {
 		teacherID, err := qtx.InsertTeacher(ctx, int64(userID))
 		if err != nil {
-			return []teaching.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", err)
+			return []entity.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", err)
 		}
-		teacherIDs = append(teacherIDs, teaching.TeacherID(teacherID))
+		teacherIDs = append(teacherIDs, entity.TeacherID(teacherID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.TeacherID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.TeacherID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return teacherIDs, nil
 }
 
-func (s teachingServiceImpl) DeleteTeachers(ctx context.Context, ids []teaching.TeacherID) error {
+func (s entityServiceImpl) DeleteTeachers(ctx context.Context, ids []entity.TeacherID) error {
 	teacherIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		teacherIdsInt64 = append(teacherIdsInt64, int64(id))
@@ -152,7 +152,7 @@ func (s teachingServiceImpl) DeleteTeachers(ctx context.Context, ids []teaching.
 	return nil
 }
 
-func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.PaginationSpec) (teaching.GetStudentsResult, error) {
+func (s entityServiceImpl) GetStudents(ctx context.Context, pagination util.PaginationSpec) (entity.GetStudentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	studentRows, err := s.mySQLQueries.GetStudents(ctx, mysql.GetStudentsParams{
@@ -160,26 +160,26 @@ func (s teachingServiceImpl) GetStudents(ctx context.Context, pagination util.Pa
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return teaching.GetStudentsResult{}, fmt.Errorf("mySQLQueries.GetStudents(): %w", err)
+		return entity.GetStudentsResult{}, fmt.Errorf("mySQLQueries.GetStudents(): %w", err)
 	}
 
 	students := NewStudentsFromGetStudentsRow(studentRows)
 
 	totalResults, err := s.mySQLQueries.CountStudents(ctx)
 	if err != nil {
-		return teaching.GetStudentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetStudentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetStudentsResult{
+	return entity.GetStudentsResult{
 		Students:         students,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetStudentById(ctx context.Context, id teaching.StudentID) (teaching.Student, error) {
+func (s entityServiceImpl) GetStudentById(ctx context.Context, id entity.StudentID) (entity.Student, error) {
 	studentRow, err := s.mySQLQueries.GetStudentById(ctx, int64(id))
 	if err != nil {
-		return teaching.Student{}, fmt.Errorf("mySQLQueries.GetStudentById(): %w", err)
+		return entity.Student{}, fmt.Errorf("mySQLQueries.GetStudentById(): %w", err)
 	}
 
 	student := NewStudentsFromGetStudentsRow([]mysql.GetStudentsRow{studentRow.ToGetStudentsRow()})[0]
@@ -187,7 +187,7 @@ func (s teachingServiceImpl) GetStudentById(ctx context.Context, id teaching.Stu
 	return student, nil
 }
 
-func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teaching.StudentID) ([]teaching.Student, error) {
+func (s entityServiceImpl) GetStudentsByIds(ctx context.Context, ids []entity.StudentID) ([]entity.Student, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -195,7 +195,7 @@ func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teachin
 
 	studentRows, err := s.mySQLQueries.GetStudentsByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.Student{}, fmt.Errorf("mySQLQueries.GetStudentsByIds(): %w", err)
+		return []entity.Student{}, fmt.Errorf("mySQLQueries.GetStudentsByIds(): %w", err)
 	}
 
 	studentRowsConverted := make([]mysql.GetStudentsRow, 0, len(studentRows))
@@ -208,27 +208,27 @@ func (s teachingServiceImpl) GetStudentsByIds(ctx context.Context, ids []teachin
 	return students, nil
 }
 
-func (s teachingServiceImpl) InsertStudents(ctx context.Context, userIDs []identity.UserID) ([]teaching.StudentID, error) {
-	studentIDs := make([]teaching.StudentID, 0, len(userIDs))
+func (s entityServiceImpl) InsertStudents(ctx context.Context, userIDs []identity.UserID) ([]entity.StudentID, error) {
+	studentIDs := make([]entity.StudentID, 0, len(userIDs))
 
 	for _, userID := range userIDs {
 		studentID, err := s.mySQLQueries.InsertStudent(ctx, int64(userID))
 		if err != nil {
-			return []teaching.StudentID{}, fmt.Errorf("qtx.InsertStudent(): %w", err)
+			return []entity.StudentID{}, fmt.Errorf("qtx.InsertStudent(): %w", err)
 		}
-		studentIDs = append(studentIDs, teaching.StudentID(studentID))
+		studentIDs = append(studentIDs, entity.StudentID(studentID))
 	}
 
 	return studentIDs, nil
 }
 
-func (s teachingServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]teaching.StudentID, error) {
-	studentIDs := make([]teaching.StudentID, 0, len(specs))
+func (s entityServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]entity.StudentID, error) {
+	studentIDs := make([]entity.StudentID, 0, len(specs))
 
 	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.StudentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.StudentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -236,26 +236,26 @@ func (s teachingServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, spe
 	ctxWithSQLTx := network.NewContextWithSQLTx(ctx, tx)
 	userIDs, err := s.identityService.InsertUsers(ctxWithSQLTx, specs)
 	if err != nil {
-		return []teaching.StudentID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
+		return []entity.StudentID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
 	}
 
 	for _, userID := range userIDs {
 		studentID, err := qtx.InsertStudent(ctx, int64(userID))
 		if err != nil {
-			return []teaching.StudentID{}, fmt.Errorf("qtx.InsertStudent(): %w", err)
+			return []entity.StudentID{}, fmt.Errorf("qtx.InsertStudent(): %w", err)
 		}
-		studentIDs = append(studentIDs, teaching.StudentID(studentID))
+		studentIDs = append(studentIDs, entity.StudentID(studentID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.StudentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.StudentID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return studentIDs, nil
 }
 
-func (s teachingServiceImpl) DeleteStudents(ctx context.Context, ids []teaching.StudentID) error {
+func (s entityServiceImpl) DeleteStudents(ctx context.Context, ids []entity.StudentID) error {
 	studentIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		studentIdsInt64 = append(studentIdsInt64, int64(id))
@@ -269,7 +269,7 @@ func (s teachingServiceImpl) DeleteStudents(ctx context.Context, ids []teaching.
 	return nil
 }
 
-func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util.PaginationSpec) (teaching.GetInstrumentsResult, error) {
+func (s entityServiceImpl) GetInstruments(ctx context.Context, pagination util.PaginationSpec) (entity.GetInstrumentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	instrumentRows, err := s.mySQLQueries.GetInstruments(ctx, mysql.GetInstrumentsParams{
@@ -277,26 +277,26 @@ func (s teachingServiceImpl) GetInstruments(ctx context.Context, pagination util
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return teaching.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
+		return entity.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
 	}
 
 	instruments := NewInstrumentsFromMySQLInstruments(instrumentRows)
 
 	totalResults, err := s.mySQLQueries.CountInstruments(ctx)
 	if err != nil {
-		return teaching.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetInstrumentsResult{
+	return entity.GetInstrumentsResult{
 		Instruments:      instruments,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetInstrumentById(ctx context.Context, id teaching.InstrumentID) (teaching.Instrument, error) {
+func (s entityServiceImpl) GetInstrumentById(ctx context.Context, id entity.InstrumentID) (entity.Instrument, error) {
 	instrumentRow, err := s.mySQLQueries.GetInstrumentById(ctx, int64(id))
 	if err != nil {
-		return teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
+		return entity.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
 	}
 
 	instrument := NewInstrumentsFromMySQLInstruments([]mysql.Instrument{instrumentRow})[0]
@@ -304,7 +304,7 @@ func (s teachingServiceImpl) GetInstrumentById(ctx context.Context, id teaching.
 	return instrument, nil
 }
 
-func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teaching.InstrumentID) ([]teaching.Instrument, error) {
+func (s entityServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []entity.InstrumentID) ([]entity.Instrument, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -312,7 +312,7 @@ func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teac
 
 	instrumentRows, err := s.mySQLQueries.GetInstrumentsByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
+		return []entity.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
 	}
 
 	instruments := NewInstrumentsFromMySQLInstruments(instrumentRows)
@@ -320,12 +320,12 @@ func (s teachingServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []teac
 	return instruments, nil
 }
 
-func (s teachingServiceImpl) InsertInstruments(ctx context.Context, specs []teaching.InsertInstrumentSpec) ([]teaching.InstrumentID, error) {
-	instrumentIDs := make([]teaching.InstrumentID, 0, len(specs))
+func (s entityServiceImpl) InsertInstruments(ctx context.Context, specs []entity.InsertInstrumentSpec) ([]entity.InstrumentID, error) {
+	instrumentIDs := make([]entity.InstrumentID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.InstrumentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.InstrumentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -334,25 +334,25 @@ func (s teachingServiceImpl) InsertInstruments(ctx context.Context, specs []teac
 		instrumentID, err := qtx.InsertInstrument(ctx, spec.Name)
 		if err != nil {
 
-			return []teaching.InstrumentID{}, fmt.Errorf("qtx.InsertInstrument(): %w", err)
+			return []entity.InstrumentID{}, fmt.Errorf("qtx.InsertInstrument(): %w", err)
 		}
-		instrumentIDs = append(instrumentIDs, teaching.InstrumentID(instrumentID))
+		instrumentIDs = append(instrumentIDs, entity.InstrumentID(instrumentID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return instrumentIDs, nil
 }
 
-func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teaching.UpdateInstrumentSpec) ([]teaching.InstrumentID, error) {
-	instrumentIDs := make([]teaching.InstrumentID, 0, len(specs))
+func (s entityServiceImpl) UpdateInstruments(ctx context.Context, specs []entity.UpdateInstrumentSpec) ([]entity.InstrumentID, error) {
+	instrumentIDs := make([]entity.InstrumentID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.InstrumentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.InstrumentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -364,20 +364,20 @@ func (s teachingServiceImpl) UpdateInstruments(ctx context.Context, specs []teac
 		})
 		if err != nil {
 
-			return []teaching.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", err)
+			return []entity.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", err)
 		}
 		instrumentIDs = append(instrumentIDs, spec.InstrumentID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return instrumentIDs, nil
 }
 
-func (s teachingServiceImpl) DeleteInstruments(ctx context.Context, ids []teaching.InstrumentID) error {
+func (s entityServiceImpl) DeleteInstruments(ctx context.Context, ids []entity.InstrumentID) error {
 	instrumentIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		instrumentIdsInt64 = append(instrumentIdsInt64, int64(id))
@@ -391,7 +391,7 @@ func (s teachingServiceImpl) DeleteInstruments(ctx context.Context, ids []teachi
 	return nil
 }
 
-func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.PaginationSpec) (teaching.GetGradesResult, error) {
+func (s entityServiceImpl) GetGrades(ctx context.Context, pagination util.PaginationSpec) (entity.GetGradesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	gradeRows, err := s.mySQLQueries.GetGrades(ctx, mysql.GetGradesParams{
@@ -399,26 +399,26 @@ func (s teachingServiceImpl) GetGrades(ctx context.Context, pagination util.Pagi
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return teaching.GetGradesResult{}, fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
+		return entity.GetGradesResult{}, fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
 	}
 
 	grades := NewGradesFromMySQLGrades(gradeRows)
 
 	totalResults, err := s.mySQLQueries.CountGrades(ctx)
 	if err != nil {
-		return teaching.GetGradesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetGradesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetGradesResult{
+	return entity.GetGradesResult{
 		Grades:           grades,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetGradeById(ctx context.Context, id teaching.GradeID) (teaching.Grade, error) {
+func (s entityServiceImpl) GetGradeById(ctx context.Context, id entity.GradeID) (entity.Grade, error) {
 	gradeRow, err := s.mySQLQueries.GetGradeById(ctx, int64(id))
 	if err != nil {
-		return teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
+		return entity.Grade{}, fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
 	}
 
 	grade := NewGradesFromMySQLGrades([]mysql.Grade{gradeRow})[0]
@@ -426,7 +426,7 @@ func (s teachingServiceImpl) GetGradeById(ctx context.Context, id teaching.Grade
 	return grade, nil
 }
 
-func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.GradeID) ([]teaching.Grade, error) {
+func (s entityServiceImpl) GetGradesByIds(ctx context.Context, ids []entity.GradeID) ([]entity.Grade, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -434,7 +434,7 @@ func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.
 
 	gradeRows, err := s.mySQLQueries.GetGradesByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.Grade{}, fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
+		return []entity.Grade{}, fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
 	}
 
 	grades := NewGradesFromMySQLGrades(gradeRows)
@@ -442,12 +442,12 @@ func (s teachingServiceImpl) GetGradesByIds(ctx context.Context, ids []teaching.
 	return grades, nil
 }
 
-func (s teachingServiceImpl) InsertGrades(ctx context.Context, specs []teaching.InsertGradeSpec) ([]teaching.GradeID, error) {
-	gradeIDs := make([]teaching.GradeID, 0, len(specs))
+func (s entityServiceImpl) InsertGrades(ctx context.Context, specs []entity.InsertGradeSpec) ([]entity.GradeID, error) {
+	gradeIDs := make([]entity.GradeID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.GradeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.GradeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -456,25 +456,25 @@ func (s teachingServiceImpl) InsertGrades(ctx context.Context, specs []teaching.
 		gradeID, err := qtx.InsertGrade(ctx, spec.Name)
 		if err != nil {
 
-			return []teaching.GradeID{}, fmt.Errorf("qtx.InsertGrade(): %w", err)
+			return []entity.GradeID{}, fmt.Errorf("qtx.InsertGrade(): %w", err)
 		}
-		gradeIDs = append(gradeIDs, teaching.GradeID(gradeID))
+		gradeIDs = append(gradeIDs, entity.GradeID(gradeID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return gradeIDs, nil
 }
 
-func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.UpdateGradeSpec) ([]teaching.GradeID, error) {
-	gradeIDs := make([]teaching.GradeID, 0, len(specs))
+func (s entityServiceImpl) UpdateGrades(ctx context.Context, specs []entity.UpdateGradeSpec) ([]entity.GradeID, error) {
+	gradeIDs := make([]entity.GradeID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.GradeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.GradeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -486,20 +486,20 @@ func (s teachingServiceImpl) UpdateGrades(ctx context.Context, specs []teaching.
 		})
 		if err != nil {
 
-			return []teaching.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", err)
+			return []entity.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", err)
 		}
 		gradeIDs = append(gradeIDs, spec.GradeID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return gradeIDs, nil
 }
 
-func (s teachingServiceImpl) DeleteGrades(ctx context.Context, ids []teaching.GradeID) error {
+func (s entityServiceImpl) DeleteGrades(ctx context.Context, ids []entity.GradeID) error {
 	gradeIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		gradeIdsInt64 = append(gradeIdsInt64, int64(id))
@@ -513,7 +513,7 @@ func (s teachingServiceImpl) DeleteGrades(ctx context.Context, ids []teaching.Gr
 	return nil
 }
 
-func (s teachingServiceImpl) GetCourses(ctx context.Context, pagination util.PaginationSpec) (teaching.GetCoursesResult, error) {
+func (s entityServiceImpl) GetCourses(ctx context.Context, pagination util.PaginationSpec) (entity.GetCoursesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	courseRows, err := s.mySQLQueries.GetCourses(ctx, mysql.GetCoursesParams{
@@ -521,26 +521,26 @@ func (s teachingServiceImpl) GetCourses(ctx context.Context, pagination util.Pag
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return teaching.GetCoursesResult{}, fmt.Errorf("mySQLQueries.GetCourses(): %w", err)
+		return entity.GetCoursesResult{}, fmt.Errorf("mySQLQueries.GetCourses(): %w", err)
 	}
 
 	courses := NewCoursesFromGetCoursesRow(courseRows)
 
 	totalResults, err := s.mySQLQueries.CountCourses(ctx)
 	if err != nil {
-		return teaching.GetCoursesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetCoursesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetCoursesResult{
+	return entity.GetCoursesResult{
 		Courses:          courses,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetCourseById(ctx context.Context, id teaching.CourseID) (teaching.Course, error) {
+func (s entityServiceImpl) GetCourseById(ctx context.Context, id entity.CourseID) (entity.Course, error) {
 	courseRow, err := s.mySQLQueries.GetCourseById(ctx, int64(id))
 	if err != nil {
-		return teaching.Course{}, fmt.Errorf("mySQLQueries.GetCourseById(): %w", err)
+		return entity.Course{}, fmt.Errorf("mySQLQueries.GetCourseById(): %w", err)
 	}
 
 	course := NewCoursesFromGetCoursesRow([]mysql.GetCoursesRow{courseRow.ToGetCoursesRow()})[0]
@@ -548,7 +548,7 @@ func (s teachingServiceImpl) GetCourseById(ctx context.Context, id teaching.Cour
 	return course, nil
 }
 
-func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching.CourseID) ([]teaching.Course, error) {
+func (s entityServiceImpl) GetCoursesByIds(ctx context.Context, ids []entity.CourseID) ([]entity.Course, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -556,7 +556,7 @@ func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching
 
 	courseRows, err := s.mySQLQueries.GetCoursesByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.Course{}, fmt.Errorf("mySQLQueries.GetCoursesByIds(): %w", err)
+		return []entity.Course{}, fmt.Errorf("mySQLQueries.GetCoursesByIds(): %w", err)
 	}
 
 	courseRowsConverted := make([]mysql.GetCoursesRow, 0, len(courseRows))
@@ -569,12 +569,12 @@ func (s teachingServiceImpl) GetCoursesByIds(ctx context.Context, ids []teaching
 	return courses, nil
 }
 
-func (s teachingServiceImpl) InsertCourses(ctx context.Context, specs []teaching.InsertCourseSpec) ([]teaching.CourseID, error) {
-	courseIDs := make([]teaching.CourseID, 0, len(specs))
+func (s entityServiceImpl) InsertCourses(ctx context.Context, specs []entity.InsertCourseSpec) ([]entity.CourseID, error) {
+	courseIDs := make([]entity.CourseID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.CourseID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.CourseID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -588,25 +588,25 @@ func (s teachingServiceImpl) InsertCourses(ctx context.Context, specs []teaching
 		})
 		if err != nil {
 
-			return []teaching.CourseID{}, fmt.Errorf("qtx.InsertCourse(): %w", err)
+			return []entity.CourseID{}, fmt.Errorf("qtx.InsertCourse(): %w", err)
 		}
-		courseIDs = append(courseIDs, teaching.CourseID(courseID))
+		courseIDs = append(courseIDs, entity.CourseID(courseID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return courseIDs, nil
 }
 
-func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching.UpdateCourseSpec) ([]teaching.CourseID, error) {
-	courseIDs := make([]teaching.CourseID, 0, len(specs))
+func (s entityServiceImpl) UpdateCourses(ctx context.Context, specs []entity.UpdateCourseSpec) ([]entity.CourseID, error) {
+	courseIDs := make([]entity.CourseID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.CourseID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.CourseID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -619,20 +619,20 @@ func (s teachingServiceImpl) UpdateCourses(ctx context.Context, specs []teaching
 		})
 		if err != nil {
 
-			return []teaching.CourseID{}, fmt.Errorf("qtx.UpdateCourseInfo(): %w", err)
+			return []entity.CourseID{}, fmt.Errorf("qtx.UpdateCourseInfo(): %w", err)
 		}
 		courseIDs = append(courseIDs, spec.CourseID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return courseIDs, nil
 }
 
-func (s teachingServiceImpl) DeleteCourses(ctx context.Context, ids []teaching.CourseID) error {
+func (s entityServiceImpl) DeleteCourses(ctx context.Context, ids []entity.CourseID) error {
 	courseIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		courseIdsInt64 = append(courseIdsInt64, int64(id))
@@ -646,7 +646,7 @@ func (s teachingServiceImpl) DeleteCourses(ctx context.Context, ids []teaching.C
 	return nil
 }
 
-func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (teaching.GetClassesResult, error) {
+func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (entity.GetClassesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	isDeactivatedFilters := []int32{0}
@@ -660,30 +660,30 @@ func (s teachingServiceImpl) GetClasses(ctx context.Context, pagination util.Pag
 		Offset:         int32(offset),
 	})
 	if err != nil {
-		return teaching.GetClassesResult{}, fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
+		return entity.GetClassesResult{}, fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
 	}
 
 	classes := NewClassesFromGetClassesRow(classRows)
 
 	totalResults, err := s.mySQLQueries.CountClasses(ctx, isDeactivatedFilters)
 	if err != nil {
-		return teaching.GetClassesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetClassesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetClassesResult{
+	return entity.GetClassesResult{
 		Classes:          classes,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetClassById(ctx context.Context, id teaching.ClassID) (teaching.Class, error) {
+func (s entityServiceImpl) GetClassById(ctx context.Context, id entity.ClassID) (entity.Class, error) {
 	classRows, err := s.mySQLQueries.GetClassById(ctx, int64(id))
 	if err != nil {
-		return teaching.Class{}, fmt.Errorf("mySQLQueries.GetClassById(): %w", err)
+		return entity.Class{}, fmt.Errorf("mySQLQueries.GetClassById(): %w", err)
 	}
 
 	if len(classRows) == 0 {
-		return teaching.Class{}, sql.ErrNoRows
+		return entity.Class{}, sql.ErrNoRows
 	}
 
 	classRowsConverted := make([]mysql.GetClassesRow, 0, len(classRows))
@@ -696,7 +696,7 @@ func (s teachingServiceImpl) GetClassById(ctx context.Context, id teaching.Class
 	return class, nil
 }
 
-func (s teachingServiceImpl) GetClassesByIds(ctx context.Context, ids []teaching.ClassID) ([]teaching.Class, error) {
+func (s entityServiceImpl) GetClassesByIds(ctx context.Context, ids []entity.ClassID) ([]entity.Class, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -704,7 +704,7 @@ func (s teachingServiceImpl) GetClassesByIds(ctx context.Context, ids []teaching
 
 	classRows, err := s.mySQLQueries.GetClassesByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.Class{}, fmt.Errorf("mySQLQueries.GetClassesByIds(): %w", err)
+		return []entity.Class{}, fmt.Errorf("mySQLQueries.GetClassesByIds(): %w", err)
 	}
 
 	classRowsConverted := make([]mysql.GetClassesRow, 0, len(classRows))
@@ -717,12 +717,12 @@ func (s teachingServiceImpl) GetClassesByIds(ctx context.Context, ids []teaching
 	return classes, nil
 }
 
-func (s teachingServiceImpl) InsertClasses(ctx context.Context, specs []teaching.InsertClassSpec) ([]teaching.ClassID, error) {
-	classIDs := make([]teaching.ClassID, 0, len(specs))
+func (s entityServiceImpl) InsertClasses(ctx context.Context, specs []entity.InsertClassSpec) ([]entity.ClassID, error) {
+	classIDs := make([]entity.ClassID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.ClassID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.ClassID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -730,14 +730,14 @@ func (s teachingServiceImpl) InsertClasses(ctx context.Context, specs []teaching
 	for _, spec := range specs {
 		classID, err := qtx.InsertClass(ctx, mysql.InsertClassParams{
 			TransportFee: spec.TransportFee,
-			TeacherID:    sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != teaching.TeacherID_None},
+			TeacherID:    sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
 			CourseID:     int64(spec.CourseID),
 		})
 		if err != nil {
 
-			return []teaching.ClassID{}, fmt.Errorf("qtx.InsertClass(): %w", err)
+			return []entity.ClassID{}, fmt.Errorf("qtx.InsertClass(): %w", err)
 		}
-		classIDs = append(classIDs, teaching.ClassID(classID))
+		classIDs = append(classIDs, entity.ClassID(classID))
 
 		for _, studentId := range spec.StudentIDs {
 			err := qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
@@ -746,25 +746,25 @@ func (s teachingServiceImpl) InsertClasses(ctx context.Context, specs []teaching
 			})
 			if err != nil {
 
-				return []teaching.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
+				return []entity.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
 			}
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return classIDs, nil
 }
 
-func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching.UpdateClassSpec) ([]teaching.ClassID, error) {
-	classIDs := make([]teaching.ClassID, 0, len(specs))
+func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.UpdateClassSpec) ([]entity.ClassID, error) {
+	classIDs := make([]entity.ClassID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.ClassID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.ClassID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -774,18 +774,18 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 		// Updated class
 		err := s.mySQLQueries.UpdateClass(ctx, mysql.UpdateClassParams{
 			TransportFee:  spec.TransportFee,
-			TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != teaching.TeacherID_None},
+			TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
 			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
 			ID:            classId,
 		})
 		if err != nil {
-			return []teaching.ClassID{}, fmt.Errorf("qtx.UpdateClass(): %w", err)
+			return []entity.ClassID{}, fmt.Errorf("qtx.UpdateClass(): %w", err)
 		}
 		classIDs = append(classIDs, spec.ClassID)
 
 		studentDifference, err := calculateClassStudentsDifference(ctx, qtx, spec.ClassID, spec.StudentIDs)
 		if err != nil {
-			return []teaching.ClassID{}, fmt.Errorf("calculateClassStudentsDifference(): %w", err)
+			return []entity.ClassID{}, fmt.Errorf("calculateClassStudentsDifference(): %w", err)
 		}
 
 		// Added students
@@ -796,7 +796,7 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 			})
 			if err != nil {
 
-				return []teaching.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
+				return []entity.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
 			}
 		}
 
@@ -805,7 +805,7 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 			err = qtx.EnableStudentEnrollment(ctx, int64(updatedEnrollmentID))
 			if err != nil {
 
-				return []teaching.ClassID{}, fmt.Errorf("qtx.EnableStudentEnrollment(): %w", err)
+				return []entity.ClassID{}, fmt.Errorf("qtx.EnableStudentEnrollment(): %w", err)
 			}
 		}
 
@@ -819,41 +819,41 @@ func (s teachingServiceImpl) UpdateClasses(ctx context.Context, specs []teaching
 
 			err = qtx.DisableStudentEnrollment(ctx, int64(disabledEnrollmentID))
 			if err != nil {
-				return []teaching.ClassID{}, fmt.Errorf("qtx.DisableStudentEnrollment(): %w", err)
+				return []entity.ClassID{}, fmt.Errorf("qtx.DisableStudentEnrollment(): %w", err)
 			}
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return classIDs, nil
 }
 
 type classStudentsDifference struct {
-	addedStudentIDs              []teaching.StudentID
-	enabledStudentEnrollmentIDs  []teaching.StudentEnrollmentID
-	disabledStudentEnrollmentIDs []teaching.StudentEnrollmentID
+	addedStudentIDs              []entity.StudentID
+	enabledStudentEnrollmentIDs  []entity.StudentEnrollmentID
+	disabledStudentEnrollmentIDs []entity.StudentEnrollmentID
 }
 
-func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, classId teaching.ClassID, finalStudentIDs []teaching.StudentID) (classStudentsDifference, error) {
-	addedStudentIDs := make([]teaching.StudentID, 0)
-	enabledStudentEnrollmentIDs := make([]teaching.StudentEnrollmentID, 0)
-	disabledStudentEnrollmentIDs := make([]teaching.StudentEnrollmentID, 0)
+func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, classId entity.ClassID, finalStudentIDs []entity.StudentID) (classStudentsDifference, error) {
+	addedStudentIDs := make([]entity.StudentID, 0)
+	enabledStudentEnrollmentIDs := make([]entity.StudentEnrollmentID, 0)
+	disabledStudentEnrollmentIDs := make([]entity.StudentEnrollmentID, 0)
 
 	enrollments, err := qtx.GetStudentEnrollmentsByClassId(ctx, int64(classId))
 	if err != nil {
 		return classStudentsDifference{}, fmt.Errorf("qtx.GetStudentEnrollmentsByClassId(): %w", err)
 	}
 
-	studentIDToEnrollmentIDMap := make(map[teaching.StudentID]teaching.StudentEnrollmentID, len(enrollments))
+	studentIDToEnrollmentIDMap := make(map[entity.StudentID]entity.StudentEnrollmentID, len(enrollments))
 	for _, enrollment := range enrollments {
-		studentIDToEnrollmentIDMap[teaching.StudentID(enrollment.StudentID)] = teaching.StudentEnrollmentID(enrollment.ID)
+		studentIDToEnrollmentIDMap[entity.StudentID(enrollment.StudentID)] = entity.StudentEnrollmentID(enrollment.ID)
 	}
 
-	finalStudentIDsMap := make(map[teaching.StudentID]bool, 0)
+	finalStudentIDsMap := make(map[entity.StudentID]bool, 0)
 	for _, studentID := range finalStudentIDs {
 		if enrollmentID, ok := studentIDToEnrollmentIDMap[studentID]; ok {
 			enabledStudentEnrollmentIDs = append(enabledStudentEnrollmentIDs, enrollmentID)
@@ -863,8 +863,8 @@ func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, c
 		finalStudentIDsMap[studentID] = true
 	}
 	for _, enrollment := range enrollments {
-		if _, ok := finalStudentIDsMap[teaching.StudentID(enrollment.StudentID)]; !ok {
-			disabledStudentEnrollmentIDs = append(disabledStudentEnrollmentIDs, teaching.StudentEnrollmentID(enrollment.ID))
+		if _, ok := finalStudentIDsMap[entity.StudentID(enrollment.StudentID)]; !ok {
+			disabledStudentEnrollmentIDs = append(disabledStudentEnrollmentIDs, entity.StudentEnrollmentID(enrollment.ID))
 		}
 	}
 
@@ -880,7 +880,7 @@ func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, c
 	}, nil
 }
 
-func (s teachingServiceImpl) DeleteClasses(ctx context.Context, ids []teaching.ClassID) error {
+func (s entityServiceImpl) DeleteClasses(ctx context.Context, ids []entity.ClassID) error {
 	classIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		classIdsInt64 = append(classIdsInt64, int64(id))
@@ -911,7 +911,7 @@ func (s teachingServiceImpl) DeleteClasses(ctx context.Context, ids []teaching.C
 	return nil
 }
 
-func (s teachingServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (teaching.GetTeacherSpecialFeesResult, error) {
+func (s entityServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeacherSpecialFeesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	teacherSpecialFeeRows, err := s.mySQLQueries.GetTeacherSpecialFees(ctx, mysql.GetTeacherSpecialFeesParams{
@@ -919,26 +919,26 @@ func (s teachingServiceImpl) GetTeacherSpecialFees(ctx context.Context, paginati
 		Offset: int32(offset),
 	})
 	if err != nil {
-		return teaching.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFees(): %w", err)
+		return entity.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFees(): %w", err)
 	}
 
 	teacherSpecialFees := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows)
 
 	totalResults, err := s.mySQLQueries.CountTeacherSpecialFees(ctx)
 	if err != nil {
-		return teaching.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		return entity.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
 
-	return teaching.GetTeacherSpecialFeesResult{
+	return entity.GetTeacherSpecialFeesResult{
 		TeacherSpecialFees: teacherSpecialFees,
 		PaginationResult:   *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s teachingServiceImpl) GetTeacherSpecialFeeById(ctx context.Context, id teaching.TeacherSpecialFeeID) (teaching.TeacherSpecialFee, error) {
+func (s entityServiceImpl) GetTeacherSpecialFeeById(ctx context.Context, id entity.TeacherSpecialFeeID) (entity.TeacherSpecialFee, error) {
 	teacherSpecialFeeRow, err := s.mySQLQueries.GetTeacherSpecialFeeById(ctx, int64(id))
 	if err != nil {
-		return teaching.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeeById(): %w", err)
+		return entity.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeeById(): %w", err)
 	}
 
 	teacherSpecialFee := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow([]mysql.GetTeacherSpecialFeesRow{teacherSpecialFeeRow.ToGetTeacherSpecialFeesRow()})[0]
@@ -946,7 +946,7 @@ func (s teachingServiceImpl) GetTeacherSpecialFeeById(ctx context.Context, id te
 	return teacherSpecialFee, nil
 }
 
-func (s teachingServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids []teaching.TeacherSpecialFeeID) ([]teaching.TeacherSpecialFee, error) {
+func (s entityServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids []entity.TeacherSpecialFeeID) ([]entity.TeacherSpecialFee, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
@@ -954,7 +954,7 @@ func (s teachingServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids
 
 	teacherSpecialFeeRows, err := s.mySQLQueries.GetTeacherSpecialFeesByIds(ctx, idsInt)
 	if err != nil {
-		return []teaching.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByIds(): %w", err)
+		return []entity.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByIds(): %w", err)
 	}
 
 	teacherSpecialFeeRowsConverted := make([]mysql.GetTeacherSpecialFeesRow, 0, len(teacherSpecialFeeRows))
@@ -967,12 +967,12 @@ func (s teachingServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids
 	return teacherSpecialFees, nil
 }
 
-func (s teachingServiceImpl) InsertTeacherSpecialFees(ctx context.Context, specs []teaching.InsertTeacherSpecialFeeSpec) ([]teaching.TeacherSpecialFeeID, error) {
-	teacherSpecialFeeIDs := make([]teaching.TeacherSpecialFeeID, 0, len(specs))
+func (s entityServiceImpl) InsertTeacherSpecialFees(ctx context.Context, specs []entity.InsertTeacherSpecialFeeSpec) ([]entity.TeacherSpecialFeeID, error) {
+	teacherSpecialFeeIDs := make([]entity.TeacherSpecialFeeID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -985,25 +985,25 @@ func (s teachingServiceImpl) InsertTeacherSpecialFees(ctx context.Context, specs
 		})
 		if err != nil {
 
-			return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("qtx.InsertTeacherSpecialFee(): %w", err)
+			return []entity.TeacherSpecialFeeID{}, fmt.Errorf("qtx.InsertTeacherSpecialFee(): %w", err)
 		}
-		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, teaching.TeacherSpecialFeeID(teacherSpecialFeeID))
+		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, entity.TeacherSpecialFeeID(teacherSpecialFeeID))
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return teacherSpecialFeeIDs, nil
 }
 
-func (s teachingServiceImpl) UpdateTeacherSpecialFees(ctx context.Context, specs []teaching.UpdateTeacherSpecialFeeSpec) ([]teaching.TeacherSpecialFeeID, error) {
-	teacherSpecialFeeIDs := make([]teaching.TeacherSpecialFeeID, 0, len(specs))
+func (s entityServiceImpl) UpdateTeacherSpecialFees(ctx context.Context, specs []entity.UpdateTeacherSpecialFeeSpec) ([]entity.TeacherSpecialFeeID, error) {
+	teacherSpecialFeeIDs := make([]entity.TeacherSpecialFeeID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
 	if err != nil {
-		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
 	}
 	defer tx.Rollback()
 	qtx := s.mySQLQueries.WithTxWrappedError(tx)
@@ -1015,20 +1015,20 @@ func (s teachingServiceImpl) UpdateTeacherSpecialFees(ctx context.Context, specs
 		})
 		if err != nil {
 
-			return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("qtx.UpdateTeacherSpecialFee(): %w", err)
+			return []entity.TeacherSpecialFeeID{}, fmt.Errorf("qtx.UpdateTeacherSpecialFee(): %w", err)
 		}
 		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, spec.TeacherSpecialFeeID)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return []teaching.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
 	}
 
 	return teacherSpecialFeeIDs, nil
 }
 
-func (s teachingServiceImpl) DeleteTeacherSpecialFees(ctx context.Context, ids []teaching.TeacherSpecialFeeID) error {
+func (s entityServiceImpl) DeleteTeacherSpecialFees(ctx context.Context, ids []entity.TeacherSpecialFeeID) error {
 	teacherSpecialFeeIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		teacherSpecialFeeIdsInt64 = append(teacherSpecialFeeIdsInt64, int64(id))

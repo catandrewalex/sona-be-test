@@ -1,8 +1,8 @@
 package output
 
 import (
+	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/identity"
-	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/errs"
 )
 
@@ -24,7 +24,7 @@ type GetTeachersResponse struct {
 	Message string            `json:"message,omitempty"`
 }
 type GetTeachersResult struct {
-	Results []teaching.Teacher `json:"results"`
+	Results []entity.Teacher `json:"results"`
 	PaginationResponse
 }
 
@@ -41,11 +41,11 @@ func (r GetTeachersRequest) Validate() errs.ValidationError {
 }
 
 type GetTeacherRequest struct {
-	TeacherID teaching.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	TeacherID entity.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetTeacherResponse struct {
-	Data    teaching.Teacher `json:"data"`
-	Message string           `json:"message,omitempty"`
+	Data    entity.Teacher `json:"data"`
+	Message string         `json:"message,omitempty"`
 }
 
 func (r GetTeacherRequest) Validate() errs.ValidationError {
@@ -63,7 +63,7 @@ type InsertTeachersResponse struct {
 	Message string              `json:"message,omitempty"`
 }
 type InsertTeacherResult struct {
-	Results []teaching.Teacher `json:"results"`
+	Results []entity.Teacher `json:"results"`
 }
 
 func (r InsertTeachersRequest) Validate() errs.ValidationError {
@@ -85,7 +85,7 @@ type DeleteTeachersRequest struct {
 	Data []DeleteTeachersRequestParam `json:"data"`
 }
 type DeleteTeachersRequestParam struct {
-	TeacherID teaching.TeacherID `json:"teacherId"`
+	TeacherID entity.TeacherID `json:"teacherId"`
 }
 type DeleteTeachersResponse struct {
 	Message string `json:"message,omitempty"`
@@ -105,7 +105,7 @@ type GetStudentsResponse struct {
 	Message string            `json:"message,omitempty"`
 }
 type GetStudentsResult struct {
-	Results []teaching.Student `json:"results"`
+	Results []entity.Student `json:"results"`
 	PaginationResponse
 }
 
@@ -122,11 +122,11 @@ func (r GetStudentsRequest) Validate() errs.ValidationError {
 }
 
 type GetStudentRequest struct {
-	StudentID teaching.StudentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	StudentID entity.StudentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetStudentResponse struct {
-	Data    teaching.Student `json:"data"`
-	Message string           `json:"message,omitempty"`
+	Data    entity.Student `json:"data"`
+	Message string         `json:"message,omitempty"`
 }
 
 func (r GetStudentRequest) Validate() errs.ValidationError {
@@ -144,7 +144,7 @@ type InsertStudentsResponse struct {
 	Message string              `json:"message,omitempty"`
 }
 type InsertStudentResult struct {
-	Results []teaching.Student `json:"results"`
+	Results []entity.Student `json:"results"`
 }
 
 func (r InsertStudentsRequest) Validate() errs.ValidationError {
@@ -166,7 +166,7 @@ type DeleteStudentsRequest struct {
 	Data []DeleteStudentsRequestParam `json:"data"`
 }
 type DeleteStudentsRequestParam struct {
-	StudentID teaching.StudentID `json:"studentId"`
+	StudentID entity.StudentID `json:"studentId"`
 }
 type DeleteStudentsResponse struct {
 	Message string `json:"message,omitempty"`

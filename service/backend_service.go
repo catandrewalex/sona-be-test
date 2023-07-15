@@ -16,10 +16,10 @@ import (
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/app-service/auth"
 	"sonamusica-backend/app-service/email_composer"
+	"sonamusica-backend/app-service/entity"
+	entityImpl "sonamusica-backend/app-service/entity/impl"
 	"sonamusica-backend/app-service/identity"
 	identityImpl "sonamusica-backend/app-service/identity/impl"
-	"sonamusica-backend/app-service/teaching"
-	teachingImpl "sonamusica-backend/app-service/teaching/impl"
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
@@ -37,7 +37,7 @@ type BackendService struct {
 	jwtService auth.JWTService
 
 	identityService identity.IdentityService
-	teachingService teaching.TeachingService
+	entityService   entity.EntityService
 }
 
 func NewBackendService() *BackendService {
@@ -64,12 +64,12 @@ func NewBackendService() *BackendService {
 
 	identityService := identityImpl.NewIdentityServiceImpl(mySqlQueries, smtpAccessor, jwtService, emailComposer)
 
-	teachingService := teachingImpl.NewTeachingServiceImpl(mySqlQueries, identityService)
+	entityService := entityImpl.NewEntityServiceImpl(mySqlQueries, identityService)
 
 	return &BackendService{
 		jwtService:      jwtService,
 		identityService: identityService,
-		teachingService: teachingService,
+		entityService:   entityService,
 	}
 }
 
@@ -345,12 +345,12 @@ func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.Get
 		return nil, errV
 	}
 
-	getTeachersResult, err := s.teachingService.GetTeachers(ctx, util.PaginationSpec{
+	getTeachersResult, err := s.entityService.GetTeachers(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachers(): %w", err), nil, "Failed to get teachers")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeachers(): %w", err), nil, "Failed to get teachers")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getTeachersResult.PaginationResult)
@@ -368,7 +368,7 @@ func (s *BackendService) GetTeacherByIdHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	teacher, err := s.teachingService.GetTeacherById(ctx, req.TeacherID)
+	teacher, err := s.entityService.GetTeacherById(ctx, req.TeacherID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetTeacherById()", "teacher")
 	}
@@ -388,15 +388,15 @@ func (s *BackendService) InsertTeachersHandler(ctx context.Context, req *output.
 		userIDs = append(userIDs, param.UserID)
 	}
 
-	teacherIDs, err := s.teachingService.InsertTeachers(ctx, userIDs)
+	teacherIDs, err := s.entityService.InsertTeachers(ctx, userIDs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertTeachers()", "teacher")
+		return nil, handleUpsertionError(err, "entityService.InsertTeachers()", "teacher")
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
-	teachers, err := s.teachingService.GetTeachersByIds(ctx, teacherIDs)
+	teachers, err := s.entityService.GetTeachersByIds(ctx, teacherIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachersByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeachersByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertTeachersResponse{
@@ -423,15 +423,15 @@ func (s *BackendService) InsertTeachersWithNewUsersHandler(ctx context.Context, 
 		})
 	}
 
-	teacherIDs, err := s.teachingService.InsertTeachersWithNewUsers(ctx, insertUserSpecs)
+	teacherIDs, err := s.entityService.InsertTeachersWithNewUsers(ctx, insertUserSpecs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertTeachersWithNewUsers()", "teacher")
+		return nil, handleUpsertionError(err, "entityService.InsertTeachersWithNewUsers()", "teacher")
 	}
 	mainLog.Info("Teachers created: teacherIDs='%v'", teacherIDs)
 
-	teachers, err := s.teachingService.GetTeachersByIds(ctx, teacherIDs)
+	teachers, err := s.entityService.GetTeachersByIds(ctx, teacherIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeachersByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeachersByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertTeachersWithNewUsersResponse{
@@ -449,12 +449,12 @@ func (s *BackendService) DeleteTeachersHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	teacherIDs := make([]teaching.TeacherID, 0, len(req.Data))
+	teacherIDs := make([]entity.TeacherID, 0, len(req.Data))
 	for _, param := range req.Data {
 		teacherIDs = append(teacherIDs, param.TeacherID)
 	}
 
-	err := s.teachingService.DeleteTeachers(ctx, teacherIDs)
+	err := s.entityService.DeleteTeachers(ctx, teacherIDs)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteTeachers()", "teacher")
 	}
@@ -469,12 +469,12 @@ func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.Get
 		return nil, errV
 	}
 
-	getStudentsResult, err := s.teachingService.GetStudents(ctx, util.PaginationSpec{
+	getStudentsResult, err := s.entityService.GetStudents(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudents(): %w", err), nil, "Failed to get students")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudents(): %w", err), nil, "Failed to get students")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getStudentsResult.PaginationResult)
@@ -492,7 +492,7 @@ func (s *BackendService) GetStudentByIdHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	student, err := s.teachingService.GetStudentById(ctx, req.StudentID)
+	student, err := s.entityService.GetStudentById(ctx, req.StudentID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetStudentById()", "student")
 	}
@@ -512,15 +512,15 @@ func (s *BackendService) InsertStudentsHandler(ctx context.Context, req *output.
 		userIDs = append(userIDs, param.UserID)
 	}
 
-	studentIDs, err := s.teachingService.InsertStudents(ctx, userIDs)
+	studentIDs, err := s.entityService.InsertStudents(ctx, userIDs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertStudents()", "student")
+		return nil, handleUpsertionError(err, "entityService.InsertStudents()", "student")
 	}
 	mainLog.Info("Students created: studentIDs='%v'", studentIDs)
 
-	students, err := s.teachingService.GetStudentsByIds(ctx, studentIDs)
+	students, err := s.entityService.GetStudentsByIds(ctx, studentIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudentsByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentsByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertStudentsResponse{
@@ -547,15 +547,15 @@ func (s *BackendService) InsertStudentsWithNewUsersHandler(ctx context.Context, 
 		})
 	}
 
-	studentIDs, err := s.teachingService.InsertStudentsWithNewUsers(ctx, insertUserSpecs)
+	studentIDs, err := s.entityService.InsertStudentsWithNewUsers(ctx, insertUserSpecs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertStudentsWithNewUsers()", "student")
+		return nil, handleUpsertionError(err, "entityService.InsertStudentsWithNewUsers()", "student")
 	}
 	mainLog.Info("Students created: studentIDs='%v'", studentIDs)
 
-	students, err := s.teachingService.GetStudentsByIds(ctx, studentIDs)
+	students, err := s.entityService.GetStudentsByIds(ctx, studentIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetStudentsByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentsByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertStudentsWithNewUsersResponse{
@@ -573,12 +573,12 @@ func (s *BackendService) DeleteStudentsHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	studentIDs := make([]teaching.StudentID, 0, len(req.Data))
+	studentIDs := make([]entity.StudentID, 0, len(req.Data))
 	for _, param := range req.Data {
 		studentIDs = append(studentIDs, param.StudentID)
 	}
 
-	err := s.teachingService.DeleteStudents(ctx, studentIDs)
+	err := s.entityService.DeleteStudents(ctx, studentIDs)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteStudents()", "student")
 	}
@@ -593,12 +593,12 @@ func (s *BackendService) GetInstrumentsHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	getInstrumentsResult, err := s.teachingService.GetInstruments(ctx, util.PaginationSpec{
+	getInstrumentsResult, err := s.entityService.GetInstruments(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstruments(): %w", err), nil, "Failed to get instruments")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetInstruments(): %w", err), nil, "Failed to get instruments")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getInstrumentsResult.PaginationResult)
@@ -616,7 +616,7 @@ func (s *BackendService) GetInstrumentByIdHandler(ctx context.Context, req *outp
 		return nil, errV
 	}
 
-	instrument, err := s.teachingService.GetInstrumentById(ctx, req.InstrumentID)
+	instrument, err := s.entityService.GetInstrumentById(ctx, req.InstrumentID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetInstrumentById()", "instrument")
 	}
@@ -631,22 +631,22 @@ func (s *BackendService) InsertInstrumentsHandler(ctx context.Context, req *outp
 		return nil, errV
 	}
 
-	specs := make([]teaching.InsertInstrumentSpec, 0, len(req.Data))
+	specs := make([]entity.InsertInstrumentSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.InsertInstrumentSpec{
+		specs = append(specs, entity.InsertInstrumentSpec{
 			Name: param.Name,
 		})
 	}
 
-	instrumentIDs, err := s.teachingService.InsertInstruments(ctx, specs)
+	instrumentIDs, err := s.entityService.InsertInstruments(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertInstruments()", "instrument")
+		return nil, handleUpsertionError(err, "entityService.InsertInstruments()", "instrument")
 	}
 	mainLog.Info("Instruments created: instrumentIDs='%v'", instrumentIDs)
 
-	instruments, err := s.teachingService.GetInstrumentsByIds(ctx, instrumentIDs)
+	instruments, err := s.entityService.GetInstrumentsByIds(ctx, instrumentIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstrumentsByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetInstrumentsByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertInstrumentsResponse{
@@ -662,23 +662,23 @@ func (s *BackendService) UpdateInstrumentsHandler(ctx context.Context, req *outp
 		return nil, errV
 	}
 
-	specs := make([]teaching.UpdateInstrumentSpec, 0, len(req.Data))
+	specs := make([]entity.UpdateInstrumentSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.UpdateInstrumentSpec{
+		specs = append(specs, entity.UpdateInstrumentSpec{
 			InstrumentID: param.InstrumentID,
 			Name:         param.Name,
 		})
 	}
 
-	instrumentIDs, err := s.teachingService.UpdateInstruments(ctx, specs)
+	instrumentIDs, err := s.entityService.UpdateInstruments(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.UpdateInstruments()", "instrument")
+		return nil, handleUpsertionError(err, "entityService.UpdateInstruments()", "instrument")
 	}
 	mainLog.Info("Instruments updated: instrumentIDs='%v'", instrumentIDs)
 
-	instruments, err := s.teachingService.GetInstrumentsByIds(ctx, instrumentIDs)
+	instruments, err := s.entityService.GetInstrumentsByIds(ctx, instrumentIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetInstrumentsByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetInstrumentsByIds: %v", err), nil, "")
 	}
 
 	return &output.UpdateInstrumentsResponse{
@@ -694,12 +694,12 @@ func (s *BackendService) DeleteInstrumentsHandler(ctx context.Context, req *outp
 		return nil, errV
 	}
 
-	ids := make([]teaching.InstrumentID, 0, len(req.Data))
+	ids := make([]entity.InstrumentID, 0, len(req.Data))
 	for _, param := range req.Data {
 		ids = append(ids, param.InstrumentID)
 	}
 
-	err := s.teachingService.DeleteInstruments(ctx, ids)
+	err := s.entityService.DeleteInstruments(ctx, ids)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteInstruments()", "instrument")
 	}
@@ -714,12 +714,12 @@ func (s *BackendService) GetGradesHandler(ctx context.Context, req *output.GetGr
 		return nil, errV
 	}
 
-	getGradesResult, err := s.teachingService.GetGrades(ctx, util.PaginationSpec{
+	getGradesResult, err := s.entityService.GetGrades(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGrades(): %w", err), nil, "Failed to get grades")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetGrades(): %w", err), nil, "Failed to get grades")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getGradesResult.PaginationResult)
@@ -737,7 +737,7 @@ func (s *BackendService) GetGradeByIdHandler(ctx context.Context, req *output.Ge
 		return nil, errV
 	}
 
-	grade, err := s.teachingService.GetGradeById(ctx, req.GradeID)
+	grade, err := s.entityService.GetGradeById(ctx, req.GradeID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetGradeById()", "grade")
 	}
@@ -752,22 +752,22 @@ func (s *BackendService) InsertGradesHandler(ctx context.Context, req *output.In
 		return nil, errV
 	}
 
-	specs := make([]teaching.InsertGradeSpec, 0, len(req.Data))
+	specs := make([]entity.InsertGradeSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.InsertGradeSpec{
+		specs = append(specs, entity.InsertGradeSpec{
 			Name: param.Name,
 		})
 	}
 
-	gradeIDs, err := s.teachingService.InsertGrades(ctx, specs)
+	gradeIDs, err := s.entityService.InsertGrades(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertGrades()", "grade")
+		return nil, handleUpsertionError(err, "entityService.InsertGrades()", "grade")
 	}
 	mainLog.Info("Grades created: gradeIDs='%v'", gradeIDs)
 
-	grades, err := s.teachingService.GetGradesByIds(ctx, gradeIDs)
+	grades, err := s.entityService.GetGradesByIds(ctx, gradeIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGradesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetGradesByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertGradesResponse{
@@ -783,23 +783,23 @@ func (s *BackendService) UpdateGradesHandler(ctx context.Context, req *output.Up
 		return nil, errV
 	}
 
-	specs := make([]teaching.UpdateGradeSpec, 0, len(req.Data))
+	specs := make([]entity.UpdateGradeSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.UpdateGradeSpec{
+		specs = append(specs, entity.UpdateGradeSpec{
 			GradeID: param.GradeID,
 			Name:    param.Name,
 		})
 	}
 
-	gradeIDs, err := s.teachingService.UpdateGrades(ctx, specs)
+	gradeIDs, err := s.entityService.UpdateGrades(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.UpdateGrades()", "grade")
+		return nil, handleUpsertionError(err, "entityService.UpdateGrades()", "grade")
 	}
 	mainLog.Info("Grades updated: gradeIDs='%v'", gradeIDs)
 
-	grades, err := s.teachingService.GetGradesByIds(ctx, gradeIDs)
+	grades, err := s.entityService.GetGradesByIds(ctx, gradeIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetGradesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetGradesByIds: %v", err), nil, "")
 	}
 
 	return &output.UpdateGradesResponse{
@@ -815,12 +815,12 @@ func (s *BackendService) DeleteGradesHandler(ctx context.Context, req *output.De
 		return nil, errV
 	}
 
-	ids := make([]teaching.GradeID, 0, len(req.Data))
+	ids := make([]entity.GradeID, 0, len(req.Data))
 	for _, param := range req.Data {
 		ids = append(ids, param.GradeID)
 	}
 
-	err := s.teachingService.DeleteGrades(ctx, ids)
+	err := s.entityService.DeleteGrades(ctx, ids)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteGrades()", "grade")
 	}
@@ -835,12 +835,12 @@ func (s *BackendService) GetCoursesHandler(ctx context.Context, req *output.GetC
 		return nil, errV
 	}
 
-	getCoursesResult, err := s.teachingService.GetCourses(ctx, util.PaginationSpec{
+	getCoursesResult, err := s.entityService.GetCourses(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCourses(): %w", err), nil, "Failed to get courses")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetCourses(): %w", err), nil, "Failed to get courses")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getCoursesResult.PaginationResult)
@@ -858,7 +858,7 @@ func (s *BackendService) GetCourseByIdHandler(ctx context.Context, req *output.G
 		return nil, errV
 	}
 
-	course, err := s.teachingService.GetCourseById(ctx, req.CourseID)
+	course, err := s.entityService.GetCourseById(ctx, req.CourseID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetCourseById()", "course")
 	}
@@ -873,9 +873,9 @@ func (s *BackendService) InsertCoursesHandler(ctx context.Context, req *output.I
 		return nil, errV
 	}
 
-	specs := make([]teaching.InsertCourseSpec, 0, len(req.Data))
+	specs := make([]entity.InsertCourseSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.InsertCourseSpec{
+		specs = append(specs, entity.InsertCourseSpec{
 			InstrumentID:          param.InstrumentID,
 			GradeID:               param.GradeID,
 			DefaultFee:            param.DefaultFee,
@@ -883,15 +883,15 @@ func (s *BackendService) InsertCoursesHandler(ctx context.Context, req *output.I
 		})
 	}
 
-	courseIDs, err := s.teachingService.InsertCourses(ctx, specs)
+	courseIDs, err := s.entityService.InsertCourses(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertCourses()", "course")
+		return nil, handleUpsertionError(err, "entityService.InsertCourses()", "course")
 	}
 	mainLog.Info("Courses created: courseIDs='%v'", courseIDs)
 
-	courses, err := s.teachingService.GetCoursesByIds(ctx, courseIDs)
+	courses, err := s.entityService.GetCoursesByIds(ctx, courseIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCoursesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetCoursesByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertCoursesResponse{
@@ -907,24 +907,24 @@ func (s *BackendService) UpdateCoursesHandler(ctx context.Context, req *output.U
 		return nil, errV
 	}
 
-	specs := make([]teaching.UpdateCourseSpec, 0, len(req.Data))
+	specs := make([]entity.UpdateCourseSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.UpdateCourseSpec{
+		specs = append(specs, entity.UpdateCourseSpec{
 			CourseID:              param.CourseID,
 			DefaultFee:            param.DefaultFee,
 			DefaultDurationMinute: param.DefaultDurationMinute,
 		})
 	}
 
-	courseIDs, err := s.teachingService.UpdateCourses(ctx, specs)
+	courseIDs, err := s.entityService.UpdateCourses(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.UpdateCourses()", "course")
+		return nil, handleUpsertionError(err, "entityService.UpdateCourses()", "course")
 	}
 	mainLog.Info("Courses updated: courseIDs='%v'", courseIDs)
 
-	courses, err := s.teachingService.GetCoursesByIds(ctx, courseIDs)
+	courses, err := s.entityService.GetCoursesByIds(ctx, courseIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetCoursesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetCoursesByIds: %v", err), nil, "")
 	}
 
 	return &output.UpdateCoursesResponse{
@@ -940,12 +940,12 @@ func (s *BackendService) DeleteCoursesHandler(ctx context.Context, req *output.D
 		return nil, errV
 	}
 
-	ids := make([]teaching.CourseID, 0, len(req.Data))
+	ids := make([]entity.CourseID, 0, len(req.Data))
 	for _, param := range req.Data {
 		ids = append(ids, param.CourseID)
 	}
 
-	err := s.teachingService.DeleteCourses(ctx, ids)
+	err := s.entityService.DeleteCourses(ctx, ids)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteCourses()", "course")
 	}
@@ -960,12 +960,12 @@ func (s *BackendService) GetClassesHandler(ctx context.Context, req *output.GetC
 		return nil, errV
 	}
 
-	getClassesResult, err := s.teachingService.GetClasses(ctx, util.PaginationSpec{
+	getClassesResult, err := s.entityService.GetClasses(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	}, req.IncludeDeactivated)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClasses(): %w", err), nil, "Failed to get classes")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetClasses(): %w", err), nil, "Failed to get classes")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getClassesResult.PaginationResult)
@@ -983,7 +983,7 @@ func (s *BackendService) GetClassByIdHandler(ctx context.Context, req *output.Ge
 		return nil, errV
 	}
 
-	class, err := s.teachingService.GetClassById(ctx, req.ClassID)
+	class, err := s.entityService.GetClassById(ctx, req.ClassID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetClassById()", "class")
 	}
@@ -998,9 +998,9 @@ func (s *BackendService) InsertClassesHandler(ctx context.Context, req *output.I
 		return nil, errV
 	}
 
-	specs := make([]teaching.InsertClassSpec, 0, len(req.Data))
+	specs := make([]entity.InsertClassSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.InsertClassSpec{
+		specs = append(specs, entity.InsertClassSpec{
 			TeacherID:    param.TeacherID,
 			StudentIDs:   param.StudentIDs,
 			CourseID:     param.CourseID,
@@ -1008,15 +1008,15 @@ func (s *BackendService) InsertClassesHandler(ctx context.Context, req *output.I
 		})
 	}
 
-	classIDs, err := s.teachingService.InsertClasses(ctx, specs)
+	classIDs, err := s.entityService.InsertClasses(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertClasses()", "class")
+		return nil, handleUpsertionError(err, "entityService.InsertClasses()", "class")
 	}
 	mainLog.Info("Classes created: classIDs='%v'", classIDs)
 
-	classes, err := s.teachingService.GetClassesByIds(ctx, classIDs)
+	classes, err := s.entityService.GetClassesByIds(ctx, classIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClassesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetClassesByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertClassesResponse{
@@ -1032,9 +1032,9 @@ func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.U
 		return nil, errV
 	}
 
-	specs := make([]teaching.UpdateClassSpec, 0, len(req.Data))
+	specs := make([]entity.UpdateClassSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.UpdateClassSpec{
+		specs = append(specs, entity.UpdateClassSpec{
 			ClassID:       param.ClassID,
 			TeacherID:     param.TeacherID,
 			StudentIDs:    param.StudentIDs,
@@ -1043,15 +1043,15 @@ func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.U
 		})
 	}
 
-	classIDs, err := s.teachingService.UpdateClasses(ctx, specs)
+	classIDs, err := s.entityService.UpdateClasses(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.UpdateClasses()", "class")
+		return nil, handleUpsertionError(err, "entityService.UpdateClasses()", "class")
 	}
 	mainLog.Info("Classes updated: classIDs='%v'", classIDs)
 
-	classes, err := s.teachingService.GetClassesByIds(ctx, classIDs)
+	classes, err := s.entityService.GetClassesByIds(ctx, classIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetClassesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetClassesByIds: %v", err), nil, "")
 	}
 
 	return &output.UpdateClassesResponse{
@@ -1067,12 +1067,12 @@ func (s *BackendService) DeleteClassesHandler(ctx context.Context, req *output.D
 		return nil, errV
 	}
 
-	ids := make([]teaching.ClassID, 0, len(req.Data))
+	ids := make([]entity.ClassID, 0, len(req.Data))
 	for _, param := range req.Data {
 		ids = append(ids, param.ClassID)
 	}
 
-	err := s.teachingService.DeleteClasses(ctx, ids)
+	err := s.entityService.DeleteClasses(ctx, ids)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteClasses()", "class")
 	}
@@ -1087,12 +1087,12 @@ func (s *BackendService) GetTeacherSpecialFeesHandler(ctx context.Context, req *
 		return nil, errV
 	}
 
-	getTeacherSpecialFeesResult, err := s.teachingService.GetTeacherSpecialFees(ctx, util.PaginationSpec{
+	getTeacherSpecialFeesResult, err := s.entityService.GetTeacherSpecialFees(ctx, util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
 	})
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeacherSpecialFees(): %w", err), nil, "Failed to get courses")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSpecialFees(): %w", err), nil, "Failed to get courses")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getTeacherSpecialFeesResult.PaginationResult)
@@ -1110,7 +1110,7 @@ func (s *BackendService) GetTeacherSpecialFeeByIdHandler(ctx context.Context, re
 		return nil, errV
 	}
 
-	teacherSpecialFee, err := s.teachingService.GetTeacherSpecialFeeById(ctx, req.TeacherSpecialFeeID)
+	teacherSpecialFee, err := s.entityService.GetTeacherSpecialFeeById(ctx, req.TeacherSpecialFeeID)
 	if err != nil {
 		return nil, handleReadError(err, "identityService.GetTeacherSpecialFeeById()", "teacherSpecialFee")
 	}
@@ -1125,24 +1125,24 @@ func (s *BackendService) InsertTeacherSpecialFeesHandler(ctx context.Context, re
 		return nil, errV
 	}
 
-	specs := make([]teaching.InsertTeacherSpecialFeeSpec, 0, len(req.Data))
+	specs := make([]entity.InsertTeacherSpecialFeeSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.InsertTeacherSpecialFeeSpec{
+		specs = append(specs, entity.InsertTeacherSpecialFeeSpec{
 			TeacherID: param.TeacherID,
 			CourseID:  param.CourseID,
 			Fee:       param.Fee,
 		})
 	}
 
-	teacherSpecialFeeIDs, err := s.teachingService.InsertTeacherSpecialFees(ctx, specs)
+	teacherSpecialFeeIDs, err := s.entityService.InsertTeacherSpecialFees(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.InsertTeacherSpecialFees()", "teacherSpecialFee")
+		return nil, handleUpsertionError(err, "entityService.InsertTeacherSpecialFees()", "teacherSpecialFee")
 	}
 	mainLog.Info("TeacherSpecialFees created: teacherSpecialFeeIDs='%v'", teacherSpecialFeeIDs)
 
-	teacherSpecialFees, err := s.teachingService.GetTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIDs)
+	teacherSpecialFees, err := s.entityService.GetTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeacherSpecialFeesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSpecialFeesByIds: %v", err), nil, "")
 	}
 
 	return &output.InsertTeacherSpecialFeesResponse{
@@ -1158,23 +1158,23 @@ func (s *BackendService) UpdateTeacherSpecialFeesHandler(ctx context.Context, re
 		return nil, errV
 	}
 
-	specs := make([]teaching.UpdateTeacherSpecialFeeSpec, 0, len(req.Data))
+	specs := make([]entity.UpdateTeacherSpecialFeeSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		specs = append(specs, teaching.UpdateTeacherSpecialFeeSpec{
+		specs = append(specs, entity.UpdateTeacherSpecialFeeSpec{
 			TeacherSpecialFeeID: param.TeacherSpecialFeeID,
 			Fee:                 param.Fee,
 		})
 	}
 
-	teacherSpecialFeeIDs, err := s.teachingService.UpdateTeacherSpecialFees(ctx, specs)
+	teacherSpecialFeeIDs, err := s.entityService.UpdateTeacherSpecialFees(ctx, specs)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.UpdateTeacherSpecialFees()", "teacherSpecialFee")
+		return nil, handleUpsertionError(err, "entityService.UpdateTeacherSpecialFees()", "teacherSpecialFee")
 	}
 	mainLog.Info("TeacherSpecialFees updated: teacherSpecialFeeIDs='%v'", teacherSpecialFeeIDs)
 
-	teacherSpecialFees, err := s.teachingService.GetTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIDs)
+	teacherSpecialFees, err := s.entityService.GetTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetTeacherSpecialFeesByIds: %v", err), nil, "")
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSpecialFeesByIds: %v", err), nil, "")
 	}
 
 	return &output.UpdateTeacherSpecialFeesResponse{
@@ -1190,12 +1190,12 @@ func (s *BackendService) DeleteTeacherSpecialFeesHandler(ctx context.Context, re
 		return nil, errV
 	}
 
-	ids := make([]teaching.TeacherSpecialFeeID, 0, len(req.Data))
+	ids := make([]entity.TeacherSpecialFeeID, 0, len(req.Data))
 	for _, param := range req.Data {
 		ids = append(ids, param.TeacherSpecialFeeID)
 	}
 
-	err := s.teachingService.DeleteTeacherSpecialFees(ctx, ids)
+	err := s.entityService.DeleteTeacherSpecialFees(ctx, ids)
 	if err != nil {
 		return nil, handleDeletionError(err, "identityService.DeleteTeacherSpecialFees()", "teacherSpecialFee")
 	}

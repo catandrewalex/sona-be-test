@@ -2,16 +2,16 @@ package impl
 
 import (
 	"sonamusica-backend/accessor/relational_db/mysql"
+	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/identity"
-	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
 )
 
-func NewTeachersFromGetTeachersRow(teacherRows []mysql.GetTeachersRow) []teaching.Teacher {
-	teachers := make([]teaching.Teacher, 0, len(teacherRows))
+func NewTeachersFromGetTeachersRow(teacherRows []mysql.GetTeachersRow) []entity.Teacher {
+	teachers := make([]entity.Teacher, 0, len(teacherRows))
 	for _, teacherRow := range teacherRows {
-		teachers = append(teachers, teaching.Teacher{
-			TeacherID: teaching.TeacherID(teacherRow.ID),
+		teachers = append(teachers, entity.Teacher{
+			TeacherID: entity.TeacherID(teacherRow.ID),
 			User: identity.User{
 				UserID:        identity.UserID(teacherRow.UserID),
 				Username:      teacherRow.Username,
@@ -27,11 +27,11 @@ func NewTeachersFromGetTeachersRow(teacherRows []mysql.GetTeachersRow) []teachin
 	return teachers
 }
 
-func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []teaching.Student {
-	students := make([]teaching.Student, 0, len(studentRows))
+func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []entity.Student {
+	students := make([]entity.Student, 0, len(studentRows))
 	for _, studentRow := range studentRows {
-		students = append(students, teaching.Student{
-			StudentID: teaching.StudentID(studentRow.ID),
+		students = append(students, entity.Student{
+			StudentID: entity.StudentID(studentRow.ID),
 			User: identity.User{
 				UserID:        identity.UserID(studentRow.UserID),
 				Username:      studentRow.Username,
@@ -47,11 +47,11 @@ func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []teachin
 	return students
 }
 
-func NewInstrumentsFromMySQLInstruments(instrumentRows []mysql.Instrument) []teaching.Instrument {
-	instruments := make([]teaching.Instrument, 0, len(instrumentRows))
+func NewInstrumentsFromMySQLInstruments(instrumentRows []mysql.Instrument) []entity.Instrument {
+	instruments := make([]entity.Instrument, 0, len(instrumentRows))
 	for _, instrumentRow := range instrumentRows {
-		instruments = append(instruments, teaching.Instrument{
-			InstrumentID: teaching.InstrumentID(instrumentRow.ID),
+		instruments = append(instruments, entity.Instrument{
+			InstrumentID: entity.InstrumentID(instrumentRow.ID),
 			Name:         instrumentRow.Name,
 		})
 	}
@@ -59,11 +59,11 @@ func NewInstrumentsFromMySQLInstruments(instrumentRows []mysql.Instrument) []tea
 	return instruments
 }
 
-func NewGradesFromMySQLGrades(gradeRows []mysql.Grade) []teaching.Grade {
-	grades := make([]teaching.Grade, 0, len(gradeRows))
+func NewGradesFromMySQLGrades(gradeRows []mysql.Grade) []entity.Grade {
+	grades := make([]entity.Grade, 0, len(gradeRows))
 	for _, gradeRow := range gradeRows {
-		grades = append(grades, teaching.Grade{
-			GradeID: teaching.GradeID(gradeRow.ID),
+		grades = append(grades, entity.Grade{
+			GradeID: entity.GradeID(gradeRow.ID),
 			Name:    gradeRow.Name,
 		})
 	}
@@ -71,11 +71,11 @@ func NewGradesFromMySQLGrades(gradeRows []mysql.Grade) []teaching.Grade {
 	return grades
 }
 
-func NewCoursesFromGetCoursesRow(courseRows []mysql.GetCoursesRow) []teaching.Course {
-	courses := make([]teaching.Course, 0, len(courseRows))
+func NewCoursesFromGetCoursesRow(courseRows []mysql.GetCoursesRow) []entity.Course {
+	courses := make([]entity.Course, 0, len(courseRows))
 	for _, courseRow := range courseRows {
-		courses = append(courses, teaching.Course{
-			CourseID:              teaching.CourseID(courseRow.CourseID),
+		courses = append(courses, entity.Course{
+			CourseID:              entity.CourseID(courseRow.CourseID),
 			Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{courseRow.Instrument})[0],
 			Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{courseRow.Grade})[0],
 			DefaultFee:            courseRow.DefaultFee,
@@ -86,17 +86,17 @@ func NewCoursesFromGetCoursesRow(courseRows []mysql.GetCoursesRow) []teaching.Co
 	return courses
 }
 
-func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Class {
-	classes := make([]teaching.Class, 0, len(classRows))
+func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []entity.Class {
+	classes := make([]entity.Class, 0, len(classRows))
 
-	prevClassId := teaching.ClassID_None
+	prevClassId := entity.ClassID_None
 	for _, classRow := range classRows {
-		classId := teaching.ClassID(classRow.ClassID)
+		classId := entity.ClassID(classRow.ClassID)
 		if classId != prevClassId {
-			var teacherInfo *teaching.TeacherInfo_Minimal
-			teacherId := teaching.TeacherID(classRow.TeacherID.Int64)
-			if classRow.TeacherID.Valid && teacherId != teaching.TeacherID_None {
-				teacherInfo = &teaching.TeacherInfo_Minimal{
+			var teacherInfo *entity.TeacherInfo_Minimal
+			teacherId := entity.TeacherID(classRow.TeacherID.Int64)
+			if classRow.TeacherID.Valid && teacherId != entity.TeacherID_None {
+				teacherInfo = &entity.TeacherInfo_Minimal{
 					TeacherID: teacherId,
 					UserInfo_Minimal: identity.UserInfo_Minimal{
 						Username:   classRow.TeacherUsername.String,
@@ -105,10 +105,10 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 				}
 			}
 
-			studentInfos := make([]teaching.StudentInfo_Minimal, 0)
-			studentId := teaching.StudentID(classRow.StudentID.Int64)
-			if classRow.StudentID.Valid && studentId != teaching.StudentID_None {
-				studentInfos = append(studentInfos, teaching.StudentInfo_Minimal{
+			studentInfos := make([]entity.StudentInfo_Minimal, 0)
+			studentId := entity.StudentID(classRow.StudentID.Int64)
+			if classRow.StudentID.Valid && studentId != entity.StudentID_None {
+				studentInfos = append(studentInfos, entity.StudentInfo_Minimal{
 					StudentID: studentId,
 					UserInfo_Minimal: identity.UserInfo_Minimal{
 						Username:   classRow.StudentUsername.String,
@@ -117,15 +117,15 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 				})
 			}
 
-			course := teaching.Course{
-				CourseID:              teaching.CourseID(classRow.CourseID),
+			course := entity.Course{
+				CourseID:              entity.CourseID(classRow.CourseID),
 				Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{classRow.Instrument})[0],
 				Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{classRow.Grade})[0],
 				DefaultFee:            classRow.DefaultFee,
 				DefaultDurationMinute: classRow.DefaultDurationMinute,
 			}
 
-			classes = append(classes, teaching.Class{
+			classes = append(classes, entity.Class{
 				ClassID:              classId,
 				TeacherInfo_Minimal:  teacherInfo,
 				StudentInfos_Minimal: studentInfos,
@@ -135,10 +135,10 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 			})
 		} else {
 			// Populate students
-			studentId := teaching.StudentID(classRow.StudentID.Int64)
-			if classRow.StudentID.Valid && studentId != teaching.StudentID_None {
+			studentId := entity.StudentID(classRow.StudentID.Int64)
+			if classRow.StudentID.Valid && studentId != entity.StudentID_None {
 				prevIdx := len(classes) - 1
-				classes[prevIdx].StudentInfos_Minimal = append(classes[prevIdx].StudentInfos_Minimal, teaching.StudentInfo_Minimal{
+				classes[prevIdx].StudentInfos_Minimal = append(classes[prevIdx].StudentInfos_Minimal, entity.StudentInfo_Minimal{
 					StudentID: studentId,
 					UserInfo_Minimal: identity.UserInfo_Minimal{
 						Username:   classRow.StudentUsername.String,
@@ -152,20 +152,20 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []teaching.Cla
 	return classes
 }
 
-func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []mysql.GetTeacherSpecialFeesRow) []teaching.TeacherSpecialFee {
-	teacherSpecialFees := make([]teaching.TeacherSpecialFee, 0, len(teacherSpecialFeeRows))
+func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []mysql.GetTeacherSpecialFeesRow) []entity.TeacherSpecialFee {
+	teacherSpecialFees := make([]entity.TeacherSpecialFee, 0, len(teacherSpecialFeeRows))
 	for _, teacherSpecialFeeRow := range teacherSpecialFeeRows {
-		teacherSpecialFees = append(teacherSpecialFees, teaching.TeacherSpecialFee{
-			TeacherSpecialFeeID: teaching.TeacherSpecialFeeID(teacherSpecialFeeRow.TeacherSpecialFeeID),
-			TeacherInfo: teaching.TeacherInfo_Minimal{
-				TeacherID: teaching.TeacherID(teacherSpecialFeeRow.TeacherID),
+		teacherSpecialFees = append(teacherSpecialFees, entity.TeacherSpecialFee{
+			TeacherSpecialFeeID: entity.TeacherSpecialFeeID(teacherSpecialFeeRow.TeacherSpecialFeeID),
+			TeacherInfo: entity.TeacherInfo_Minimal{
+				TeacherID: entity.TeacherID(teacherSpecialFeeRow.TeacherID),
 				UserInfo_Minimal: identity.UserInfo_Minimal{
 					Username:   teacherSpecialFeeRow.TeacherUsername,
 					UserDetail: identity.UnmarshalUserDetail(teacherSpecialFeeRow.TeacherDetail, mainLog),
 				},
 			},
-			CourseInfo: teaching.CourseInfo_Minimal{
-				CourseID:   teaching.CourseID(teacherSpecialFeeRow.CourseID),
+			CourseInfo: entity.CourseInfo_Minimal{
+				CourseID:   entity.CourseID(teacherSpecialFeeRow.CourseID),
 				Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{teacherSpecialFeeRow.Instrument})[0],
 				Grade:      NewGradesFromMySQLGrades([]mysql.Grade{teacherSpecialFeeRow.Grade})[0],
 			},

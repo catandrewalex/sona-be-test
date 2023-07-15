@@ -1,4 +1,4 @@
-package teaching
+package entity
 
 import (
 	"context"
@@ -112,7 +112,7 @@ const (
 	PresenceID_None PresenceID = iota
 )
 
-type TeachingService interface {
+type EntityService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
 	GetTeacherById(ctx context.Context, id TeacherID) (Teacher, error)
 	GetTeachersByIds(ctx context.Context, ids []TeacherID) ([]Teacher, error)
