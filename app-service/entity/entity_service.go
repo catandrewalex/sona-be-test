@@ -222,6 +222,10 @@ type UpdateInstrumentSpec struct {
 	Name         string
 }
 
+func (s UpdateInstrumentSpec) GetInt64ID() int64 {
+	return int64(s.InstrumentID)
+}
+
 // ============================== GRADE ==============================
 
 type GetGradesResult struct {
@@ -236,6 +240,10 @@ type InsertGradeSpec struct {
 type UpdateGradeSpec struct {
 	GradeID GradeID
 	Name    string
+}
+
+func (s UpdateGradeSpec) GetInt64ID() int64 {
+	return int64(s.GradeID)
 }
 
 // ============================== COURSE ==============================
@@ -256,6 +264,10 @@ type UpdateCourseSpec struct {
 	CourseID              CourseID
 	DefaultFee            int64
 	DefaultDurationMinute int32
+}
+
+func (s UpdateCourseSpec) GetInt64ID() int64 {
+	return int64(s.CourseID)
 }
 
 // ============================== COURSE ==============================
@@ -280,6 +292,10 @@ type UpdateClassSpec struct {
 	IsDeactivated bool
 }
 
+func (s UpdateClassSpec) GetInt64ID() int64 {
+	return int64(s.ClassID)
+}
+
 // ============================== TEACHER_SPECIAL_FEE ==============================
 
 type GetTeacherSpecialFeesResult struct {
@@ -296,6 +312,10 @@ type InsertTeacherSpecialFeeSpec struct {
 type UpdateTeacherSpecialFeeSpec struct {
 	TeacherSpecialFeeID TeacherSpecialFeeID
 	Fee                 int64
+}
+
+func (s UpdateTeacherSpecialFeeSpec) GetInt64ID() int64 {
+	return int64(s.TeacherSpecialFeeID)
 }
 
 // ============================== ENROLLMENT_PAYMENT ==============================
@@ -321,6 +341,10 @@ type UpdateEnrollmentPaymentSpec struct {
 	ValuePenalty        int32
 }
 
+func (s UpdateEnrollmentPaymentSpec) GetInt64ID() int64 {
+	return int64(s.EnrollmentPaymentID)
+}
+
 // ============================== ENROLLMENT_PAYMENT ==============================
 
 type GetStudentLearningTokensResult struct {
@@ -342,4 +366,8 @@ type UpdateStudentLearningTokenSpec struct {
 	QuotaBonus             int32
 	CourseFeeValue         int32
 	TransportFeeValue      int32
+}
+
+func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {
+	return int64(s.StudentLearningTokenID)
 }

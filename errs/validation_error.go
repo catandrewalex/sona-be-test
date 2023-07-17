@@ -129,6 +129,12 @@ type validationError struct {
 
 type ValidationErrorDetail map[string]string
 
+// NewValidationError returns Go's default error, with input params:
+//  1. err = common wrapped Go's errors we commonly use in Golang codebase (thus respecting the Error() interface).
+//  2. detail (map[string]string) = error in higher detail, which MUST be propagatable to FE, even users (please OMIT SENSITIVE INFORMATION).
+//     We format it in map[string]string to allow us to map the errors to the triggering fields (e.g. "username": "must not be empty", "password": "must be longer than 8 characters").
+//
+// Please use errs.ClientMessageKey_NonField as the mapKey if there's only a single error and it's not referring to any field.
 func NewValidationError(err error, detail ValidationErrorDetail) ValidationError {
 	return &validationError{
 		Err:    err,

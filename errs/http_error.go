@@ -13,10 +13,12 @@ type HTTPError interface {
 }
 
 type httpError struct {
-	err               error
+	err error
+	// processableErrors are errors that are expected to be processable by FE. E.g.: field-related errors to be rendered under every FE text boxes.
 	processableErrors map[string]string
-	clientMessage     string
-	httpErrorCode     int
+	// clientMessage stores a user-friendly message (i.e. an error) that is expected to be directly rendered by the FE.
+	clientMessage string
+	httpErrorCode int
 }
 
 func NewHTTPError(httpErrorCode int, err error, processableErrors map[string]string, clientMessage string) HTTPError {

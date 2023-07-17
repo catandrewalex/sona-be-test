@@ -20,8 +20,12 @@ FROM teacher JOIN user ON teacher.user_id = user.id
 ORDER BY teacher.id
 LIMIT ? OFFSET ?;
 
+-- name: CountTeachersByIds :one
+SELECT Count(id) AS total FROM teacher
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountTeachers :one
-SELECT Count(*) AS total FROM teacher;
+SELECT Count(id) AS total FROM teacher;
 
 -- name: InsertTeacher :execlastid
 INSERT INTO teacher ( user_id ) VALUES ( ? );
@@ -56,8 +60,12 @@ SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_t
 FROM student JOIN user ON student.user_id = user.id
 WHERE student.id IN (sqlc.slice('ids'));
 
+-- name: CountStudentsByIds :one
+SELECT Count(id) AS total FROM student
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountStudents :one
-SELECT Count(*) AS total FROM student;
+SELECT Count(id) AS total FROM student;
 
 -- name: InsertStudent :execlastid
 INSERT INTO student ( user_id ) VALUES ( ? );
@@ -84,8 +92,12 @@ SELECT * FROM instrument
 ORDER BY id
 LIMIT ? OFFSET ?;
 
+-- name: CountInstrumentsByIds :one
+SELECT Count(id) AS total FROM instrument
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountInstruments :one
-SELECT Count(*) AS total FROM instrument;
+SELECT Count(id) AS total FROM instrument;
 
 -- name: InsertInstrument :execlastid
 INSERT INTO instrument ( name ) VALUES ( ? );
@@ -112,6 +124,10 @@ SELECT * FROM grade
 ORDER BY id
 LIMIT ? OFFSET ?;
 
+-- name: CountGradesByIds :one
+SELECT Count(id) AS total FROM grade
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountGrades :one
 SELECT Count(*) AS total FROM grade;
 
@@ -135,8 +151,12 @@ FROM course
 ORDER BY course.id
 LIMIT ? OFFSET ?;
 
+-- name: CountCoursesByIds :one
+SELECT Count(id) AS total FROM course
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountCourses :one
-SELECT Count(*) AS total FROM course;
+SELECT Count(id) AS total FROM course;
 
 -- name: GetCoursesByIds :many
 SELECT course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee, default_duration_minute
@@ -219,8 +239,12 @@ FROM class_paginated
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 ORDER BY class_paginated.id;
 
+-- name: CountClassesByIds :one
+SELECT Count(id) AS total FROM class
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountClasses :one
-SELECT Count(*) AS total FROM class
+SELECT Count(id) AS total FROM class
 WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
 
 -- name: GetClassesByIds :many
@@ -409,8 +433,12 @@ FROM teacher_special_fee
 ORDER BY course.id
 LIMIT ? OFFSET ?;
 
+-- name: CountTeacherSpecialFeesByIds :one
+SELECT Count(id) AS total FROM teacher_special_fee
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountTeacherSpecialFees :one
-SELECT Count(id) AS total from teacher_special_fee;
+SELECT Count(id) AS total FROM teacher_special_fee;
 
 -- name: GetTeacherSpecialFeeById :one
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,

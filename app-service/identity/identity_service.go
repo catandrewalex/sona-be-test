@@ -111,6 +111,10 @@ type UpdateUserInfoSpec struct {
 	IsDeactivated     bool
 }
 
+func (s UpdateUserInfoSpec) GetInt64ID() int64 {
+	return int64(s.UserID)
+}
+
 type UpdateUserPasswordSpec struct {
 	UserID   UserID
 	Password string

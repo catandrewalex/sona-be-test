@@ -348,6 +348,11 @@ func (s entityServiceImpl) InsertInstruments(ctx context.Context, specs []entity
 }
 
 func (s entityServiceImpl) UpdateInstruments(ctx context.Context, specs []entity.UpdateInstrumentSpec) ([]entity.InstrumentID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountInstrumentsByIds)
+	if errV != nil {
+		return []entity.InstrumentID{}, errV
+	}
+
 	instrumentIDs := make([]entity.InstrumentID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
@@ -470,6 +475,11 @@ func (s entityServiceImpl) InsertGrades(ctx context.Context, specs []entity.Inse
 }
 
 func (s entityServiceImpl) UpdateGrades(ctx context.Context, specs []entity.UpdateGradeSpec) ([]entity.GradeID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountGradesByIds)
+	if errV != nil {
+		return []entity.GradeID{}, errV
+	}
+
 	gradeIDs := make([]entity.GradeID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
@@ -602,6 +612,11 @@ func (s entityServiceImpl) InsertCourses(ctx context.Context, specs []entity.Ins
 }
 
 func (s entityServiceImpl) UpdateCourses(ctx context.Context, specs []entity.UpdateCourseSpec) ([]entity.CourseID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountCoursesByIds)
+	if errV != nil {
+		return []entity.CourseID{}, errV
+	}
+
 	courseIDs := make([]entity.CourseID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
@@ -760,6 +775,11 @@ func (s entityServiceImpl) InsertClasses(ctx context.Context, specs []entity.Ins
 }
 
 func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.UpdateClassSpec) ([]entity.ClassID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountClassesByIds)
+	if errV != nil {
+		return []entity.ClassID{}, errV
+	}
+
 	classIDs := make([]entity.ClassID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
@@ -783,6 +803,8 @@ func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.Upd
 		}
 		classIDs = append(classIDs, spec.ClassID)
 
+		// we only know the initial & final states of the class' students.
+		// so, we need to calculate the difference manually to know which DB action to be executed (insert, delete, or update [enable/disable]).
 		studentDifference, err := calculateClassStudentsDifference(ctx, qtx, spec.ClassID, spec.StudentIDs)
 		if err != nil {
 			return []entity.ClassID{}, fmt.Errorf("calculateClassStudentsDifference(): %w", err)
@@ -999,6 +1021,11 @@ func (s entityServiceImpl) InsertTeacherSpecialFees(ctx context.Context, specs [
 }
 
 func (s entityServiceImpl) UpdateTeacherSpecialFees(ctx context.Context, specs []entity.UpdateTeacherSpecialFeeSpec) ([]entity.TeacherSpecialFeeID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherSpecialFeesByIds)
+	if errV != nil {
+		return []entity.TeacherSpecialFeeID{}, errV
+	}
+
 	teacherSpecialFeeIDs := make([]entity.TeacherSpecialFeeID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
@@ -1131,6 +1158,11 @@ func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs [
 }
 
 func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs []entity.UpdateEnrollmentPaymentSpec) ([]entity.EnrollmentPaymentID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountEnrollmentPaymentsByIds)
+	if errV != nil {
+		return []entity.EnrollmentPaymentID{}, errV
+	}
+
 	enrollmentPaymentIDs := make([]entity.EnrollmentPaymentID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
@@ -1265,6 +1297,11 @@ func (s entityServiceImpl) InsertStudentLearningTokens(ctx context.Context, spec
 }
 
 func (s entityServiceImpl) UpdateStudentLearningTokens(ctx context.Context, specs []entity.UpdateStudentLearningTokenSpec) ([]entity.StudentLearningTokenID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountStudentLearningTokensByIds)
+	if errV != nil {
+		return []entity.StudentLearningTokenID{}, errV
+	}
+
 	studentLearningTokenIDs := make([]entity.StudentLearningTokenID, 0, len(specs))
 
 	tx, err := s.mySQLQueries.BeginTx(ctx, nil)

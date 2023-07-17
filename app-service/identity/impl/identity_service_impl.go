@@ -224,6 +224,11 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 }
 
 func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identity.UpdateUserInfoSpec) ([]identity.UserID, error) {
+	err := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountUsersByIds)
+	if err != nil {
+		return []identity.UserID{}, err
+	}
+
 	userDetails := make([][]byte, 0, len(specs))
 	for _, spec := range specs {
 		userDetail, err := json.Marshal(spec.UserDetail)

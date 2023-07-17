@@ -45,8 +45,12 @@ FROM enrollment_payment AS ep
 ORDER BY ep.id
 LIMIT ? OFFSET ?;
 
+-- name: CountEnrollmentPaymentsByIds :one
+SELECT Count(id) AS total FROM enrollment_payment
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountEnrollmentPayments :one
-SELECT Count(id) AS total from enrollment_payment;
+SELECT Count(id) AS total FROM enrollment_payment;
 
 -- name: InsertEnrollmentPayment :execlastid
 INSERT INTO enrollment_payment (
@@ -128,6 +132,10 @@ FROM student_learning_token AS slt
     JOIN grade ON course.grade_id = grade.id
 ORDER BY slt.id
 LIMIT ? OFFSET ?;
+
+-- name: CountStudentLearningTokensByIds :one
+SELECT Count(id) AS total FROM student_learning_token
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: CountStudentLearningTokens :one
 SELECT Count(id) AS total FROM student_learning_token;

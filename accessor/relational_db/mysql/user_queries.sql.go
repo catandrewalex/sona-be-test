@@ -42,6 +42,28 @@ func (q *Queries) CountUsers(ctx context.Context, isdeactivateds []int32) (int64
 	return total, err
 }
 
+const countUsersByIds = `-- name: CountUsersByIds :one
+SELECT Count(*) AS total FROM user
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountUsersByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countUsersByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countUsersNotStudent = `-- name: CountUsersNotStudent :one
 SELECT Count(*) AS total FROM user
 LEFT JOIN student on user.id = student.user_id

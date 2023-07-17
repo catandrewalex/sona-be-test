@@ -22,7 +22,7 @@ var regexExtractTextInsideQuotes = regexp.MustCompile(`'([^']+)'`)
 // WrapMySQLError wrap (or we can say parse) errors returned from SQL operations into a more useful service-layer logic.
 //
 //	Examples:
-//	1. DuplicateKey error in most cases should be propagated to client as a validation error (e.g. user is trying to sign up using used email/username)
+//	1. DuplicateKey, RowIsReferenced, NoReferencedRow errors in most cases should be propagated to client as a validation error (e.g. user is trying to sign up using used email/username)
 func WrapMySQLError(err error) error {
 	if err == nil {
 		return nil

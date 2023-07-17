@@ -31,6 +31,10 @@ WHERE is_deactivated IN (sqlc.slice('isDeactivateds')) AND student.user_id IS NU
 ORDER BY user.id
 LIMIT ? OFFSET ?;
 
+-- name: CountUsersByIds :one
+SELECT Count(*) AS total FROM user
+WHERE id IN (sqlc.slice('ids'));
+
 -- name: CountUsers :one
 SELECT Count(*) AS total FROM user
 WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));

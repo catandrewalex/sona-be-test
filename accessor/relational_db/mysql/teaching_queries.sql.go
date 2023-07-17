@@ -23,7 +23,7 @@ func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
 }
 
 const countClasses = `-- name: CountClasses :one
-SELECT Count(*) AS total FROM class
+SELECT Count(id) AS total FROM class
 WHERE is_deactivated IN (/*SLICE:isDeactivateds*/?)
 `
 
@@ -44,12 +44,56 @@ func (q *Queries) CountClasses(ctx context.Context, isdeactivateds []int32) (int
 	return total, err
 }
 
+const countClassesByIds = `-- name: CountClassesByIds :one
+SELECT Count(id) AS total FROM class
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountClassesByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countClassesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countCourses = `-- name: CountCourses :one
-SELECT Count(*) AS total FROM course
+SELECT Count(id) AS total FROM course
 `
 
 func (q *Queries) CountCourses(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countCourses)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countCoursesByIds = `-- name: CountCoursesByIds :one
+SELECT Count(id) AS total FROM course
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountCoursesByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countCoursesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
@@ -66,8 +110,30 @@ func (q *Queries) CountGrades(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const countGradesByIds = `-- name: CountGradesByIds :one
+SELECT Count(id) AS total FROM grade
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountGradesByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countGradesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countInstruments = `-- name: CountInstruments :one
-SELECT Count(*) AS total FROM instrument
+SELECT Count(id) AS total FROM instrument
 `
 
 func (q *Queries) CountInstruments(ctx context.Context) (int64, error) {
@@ -77,8 +143,30 @@ func (q *Queries) CountInstruments(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const countInstrumentsByIds = `-- name: CountInstrumentsByIds :one
+SELECT Count(id) AS total FROM instrument
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountInstrumentsByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countInstrumentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countStudents = `-- name: CountStudents :one
-SELECT Count(*) AS total FROM student
+SELECT Count(id) AS total FROM student
 `
 
 func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
@@ -88,8 +176,30 @@ func (q *Queries) CountStudents(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const countStudentsByIds = `-- name: CountStudentsByIds :one
+SELECT Count(id) AS total FROM student
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountStudentsByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countStudentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countTeacherSpecialFees = `-- name: CountTeacherSpecialFees :one
-SELECT Count(id) AS total from teacher_special_fee
+SELECT Count(id) AS total FROM teacher_special_fee
 `
 
 func (q *Queries) CountTeacherSpecialFees(ctx context.Context) (int64, error) {
@@ -99,12 +209,56 @@ func (q *Queries) CountTeacherSpecialFees(ctx context.Context) (int64, error) {
 	return total, err
 }
 
+const countTeacherSpecialFeesByIds = `-- name: CountTeacherSpecialFeesByIds :one
+SELECT Count(id) AS total FROM teacher_special_fee
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountTeacherSpecialFeesByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countTeacherSpecialFeesByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
 const countTeachers = `-- name: CountTeachers :one
-SELECT Count(*) AS total FROM teacher
+SELECT Count(id) AS total FROM teacher
 `
 
 func (q *Queries) CountTeachers(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countTeachers)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countTeachersByIds = `-- name: CountTeachersByIds :one
+SELECT Count(id) AS total FROM teacher
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountTeachersByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countTeachersByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
 	var total int64
 	err := row.Scan(&total)
 	return total, err

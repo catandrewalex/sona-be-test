@@ -14,11 +14,33 @@ import (
 )
 
 const countEnrollmentPayments = `-- name: CountEnrollmentPayments :one
-SELECT Count(id) AS total from enrollment_payment
+SELECT Count(id) AS total FROM enrollment_payment
 `
 
 func (q *Queries) CountEnrollmentPayments(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countEnrollmentPayments)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countEnrollmentPaymentsByIds = `-- name: CountEnrollmentPaymentsByIds :one
+SELECT Count(id) AS total FROM enrollment_payment
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countEnrollmentPaymentsByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
@@ -30,6 +52,28 @@ SELECT Count(id) AS total FROM student_learning_token
 
 func (q *Queries) CountStudentLearningTokens(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countStudentLearningTokens)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countStudentLearningTokensByIds = `-- name: CountStudentLearningTokensByIds :one
+SELECT Count(id) AS total FROM student_learning_token
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) CountStudentLearningTokensByIds(ctx context.Context, ids []int64) (int64, error) {
+	sql := countStudentLearningTokensByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, sql, queryParams...)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
