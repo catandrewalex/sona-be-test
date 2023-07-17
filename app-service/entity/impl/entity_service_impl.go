@@ -1117,7 +1117,6 @@ func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs [
 			EnrollmentID: sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
 		})
 		if err != nil {
-
 			return []entity.EnrollmentPaymentID{}, fmt.Errorf("qtx.InsertEnrollmentPayment(): %w", err)
 		}
 		enrollmentPaymentIDs = append(enrollmentPaymentIDs, entity.EnrollmentPaymentID(enrollmentPaymentID))
@@ -1150,7 +1149,6 @@ func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs [
 			ID:           int64(spec.EnrollmentPaymentID),
 		})
 		if err != nil {
-
 			return []entity.EnrollmentPaymentID{}, fmt.Errorf("qtx.UpdateEnrollmentPayment(): %w", err)
 		}
 		enrollmentPaymentIDs = append(enrollmentPaymentIDs, spec.EnrollmentPaymentID)
@@ -1173,6 +1171,140 @@ func (s entityServiceImpl) DeleteEnrollmentPayments(ctx context.Context, ids []e
 	err := s.mySQLQueries.DeleteEnrollmentPaymentsByIds(ctx, enrollmentPaymentIdsInt64)
 	if err != nil {
 		return fmt.Errorf("mySQLQueries.DeleteEnrollmentPaymentByIds(): %w", err)
+	}
+
+	return nil
+}
+
+func (s entityServiceImpl) GetStudentLearningTokens(ctx context.Context, pagination util.PaginationSpec) (entity.GetStudentLearningTokensResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	studentLearningTokenRows, err := s.mySQLQueries.GetStudentLearningTokens(ctx, mysql.GetStudentLearningTokensParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return entity.GetStudentLearningTokensResult{}, fmt.Errorf("mySQLQueries.GetStudentLearningTokens(): %w", err)
+	}
+
+	studentLearningTokens := NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningTokenRows)
+
+	totalResults, err := s.mySQLQueries.CountStudentLearningTokens(ctx)
+	if err != nil {
+		return entity.GetStudentLearningTokensResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
+
+	return entity.GetStudentLearningTokensResult{
+		StudentLearningTokens: studentLearningTokens,
+		PaginationResult:      *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s entityServiceImpl) GetStudentLearningTokenById(ctx context.Context, id entity.StudentLearningTokenID) (entity.StudentLearningToken, error) {
+	studentLearningTokenRow, err := s.mySQLQueries.GetStudentLearningTokenById(ctx, int64(id))
+	if err != nil {
+		return entity.StudentLearningToken{}, fmt.Errorf("mySQLQueries.GetStudentLearningTokenById(): %w", err)
+	}
+
+	studentLearningToken := NewStudentLearningTokensFromGetStudentLearningTokensRow([]mysql.GetStudentLearningTokensRow{studentLearningTokenRow.ToGetStudentLearningTokensRow()})[0]
+
+	return studentLearningToken, nil
+}
+
+func (s entityServiceImpl) GetStudentLearningTokensByIds(ctx context.Context, ids []entity.StudentLearningTokenID) ([]entity.StudentLearningToken, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	studentLearningTokenRows, err := s.mySQLQueries.GetStudentLearningTokensByIds(ctx, idsInt)
+	if err != nil {
+		return []entity.StudentLearningToken{}, fmt.Errorf("mySQLQueries.GetStudentLearningTokensByIds(): %w", err)
+	}
+
+	studentLearningTokenRowsConverted := make([]mysql.GetStudentLearningTokensRow, 0, len(studentLearningTokenRows))
+	for _, row := range studentLearningTokenRows {
+		studentLearningTokenRowsConverted = append(studentLearningTokenRowsConverted, row.ToGetStudentLearningTokensRow())
+	}
+
+	studentLearningTokens := NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningTokenRowsConverted)
+
+	return studentLearningTokens, nil
+}
+
+func (s entityServiceImpl) InsertStudentLearningTokens(ctx context.Context, specs []entity.InsertStudentLearningTokenSpec) ([]entity.StudentLearningTokenID, error) {
+	studentLearningTokenIDs := make([]entity.StudentLearningTokenID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []entity.StudentLearningTokenID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		studentLearningTokenID, err := qtx.InsertStudentLearningToken(ctx, mysql.InsertStudentLearningTokenParams{
+			Quota:             spec.Quota,
+			QuotaBonus:        spec.QuotaBonus,
+			CourseFeeValue:    spec.CourseFeeValue,
+			TransportFeeValue: spec.TransportFeeValue,
+			EnrollmentID:      int64(spec.StudentEnrollmentID),
+		})
+		if err != nil {
+			return []entity.StudentLearningTokenID{}, fmt.Errorf("qtx.InsertStudentLearningToken(): %w", err)
+		}
+		studentLearningTokenIDs = append(studentLearningTokenIDs, entity.StudentLearningTokenID(studentLearningTokenID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []entity.StudentLearningTokenID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return studentLearningTokenIDs, nil
+}
+
+func (s entityServiceImpl) UpdateStudentLearningTokens(ctx context.Context, specs []entity.UpdateStudentLearningTokenSpec) ([]entity.StudentLearningTokenID, error) {
+	studentLearningTokenIDs := make([]entity.StudentLearningTokenID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []entity.StudentLearningTokenID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		err := qtx.UpdateStudentLearningToken(ctx, mysql.UpdateStudentLearningTokenParams{
+			Quota:             spec.Quota,
+			QuotaBonus:        spec.QuotaBonus,
+			CourseFeeValue:    spec.CourseFeeValue,
+			TransportFeeValue: spec.TransportFeeValue,
+			ID:                int64(spec.StudentLearningTokenID),
+		})
+		if err != nil {
+			return []entity.StudentLearningTokenID{}, fmt.Errorf("qtx.UpdateStudentLearningToken(): %w", err)
+		}
+		studentLearningTokenIDs = append(studentLearningTokenIDs, spec.StudentLearningTokenID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []entity.StudentLearningTokenID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return studentLearningTokenIDs, nil
+}
+
+func (s entityServiceImpl) DeleteStudentLearningTokens(ctx context.Context, ids []entity.StudentLearningTokenID) error {
+	studentLearningTokenIdsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		studentLearningTokenIdsInt64 = append(studentLearningTokenIdsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeleteStudentLearningTokensByIds(ctx, studentLearningTokenIdsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeleteStudentLearningTokenByIds(): %w", err)
 	}
 
 	return nil

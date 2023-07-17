@@ -1342,6 +1342,134 @@ func (s *BackendService) DeleteEnrollmentPaymentsHandler(ctx context.Context, re
 	}, nil
 }
 
+func (s *BackendService) GetStudentLearningTokensHandler(ctx context.Context, req *output.GetStudentLearningTokensRequest) (*output.GetStudentLearningTokensResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getStudentLearningTokensResult, err := s.entityService.GetStudentLearningTokens(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentLearningTokens(): %w", err), nil, "Failed to get courses")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getStudentLearningTokensResult.PaginationResult)
+
+	return &output.GetStudentLearningTokensResponse{
+		Data: output.GetStudentLearningTokensResult{
+			Results:            getStudentLearningTokensResult.StudentLearningTokens,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetStudentLearningTokenByIdHandler(ctx context.Context, req *output.GetStudentLearningTokenRequest) (*output.GetStudentLearningTokenResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	studentLearningToken, err := s.entityService.GetStudentLearningTokenById(ctx, req.StudentLearningTokenID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetStudentLearningTokenById()", "studentLearningToken")
+	}
+
+	return &output.GetStudentLearningTokenResponse{
+		Data: studentLearningToken,
+	}, nil
+}
+
+func (s *BackendService) InsertStudentLearningTokensHandler(ctx context.Context, req *output.InsertStudentLearningTokensRequest) (*output.InsertStudentLearningTokensResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]entity.InsertStudentLearningTokenSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, entity.InsertStudentLearningTokenSpec{
+			StudentEnrollmentID: param.StudentEnrollmentID,
+			Quota:               param.Quota,
+			QuotaBonus:          param.QuotaBonus,
+			CourseFeeValue:      param.CourseFeeValue,
+			TransportFeeValue:   param.TransportFeeValue,
+		})
+	}
+
+	studentLearningTokenIDs, err := s.entityService.InsertStudentLearningTokens(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "entityService.InsertStudentLearningTokens()", "studentLearningToken")
+	}
+	mainLog.Info("StudentLearningTokens created: studentLearningTokenIDs='%v'", studentLearningTokenIDs)
+
+	studentLearningTokens, err := s.entityService.GetStudentLearningTokensByIds(ctx, studentLearningTokenIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentLearningTokensByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertStudentLearningTokensResponse{
+		Data: output.UpsertStudentLearningTokenResult{
+			Results: studentLearningTokens,
+		},
+		Message: "Successfully created studentLearningTokens",
+	}, nil
+}
+
+func (s *BackendService) UpdateStudentLearningTokensHandler(ctx context.Context, req *output.UpdateStudentLearningTokensRequest) (*output.UpdateStudentLearningTokensResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]entity.UpdateStudentLearningTokenSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, entity.UpdateStudentLearningTokenSpec{
+			StudentLearningTokenID: param.StudentLearningTokenID,
+			Quota:                  param.Quota,
+			QuotaBonus:             param.QuotaBonus,
+			CourseFeeValue:         param.CourseFeeValue,
+			TransportFeeValue:      param.TransportFeeValue,
+		})
+	}
+
+	studentLearningTokenIDs, err := s.entityService.UpdateStudentLearningTokens(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "entityService.UpdateStudentLearningTokens()", "studentLearningToken")
+	}
+	mainLog.Info("StudentLearningTokens updated: studentLearningTokenIDs='%v'", studentLearningTokenIDs)
+
+	studentLearningTokens, err := s.entityService.GetStudentLearningTokensByIds(ctx, studentLearningTokenIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentLearningTokensByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdateStudentLearningTokensResponse{
+		Data: output.UpsertStudentLearningTokenResult{
+			Results: studentLearningTokens,
+		},
+		Message: "Successfully updated studentLearningTokens",
+	}, nil
+}
+
+func (s *BackendService) DeleteStudentLearningTokensHandler(ctx context.Context, req *output.DeleteStudentLearningTokensRequest) (*output.DeleteStudentLearningTokensResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]entity.StudentLearningTokenID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.StudentLearningTokenID)
+	}
+
+	err := s.entityService.DeleteStudentLearningTokens(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeleteStudentLearningTokens()", "studentLearningToken")
+	}
+
+	return &output.DeleteStudentLearningTokensResponse{
+		Message: "Successfully deleted studentLearningTokens",
+	}, nil
+}
+
 // handleReadError detects non-existing result error (e.g. sql.ErrNoRows) and returns HTTP 404-NotFound. Else, returns HTTP 500.
 func handleReadError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {

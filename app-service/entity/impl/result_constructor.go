@@ -210,3 +210,39 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 
 	return enrollmentPayments
 }
+
+func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningTokenRows []mysql.GetStudentLearningTokensRow) []entity.StudentLearningToken {
+	studentLearningTokens := make([]entity.StudentLearningToken, 0, len(studentLearningTokenRows))
+	for _, sltRow := range studentLearningTokenRows {
+		studentLearningTokens = append(studentLearningTokens, entity.StudentLearningToken{
+			StudentLearningTokenID: entity.StudentLearningTokenID(sltRow.StudentLearningTokenID),
+			StudentEnrollmentInfo: entity.StudentEnrollment{
+				StudentEnrollmentID: entity.StudentEnrollmentID(sltRow.StudentEnrollmentID),
+				StudentInfo: entity.StudentInfo_Minimal{
+					StudentID: entity.StudentID(sltRow.StudentID),
+					UserInfo_Minimal: identity.UserInfo_Minimal{
+						Username:   sltRow.StudentUsername,
+						UserDetail: identity.UnmarshalUserDetail(sltRow.StudentDetail, mainLog),
+					},
+				},
+				ClassInfo: entity.ClassInfo_Minimal{
+					ClassID: entity.ClassID(sltRow.Class.ID),
+					CourseInfo: entity.CourseInfo_Minimal{
+						CourseID:   entity.CourseID(sltRow.Course.ID),
+						Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{sltRow.Instrument})[0],
+						Grade:      NewGradesFromMySQLGrades([]mysql.Grade{sltRow.Grade})[0],
+					},
+					TransportFee:  sltRow.Class.TransportFee,
+					IsDeactivated: util.Int32ToBool(sltRow.Class.IsDeactivated),
+				},
+			},
+			Quota:             sltRow.Quota,
+			QuotaBonus:        sltRow.QuotaBonus,
+			CourseFeeValue:    sltRow.CourseFeeValue,
+			TransportFeeValue: sltRow.TransportFeeValue,
+			LastUpdatedAt:     sltRow.LastUpdatedAt,
+		})
+	}
+
+	return studentLearningTokens
+}

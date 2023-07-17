@@ -25,6 +25,9 @@ const (
 
 	MaxPage_GetEnrollmentPayments           = Default_MaxPage
 	MaxResultsPerPage_GetEnrollmentPayments = Default_MaxResultsPerPage
+
+	MaxPage_GetStudentLearningTokens           = Default_MaxPage
+	MaxResultsPerPage_GetStudentLearningTokens = Default_MaxResultsPerPage
 )
 
 const (
@@ -595,5 +598,99 @@ type DeleteEnrollmentPaymentsResponse struct {
 }
 
 func (r DeleteEnrollmentPaymentsRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== ENROLLMENT_PAYMENT ==============================
+
+type GetStudentLearningTokensRequest struct {
+	PaginationRequest
+}
+type GetStudentLearningTokensResponse struct {
+	Data    GetStudentLearningTokensResult `json:"data"`
+	Message string                         `json:"message,omitempty"`
+}
+type GetStudentLearningTokensResult struct {
+	Results []entity.StudentLearningToken `json:"results"`
+	PaginationResponse
+}
+
+func (r GetStudentLearningTokensRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetStudentLearningTokens, MaxResultsPerPage_GetStudentLearningTokens); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetStudentLearningTokenRequest struct {
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+}
+type GetStudentLearningTokenResponse struct {
+	Data    entity.StudentLearningToken `json:"data"`
+	Message string                      `json:"message,omitempty"`
+}
+
+func (r GetStudentLearningTokenRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertStudentLearningTokensRequest struct {
+	Data []InsertStudentLearningTokensRequestParam `json:"data"`
+}
+type InsertStudentLearningTokensRequestParam struct {
+	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
+	Quota               int32                      `json:"quota"`
+	QuotaBonus          int32                      `json:"quotaBonus,omitempty"`
+	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
+	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
+}
+type InsertStudentLearningTokensResponse struct {
+	Data    UpsertStudentLearningTokenResult `json:"data"`
+	Message string                           `json:"message,omitempty"`
+}
+
+func (r InsertStudentLearningTokensRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpdateStudentLearningTokensRequest struct {
+	Data []UpdateStudentLearningTokensRequestParam `json:"data"`
+}
+type UpdateStudentLearningTokensRequestParam struct {
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	Quota                  int32                         `json:"quota"`
+	QuotaBonus             int32                         `json:"quotaBonus,omitempty"`
+	CourseFeeValue         int32                         `json:"courseFeeValue,omitempty"`
+	TransportFeeValue      int32                         `json:"transportFeeValue,omitempty"`
+}
+type UpdateStudentLearningTokensResponse struct {
+	Data    UpsertStudentLearningTokenResult `json:"data"`
+	Message string                           `json:"message,omitempty"`
+}
+
+func (r UpdateStudentLearningTokensRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type UpsertStudentLearningTokenResult struct {
+	Results []entity.StudentLearningToken `json:"results"`
+}
+
+type DeleteStudentLearningTokensRequest struct {
+	Data []DeleteStudentLearningTokensRequestParam `json:"data"`
+}
+type DeleteStudentLearningTokensRequestParam struct {
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+}
+type DeleteStudentLearningTokensResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeleteStudentLearningTokensRequest) Validate() errs.ValidationError {
 	return nil
 }

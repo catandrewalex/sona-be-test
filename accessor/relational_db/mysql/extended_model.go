@@ -46,11 +46,20 @@ func (r GetTeacherSpecialFeesByTeacherIdRow) ToGetTeacherSpecialFeesRow() GetTea
 	return GetTeacherSpecialFeesRow(r)
 }
 
-// ============================== TEACHER_SPECIAL_FEE ==============================
+// ============================== ENROLLMENT_PAYMENT ==============================
 
 func (r GetEnrollmentPaymentByIdRow) ToGetEnrollmentPaymentsRow() GetEnrollmentPaymentsRow {
 	return GetEnrollmentPaymentsRow(r)
 }
 func (r GetEnrollmentPaymentsByIdsRow) ToGetEnrollmentPaymentsRow() GetEnrollmentPaymentsRow {
 	return GetEnrollmentPaymentsRow(r)
+}
+
+// ============================== STUDENT_LEARNING_TOKEN ==============================
+
+func (r GetStudentLearningTokenByIdRow) ToGetStudentLearningTokensRow() GetStudentLearningTokensRow {
+	return GetStudentLearningTokensRow(r)
+}
+func (r GetStudentLearningTokensByIdsRow) ToGetStudentLearningTokensRow() GetStudentLearningTokensRow {
+	return GetStudentLearningTokensRow(r)
 }

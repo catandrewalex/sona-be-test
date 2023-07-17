@@ -71,17 +71,17 @@ type ClassInfo_Minimal struct {
 	IsDeactivated bool               `json:"isDeactivated"`
 }
 
+type StudentEnrollment struct {
+	StudentEnrollmentID StudentEnrollmentID `json:"studentEnrollmentID"`
+	StudentInfo         StudentInfo_Minimal `json:"student"`
+	ClassInfo           ClassInfo_Minimal   `json:"class"`
+}
+
 type TeacherSpecialFee struct {
 	TeacherSpecialFeeID TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
 	TeacherInfo         TeacherInfo_Minimal `json:"teacher"`
 	CourseInfo          CourseInfo_Minimal  `json:"course"`
 	Fee                 int64               `json:"fee"`
-}
-
-type StudentEnrollment struct {
-	StudentEnrollmentID StudentEnrollmentID `json:"studentEnrollmentID"`
-	StudentInfo         StudentInfo_Minimal `json:"student"`
-	ClassInfo           ClassInfo_Minimal   `json:"class"`
 }
 
 type EnrollmentPayment struct {
@@ -93,6 +93,16 @@ type EnrollmentPayment struct {
 	ValuePenalty          int32               `json:"valuePenalty"`
 }
 
+type StudentLearningToken struct {
+	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenID"`
+	Quota                  int32                  `json:"quota"`
+	QuotaBonus             int32                  `json:"quotaBonus"`
+	CourseFeeValue         int32                  `json:"courseFeeValue"`
+	TransportFeeValue      int32                  `json:"transportFeeValue"`
+	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
+	StudentEnrollmentInfo  StudentEnrollment      `json:"studentEnrollment"`
+}
+
 type TeacherID int64
 type StudentID int64
 type InstrumentID int64
@@ -100,11 +110,11 @@ type GradeID int64
 type CourseID int64
 type ClassID int64
 type StudentEnrollmentID int64
-type StudentLearningTokenID int64
-type TeacherSpecialFeeID int64
-type PresenceID int64
 
+type TeacherSpecialFeeID int64
 type EnrollmentPaymentID int64
+type StudentLearningTokenID int64
+type PresenceID int64
 
 const TeacherID_None TeacherID = iota
 const StudentID_None StudentID = iota
@@ -112,8 +122,9 @@ const InstrumentID_None InstrumentID = iota
 const GradeID_None GradeID = iota
 const CourseID_None CourseID = iota
 const ClassID_None ClassID = iota
-const TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
 const StudentEnrollmentID_None StudentEnrollmentID = iota
+
+const TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
 const EnrollmentPaymentID_None EnrollmentPaymentID = iota
 const StudentLearningTokenID_None StudentLearningTokenID = iota
 const PresenceID_None PresenceID = iota
@@ -174,6 +185,13 @@ type EntityService interface {
 	InsertEnrollmentPayments(ctx context.Context, specs []InsertEnrollmentPaymentSpec) ([]EnrollmentPaymentID, error)
 	UpdateEnrollmentPayments(ctx context.Context, specs []UpdateEnrollmentPaymentSpec) ([]EnrollmentPaymentID, error)
 	DeleteEnrollmentPayments(ctx context.Context, ids []EnrollmentPaymentID) error
+
+	GetStudentLearningTokens(ctx context.Context, pagination util.PaginationSpec) (GetStudentLearningTokensResult, error)
+	GetStudentLearningTokenById(ctx context.Context, id StudentLearningTokenID) (StudentLearningToken, error)
+	GetStudentLearningTokensByIds(ctx context.Context, ids []StudentLearningTokenID) ([]StudentLearningToken, error)
+	InsertStudentLearningTokens(ctx context.Context, specs []InsertStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
+	UpdateStudentLearningTokens(ctx context.Context, specs []UpdateStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
+	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -301,4 +319,27 @@ type UpdateEnrollmentPaymentSpec struct {
 	BalanceTopUp        int32
 	Value               int32
 	ValuePenalty        int32
+}
+
+// ============================== ENROLLMENT_PAYMENT ==============================
+
+type GetStudentLearningTokensResult struct {
+	StudentLearningTokens []StudentLearningToken
+	PaginationResult      util.PaginationResult
+}
+
+type InsertStudentLearningTokenSpec struct {
+	StudentEnrollmentID StudentEnrollmentID
+	Quota               int32
+	QuotaBonus          int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
+}
+
+type UpdateStudentLearningTokenSpec struct {
+	StudentLearningTokenID StudentLearningTokenID
+	Quota                  int32
+	QuotaBonus             int32
+	CourseFeeValue         int32
+	TransportFeeValue      int32
 }
