@@ -152,6 +152,34 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []entity.Class
 	return classes
 }
 
+func NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows []mysql.GetStudentEnrollmentsRow) []entity.StudentEnrollment {
+	studentEnrollments := make([]entity.StudentEnrollment, 0, len(studentEnrollmentRows))
+	for _, studentEnrollmentRow := range studentEnrollmentRows {
+		studentEnrollments = append(studentEnrollments, entity.StudentEnrollment{
+			StudentEnrollmentID: entity.StudentEnrollmentID(studentEnrollmentRow.StudentEnrollmentID),
+			StudentInfo: entity.StudentInfo_Minimal{
+				StudentID: entity.StudentID(studentEnrollmentRow.StudentID),
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   studentEnrollmentRow.StudentUsername,
+					UserDetail: identity.UnmarshalUserDetail(studentEnrollmentRow.StudentDetail, mainLog),
+				},
+			},
+			ClassInfo: entity.ClassInfo_Minimal{
+				ClassID: entity.ClassID(studentEnrollmentRow.Class.ID),
+				CourseInfo: entity.CourseInfo_Minimal{
+					CourseID:   entity.CourseID(studentEnrollmentRow.Course.ID),
+					Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{studentEnrollmentRow.Instrument})[0],
+					Grade:      NewGradesFromMySQLGrades([]mysql.Grade{studentEnrollmentRow.Grade})[0],
+				},
+				TransportFee:  studentEnrollmentRow.Class.TransportFee,
+				IsDeactivated: util.Int32ToBool(studentEnrollmentRow.Class.IsDeactivated),
+			},
+		})
+	}
+
+	return studentEnrollments
+}
+
 func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []mysql.GetTeacherSpecialFeesRow) []entity.TeacherSpecialFee {
 	teacherSpecialFees := make([]entity.TeacherSpecialFee, 0, len(teacherSpecialFeeRows))
 	for _, teacherSpecialFeeRow := range teacherSpecialFeeRows {

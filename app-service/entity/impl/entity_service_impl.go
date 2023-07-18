@@ -933,6 +933,30 @@ func (s entityServiceImpl) DeleteClasses(ctx context.Context, ids []entity.Class
 	return nil
 }
 
+func (s entityServiceImpl) GetStudentEnrollments(ctx context.Context, pagination util.PaginationSpec) (entity.GetStudentEnrollmentsResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+	studentEnrollmentRows, err := s.mySQLQueries.GetStudentEnrollments(ctx, mysql.GetStudentEnrollmentsParams{
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return entity.GetStudentEnrollmentsResult{}, fmt.Errorf("mySQLQueries.GetStudentEnrollments(): %w", err)
+	}
+
+	studentEnrollments := NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows)
+
+	totalResults, err := s.mySQLQueries.CountStudentEnrollments(ctx)
+	if err != nil {
+		return entity.GetStudentEnrollmentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
+
+	return entity.GetStudentEnrollmentsResult{
+		StudentEnrollments: studentEnrollments,
+		PaginationResult:   *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
 func (s entityServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeacherSpecialFeesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()

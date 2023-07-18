@@ -1083,6 +1083,29 @@ func (s *BackendService) DeleteClassesHandler(ctx context.Context, req *output.D
 	}, nil
 }
 
+func (s *BackendService) GetStudentEnrollmentsHandler(ctx context.Context, req *output.GetStudentEnrollmentsRequest) (*output.GetStudentEnrollmentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getStudentEnrollmentsResult, err := s.entityService.GetStudentEnrollments(ctx, util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	})
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentEnrollments(): %w", err), nil, "Failed to get StudentEnrollments")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getStudentEnrollmentsResult.PaginationResult)
+
+	return &output.GetStudentEnrollmentsResponse{
+		Data: output.GetStudentEnrollmentsResult{
+			Results:            getStudentEnrollmentsResult.StudentEnrollments,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
 func (s *BackendService) GetTeacherSpecialFeesHandler(ctx context.Context, req *output.GetTeacherSpecialFeesRequest) (*output.GetTeacherSpecialFeesResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV

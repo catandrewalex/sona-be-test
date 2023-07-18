@@ -377,7 +377,7 @@ WHERE class_id = ?;
 -- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id AS class_id, class.transport_fee AS class_transport_fee, course_id, sqlc.embed(instrument), sqlc.embed(grade), course.default_fee AS course_default_fee
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade), course.default_fee AS course_default_fee
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -386,7 +386,12 @@ FROM student_enrollment AS se
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
 WHERE se.is_deleted = 0
-ORDER BY se.id;
+ORDER BY se.id
+LIMIT ? OFFSET ?;
+
+-- name: CountStudentEnrollments :one
+SELECT COUNT(id) FROM student_enrollment
+WHERE is_deleted = 0;
 
 -- name: InsertStudentEnrollment :exec
 INSERT INTO student_enrollment (

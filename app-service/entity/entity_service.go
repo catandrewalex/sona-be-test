@@ -172,6 +172,8 @@ type EntityService interface {
 	UpdateClasses(ctx context.Context, specs []UpdateClassSpec) ([]ClassID, error)
 	DeleteClasses(ctx context.Context, ids []ClassID) error
 
+	GetStudentEnrollments(ctx context.Context, pagination util.PaginationSpec) (GetStudentEnrollmentsResult, error)
+
 	GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (GetTeacherSpecialFeesResult, error)
 	GetTeacherSpecialFeeById(ctx context.Context, id TeacherSpecialFeeID) (TeacherSpecialFee, error)
 	GetTeacherSpecialFeesByIds(ctx context.Context, ids []TeacherSpecialFeeID) ([]TeacherSpecialFee, error)
@@ -270,7 +272,7 @@ func (s UpdateCourseSpec) GetInt64ID() int64 {
 	return int64(s.CourseID)
 }
 
-// ============================== COURSE ==============================
+// ============================== CLASS ==============================
 
 type GetClassesResult struct {
 	Classes          []Class
@@ -294,6 +296,13 @@ type UpdateClassSpec struct {
 
 func (s UpdateClassSpec) GetInt64ID() int64 {
 	return int64(s.ClassID)
+}
+
+// ============================== STUDENT_ENROLLMENT ==============================
+
+type GetStudentEnrollmentsResult struct {
+	StudentEnrollments []StudentEnrollment
+	PaginationResult   util.PaginationResult
 }
 
 // ============================== TEACHER_SPECIAL_FEE ==============================

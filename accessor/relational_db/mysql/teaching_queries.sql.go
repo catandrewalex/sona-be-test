@@ -165,6 +165,18 @@ func (q *Queries) CountInstrumentsByIds(ctx context.Context, ids []int64) (int64
 	return total, err
 }
 
+const countStudentEnrollments = `-- name: CountStudentEnrollments :one
+SELECT COUNT(id) FROM student_enrollment
+WHERE is_deleted = 0
+`
+
+func (q *Queries) CountStudentEnrollments(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countStudentEnrollments)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countStudents = `-- name: CountStudents :one
 SELECT Count(id) AS total FROM student
 `
@@ -1447,7 +1459,7 @@ func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (GetStud
 const getStudentEnrollments = `-- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id AS class_id, class.transport_fee AS class_transport_fee, course_id, instrument.id, instrument.name, grade.id, grade.name, course.default_fee AS course_default_fee
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name, course.default_fee AS course_default_fee
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -1457,23 +1469,28 @@ FROM student_enrollment AS se
     JOIN grade ON course.grade_id = grade.id
 WHERE se.is_deleted = 0
 ORDER BY se.id
+LIMIT ? OFFSET ?
 `
+
+type GetStudentEnrollmentsParams struct {
+	Limit  int32
+	Offset int32
+}
 
 type GetStudentEnrollmentsRow struct {
 	StudentEnrollmentID int64
 	StudentID           int64
 	StudentUsername     string
 	StudentDetail       json.RawMessage
-	ClassID             int64
-	ClassTransportFee   int64
-	CourseID            int64
+	Class               Class
+	Course              Course
 	Instrument          Instrument
 	Grade               Grade
 	CourseDefaultFee    int64
 }
 
-func (q *Queries) GetStudentEnrollments(ctx context.Context) ([]GetStudentEnrollmentsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getStudentEnrollments)
+func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrollmentsParams) ([]GetStudentEnrollmentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStudentEnrollments, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -1486,9 +1503,16 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context) ([]GetStudentEnroll
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
-			&i.ClassID,
-			&i.ClassTransportFee,
-			&i.CourseID,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
 			&i.Instrument.ID,
 			&i.Instrument.Name,
 			&i.Grade.ID,

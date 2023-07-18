@@ -20,6 +20,9 @@ const (
 	MaxPage_GetClasses           = Default_MaxPage
 	MaxResultsPerPage_GetClasses = Default_MaxResultsPerPage
 
+	MaxPage_GetStudentEnrollments           = Default_MaxPage
+	MaxResultsPerPage_GetStudentEnrollments = Default_MaxResultsPerPage
+
 	MaxPage_GetTeacherSpecialFees           = Default_MaxPage
 	MaxResultsPerPage_GetTeacherSpecialFees = Default_MaxResultsPerPage
 
@@ -391,6 +394,32 @@ type DeleteClassesResponse struct {
 }
 
 func (r DeleteClassesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== STUDENT_ENROLLMENT ==============================
+
+type GetStudentEnrollmentsRequest struct {
+	PaginationRequest
+}
+type GetStudentEnrollmentsResponse struct {
+	Data    GetStudentEnrollmentsResult `json:"data"`
+	Message string                      `json:"message,omitempty"`
+}
+type GetStudentEnrollmentsResult struct {
+	Results []entity.StudentEnrollment `json:"results"`
+	PaginationResponse
+}
+
+func (r GetStudentEnrollmentsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetStudentEnrollments, MaxResultsPerPage_GetStudentEnrollments); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
 	return nil
 }
 

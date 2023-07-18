@@ -116,6 +116,8 @@ func main() {
 		authRouter.Put("/classes", jsonSerdeWrapper.WrapFunc(backendService.UpdateClassesHandler))
 		authRouter.Delete("/classes", jsonSerdeWrapper.WrapFunc(backendService.DeleteClassesHandler))
 
+		authRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
+
 		authRouter.Get("/teacherSpecialFees", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSpecialFeesHandler))
 		authRouter.Get("/teacherSpecialFee/{TeacherSpecialFeeID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSpecialFeeByIdHandler, "TeacherSpecialFeeID"))
 		authRouter.Post("/teacherSpecialFees", jsonSerdeWrapper.WrapFunc(backendService.InsertTeacherSpecialFeesHandler))
