@@ -12,7 +12,6 @@ import (
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/logging"
-	"sonamusica-backend/network"
 )
 
 var (
@@ -94,12 +93,18 @@ func (s entityServiceImpl) GetTeachersByIds(ctx context.Context, ids []entity.Te
 func (s entityServiceImpl) InsertTeachers(ctx context.Context, userIDs []identity.UserID) ([]entity.TeacherID, error) {
 	teacherIDs := make([]entity.TeacherID, 0, len(userIDs))
 
-	for _, userID := range userIDs {
-		teacherID, err := s.mySQLQueries.InsertTeacher(ctx, int64(userID))
-		if err != nil {
-			return []entity.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, userID := range userIDs {
+			teacherID, err := s.mySQLQueries.InsertTeacher(ctx, int64(userID))
+			if err != nil {
+				return fmt.Errorf("qtx.InsertTeacher(): %w", err)
+			}
+			teacherIDs = append(teacherIDs, entity.TeacherID(teacherID))
 		}
-		teacherIDs = append(teacherIDs, entity.TeacherID(teacherID))
+		return nil
+	})
+	if err != nil {
+		return []entity.TeacherID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return teacherIDs, nil
@@ -108,31 +113,24 @@ func (s entityServiceImpl) InsertTeachers(ctx context.Context, userIDs []identit
 func (s entityServiceImpl) InsertTeachersWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]entity.TeacherID, error) {
 	teacherIDs := make([]entity.TeacherID, 0, len(specs))
 
-	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.TeacherID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	ctxWithSQLTx := network.NewContextWithSQLTx(ctx, tx)
-	userIDs, err := s.identityService.InsertUsers(ctxWithSQLTx, specs)
-	if err != nil {
-		return []entity.TeacherID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
-	}
-
-	for _, userID := range userIDs {
-		teacherID, err := qtx.InsertTeacher(ctx, int64(userID))
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		userIDs, err := s.identityService.InsertUsers(newCtx, specs)
 		if err != nil {
-			return []entity.TeacherID{}, fmt.Errorf("qtx.InsertTeacher(): %w", err)
+			return fmt.Errorf("identityService.InsertUsers(): %w", err)
 		}
-		teacherIDs = append(teacherIDs, entity.TeacherID(teacherID))
-	}
 
-	err = tx.Commit()
+		for _, userID := range userIDs {
+			teacherID, err := qtx.InsertTeacher(newCtx, int64(userID))
+			if err != nil {
+				return fmt.Errorf("qtx.InsertTeacher(): %w", err)
+			}
+			teacherIDs = append(teacherIDs, entity.TeacherID(teacherID))
+		}
+
+		return nil
+	})
 	if err != nil {
-		return []entity.TeacherID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.TeacherID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return teacherIDs, nil
@@ -225,31 +223,24 @@ func (s entityServiceImpl) InsertStudents(ctx context.Context, userIDs []identit
 func (s entityServiceImpl) InsertStudentsWithNewUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]entity.StudentID, error) {
 	studentIDs := make([]entity.StudentID, 0, len(specs))
 
-	// TODO: move all mySQLQueries.* (Begin, Commit, etc.) to a new accessor service in lower level
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.StudentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	ctxWithSQLTx := network.NewContextWithSQLTx(ctx, tx)
-	userIDs, err := s.identityService.InsertUsers(ctxWithSQLTx, specs)
-	if err != nil {
-		return []entity.StudentID{}, fmt.Errorf("identityService.InsertUsers(): %w", err)
-	}
-
-	for _, userID := range userIDs {
-		studentID, err := qtx.InsertStudent(ctx, int64(userID))
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		userIDs, err := s.identityService.InsertUsers(newCtx, specs)
 		if err != nil {
-			return []entity.StudentID{}, fmt.Errorf("qtx.InsertStudent(): %w", err)
+			return fmt.Errorf("identityService.InsertUsers(): %w", err)
 		}
-		studentIDs = append(studentIDs, entity.StudentID(studentID))
-	}
 
-	err = tx.Commit()
+		for _, userID := range userIDs {
+			studentID, err := qtx.InsertStudent(newCtx, int64(userID))
+			if err != nil {
+				return fmt.Errorf("qtx.InsertStudent(): %w", err)
+			}
+			studentIDs = append(studentIDs, entity.StudentID(studentID))
+		}
+
+		return nil
+	})
 	if err != nil {
-		return []entity.StudentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.StudentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return studentIDs, nil
@@ -323,25 +314,19 @@ func (s entityServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []entity
 func (s entityServiceImpl) InsertInstruments(ctx context.Context, specs []entity.InsertInstrumentSpec) ([]entity.InstrumentID, error) {
 	instrumentIDs := make([]entity.InstrumentID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.InstrumentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			instrumentID, err := qtx.InsertInstrument(newCtx, spec.Name)
+			if err != nil {
 
-	for _, spec := range specs {
-		instrumentID, err := qtx.InsertInstrument(ctx, spec.Name)
-		if err != nil {
-
-			return []entity.InstrumentID{}, fmt.Errorf("qtx.InsertInstrument(): %w", err)
+				return fmt.Errorf("qtx.InsertInstrument(): %w", err)
+			}
+			instrumentIDs = append(instrumentIDs, entity.InstrumentID(instrumentID))
 		}
-		instrumentIDs = append(instrumentIDs, entity.InstrumentID(instrumentID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.InstrumentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return instrumentIDs, nil
@@ -355,28 +340,22 @@ func (s entityServiceImpl) UpdateInstruments(ctx context.Context, specs []entity
 
 	instrumentIDs := make([]entity.InstrumentID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.InstrumentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdateInstrument(newCtx, mysql.UpdateInstrumentParams{
+				Name: spec.Name,
+				ID:   int64(spec.InstrumentID),
+			})
+			if err != nil {
 
-	for _, spec := range specs {
-		err := qtx.UpdateInstrument(ctx, mysql.UpdateInstrumentParams{
-			Name: spec.Name,
-			ID:   int64(spec.InstrumentID),
-		})
-		if err != nil {
-
-			return []entity.InstrumentID{}, fmt.Errorf("qtx.UpdateInstrument(): %w", err)
+				return fmt.Errorf("qtx.UpdateInstrument(): %w", err)
+			}
+			instrumentIDs = append(instrumentIDs, spec.InstrumentID)
 		}
-		instrumentIDs = append(instrumentIDs, spec.InstrumentID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.InstrumentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.InstrumentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return instrumentIDs, nil
@@ -450,25 +429,19 @@ func (s entityServiceImpl) GetGradesByIds(ctx context.Context, ids []entity.Grad
 func (s entityServiceImpl) InsertGrades(ctx context.Context, specs []entity.InsertGradeSpec) ([]entity.GradeID, error) {
 	gradeIDs := make([]entity.GradeID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.GradeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			gradeID, err := qtx.InsertGrade(newCtx, spec.Name)
+			if err != nil {
 
-	for _, spec := range specs {
-		gradeID, err := qtx.InsertGrade(ctx, spec.Name)
-		if err != nil {
-
-			return []entity.GradeID{}, fmt.Errorf("qtx.InsertGrade(): %w", err)
+				return fmt.Errorf("qtx.InsertGrade(): %w", err)
+			}
+			gradeIDs = append(gradeIDs, entity.GradeID(gradeID))
 		}
-		gradeIDs = append(gradeIDs, entity.GradeID(gradeID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.GradeID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return gradeIDs, nil
@@ -482,28 +455,22 @@ func (s entityServiceImpl) UpdateGrades(ctx context.Context, specs []entity.Upda
 
 	gradeIDs := make([]entity.GradeID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.GradeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdateGrade(newCtx, mysql.UpdateGradeParams{
+				Name: spec.Name,
+				ID:   int64(spec.GradeID),
+			})
+			if err != nil {
 
-	for _, spec := range specs {
-		err := qtx.UpdateGrade(ctx, mysql.UpdateGradeParams{
-			Name: spec.Name,
-			ID:   int64(spec.GradeID),
-		})
-		if err != nil {
-
-			return []entity.GradeID{}, fmt.Errorf("qtx.UpdateGrade(): %w", err)
+				return fmt.Errorf("qtx.UpdateGrade(): %w", err)
+			}
+			gradeIDs = append(gradeIDs, spec.GradeID)
 		}
-		gradeIDs = append(gradeIDs, spec.GradeID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.GradeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.GradeID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return gradeIDs, nil
@@ -582,30 +549,23 @@ func (s entityServiceImpl) GetCoursesByIds(ctx context.Context, ids []entity.Cou
 func (s entityServiceImpl) InsertCourses(ctx context.Context, specs []entity.InsertCourseSpec) ([]entity.CourseID, error) {
 	courseIDs := make([]entity.CourseID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.CourseID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		courseID, err := qtx.InsertCourse(ctx, mysql.InsertCourseParams{
-			DefaultFee:            spec.DefaultFee,
-			DefaultDurationMinute: spec.DefaultDurationMinute,
-			InstrumentID:          int64(spec.InstrumentID),
-			GradeID:               int64(spec.GradeID),
-		})
-		if err != nil {
-
-			return []entity.CourseID{}, fmt.Errorf("qtx.InsertCourse(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			courseID, err := qtx.InsertCourse(newCtx, mysql.InsertCourseParams{
+				DefaultFee:            spec.DefaultFee,
+				DefaultDurationMinute: spec.DefaultDurationMinute,
+				InstrumentID:          int64(spec.InstrumentID),
+				GradeID:               int64(spec.GradeID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.InsertCourse(): %w", err)
+			}
+			courseIDs = append(courseIDs, entity.CourseID(courseID))
 		}
-		courseIDs = append(courseIDs, entity.CourseID(courseID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.CourseID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return courseIDs, nil
@@ -619,29 +579,23 @@ func (s entityServiceImpl) UpdateCourses(ctx context.Context, specs []entity.Upd
 
 	courseIDs := make([]entity.CourseID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.CourseID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdateCourseInfo(newCtx, mysql.UpdateCourseInfoParams{
+				DefaultFee:            spec.DefaultFee,
+				DefaultDurationMinute: spec.DefaultDurationMinute,
+				ID:                    int64(spec.CourseID),
+			})
+			if err != nil {
 
-	for _, spec := range specs {
-		err := qtx.UpdateCourseInfo(ctx, mysql.UpdateCourseInfoParams{
-			DefaultFee:            spec.DefaultFee,
-			DefaultDurationMinute: spec.DefaultDurationMinute,
-			ID:                    int64(spec.CourseID),
-		})
-		if err != nil {
-
-			return []entity.CourseID{}, fmt.Errorf("qtx.UpdateCourseInfo(): %w", err)
+				return fmt.Errorf("qtx.UpdateCourseInfo(): %w", err)
+			}
+			courseIDs = append(courseIDs, spec.CourseID)
 		}
-		courseIDs = append(courseIDs, spec.CourseID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.CourseID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.CourseID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return courseIDs, nil
@@ -735,40 +689,34 @@ func (s entityServiceImpl) GetClassesByIds(ctx context.Context, ids []entity.Cla
 func (s entityServiceImpl) InsertClasses(ctx context.Context, specs []entity.InsertClassSpec) ([]entity.ClassID, error) {
 	classIDs := make([]entity.ClassID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.ClassID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		classID, err := qtx.InsertClass(ctx, mysql.InsertClassParams{
-			TransportFee: spec.TransportFee,
-			TeacherID:    sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
-			CourseID:     int64(spec.CourseID),
-		})
-		if err != nil {
-
-			return []entity.ClassID{}, fmt.Errorf("qtx.InsertClass(): %w", err)
-		}
-		classIDs = append(classIDs, entity.ClassID(classID))
-
-		for _, studentId := range spec.StudentIDs {
-			err := qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
-				StudentID: int64(studentId),
-				ClassID:   classID,
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			classID, err := qtx.InsertClass(newCtx, mysql.InsertClassParams{
+				TransportFee: spec.TransportFee,
+				TeacherID:    sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
+				CourseID:     int64(spec.CourseID),
 			})
 			if err != nil {
 
-				return []entity.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
+				return fmt.Errorf("qtx.InsertClass(): %w", err)
+			}
+			classIDs = append(classIDs, entity.ClassID(classID))
+
+			for _, studentId := range spec.StudentIDs {
+				err := qtx.InsertStudentEnrollment(newCtx, mysql.InsertStudentEnrollmentParams{
+					StudentID: int64(studentId),
+					ClassID:   classID,
+				})
+				if err != nil {
+
+					return fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
+				}
 			}
 		}
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.ClassID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return classIDs, nil
@@ -782,73 +730,67 @@ func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.Upd
 
 	classIDs := make([]entity.ClassID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.ClassID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		classId := int64(spec.ClassID)
-		// Updated class
-		err := s.mySQLQueries.UpdateClass(ctx, mysql.UpdateClassParams{
-			TransportFee:  spec.TransportFee,
-			TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
-			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
-			ID:            classId,
-		})
-		if err != nil {
-			return []entity.ClassID{}, fmt.Errorf("qtx.UpdateClass(): %w", err)
-		}
-		classIDs = append(classIDs, spec.ClassID)
-
-		// we only know the initial & final states of the class' students.
-		// so, we need to calculate the difference manually to know which DB action to be executed (insert, delete, or update [enable/disable]).
-		studentDifference, err := calculateClassStudentsDifference(ctx, qtx, spec.ClassID, spec.StudentIDs)
-		if err != nil {
-			return []entity.ClassID{}, fmt.Errorf("calculateClassStudentsDifference(): %w", err)
-		}
-
-		// Added students
-		for _, studentId := range studentDifference.addedStudentIDs {
-			err = qtx.InsertStudentEnrollment(ctx, mysql.InsertStudentEnrollmentParams{
-				StudentID: int64(studentId),
-				ClassID:   classId,
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			classId := int64(spec.ClassID)
+			// Updated class
+			err := s.mySQLQueries.UpdateClass(newCtx, mysql.UpdateClassParams{
+				TransportFee:  spec.TransportFee,
+				TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
+				IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
+				ID:            classId,
 			})
 			if err != nil {
-
-				return []entity.ClassID{}, fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
+				return fmt.Errorf("qtx.UpdateClass(): %w", err)
 			}
-		}
+			classIDs = append(classIDs, spec.ClassID)
 
-		// Updated (re-enabled) enrollments
-		for _, updatedEnrollmentID := range studentDifference.enabledStudentEnrollmentIDs {
-			err = qtx.EnableStudentEnrollment(ctx, int64(updatedEnrollmentID))
+			// we only know the initial & final states of the class' students.
+			// so, we need to calculate the difference manually to know which DB action to be executed (insert, delete, or update [enable/disable]).
+			studentDifference, err := calculateClassStudentsDifference(newCtx, qtx, spec.ClassID, spec.StudentIDs)
 			if err != nil {
+				return fmt.Errorf("calculateClassStudentsDifference(): %w", err)
+			}
 
-				return []entity.ClassID{}, fmt.Errorf("qtx.EnableStudentEnrollment(): %w", err)
+			// Added students
+			for _, studentId := range studentDifference.addedStudentIDs {
+				err = qtx.InsertStudentEnrollment(newCtx, mysql.InsertStudentEnrollmentParams{
+					StudentID: int64(studentId),
+					ClassID:   classId,
+				})
+				if err != nil {
+
+					return fmt.Errorf("qtx.InsertStudentEnrollment(): %w", err)
+				}
+			}
+
+			// Updated (re-enabled) enrollments
+			for _, updatedEnrollmentID := range studentDifference.enabledStudentEnrollmentIDs {
+				err = qtx.EnableStudentEnrollment(newCtx, int64(updatedEnrollmentID))
+				if err != nil {
+
+					return fmt.Errorf("qtx.EnableStudentEnrollment(): %w", err)
+				}
+			}
+
+			// Delete or disable enrollments
+			for _, disabledEnrollmentID := range studentDifference.disabledStudentEnrollmentIDs {
+				err = qtx.DeleteStudentEnrollmentById(newCtx, int64(disabledEnrollmentID))
+				if err == nil {
+					// the enrollment is still deletable (not referenced by any other entity), then we straightforwardly delete it
+					continue
+				}
+
+				err = qtx.DisableStudentEnrollment(newCtx, int64(disabledEnrollmentID))
+				if err != nil {
+					return fmt.Errorf("qtx.DisableStudentEnrollment(): %w", err)
+				}
 			}
 		}
-
-		// Delete or disable enrollments
-		for _, disabledEnrollmentID := range studentDifference.disabledStudentEnrollmentIDs {
-			err = qtx.DeleteStudentEnrollmentById(ctx, int64(disabledEnrollmentID))
-			if err == nil {
-				// the enrollment is still deletable (not referenced by any other entity), then we straightforwardly delete it
-				continue
-			}
-
-			err = qtx.DisableStudentEnrollment(ctx, int64(disabledEnrollmentID))
-			if err != nil {
-				return []entity.ClassID{}, fmt.Errorf("qtx.DisableStudentEnrollment(): %w", err)
-			}
-		}
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.ClassID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.ClassID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return classIDs, nil
@@ -908,26 +850,20 @@ func (s entityServiceImpl) DeleteClasses(ctx context.Context, ids []entity.Class
 		classIdsInt64 = append(classIdsInt64, int64(id))
 	}
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := qtx.DeleteStudentEnrollmentByClassIds(newCtx, classIdsInt64)
+		if err != nil {
+			return fmt.Errorf("qtx.DeleteStudentEnrollmentByClassIds(): %w", err)
+		}
 
-	err = qtx.DeleteStudentEnrollmentByClassIds(ctx, classIdsInt64)
+		err = qtx.DeleteClassesByIds(newCtx, classIdsInt64)
+		if err != nil {
+			return fmt.Errorf("qtx.DeleteClassesByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("qtx.DeleteStudentEnrollmentByClassIds(): %w", err)
-	}
-
-	err = qtx.DeleteClassesByIds(ctx, classIdsInt64)
-	if err != nil {
-		return fmt.Errorf("qtx.DeleteClassesByIds(): %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("tx.Commit(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -1016,29 +952,23 @@ func (s entityServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids [
 func (s entityServiceImpl) InsertTeacherSpecialFees(ctx context.Context, specs []entity.InsertTeacherSpecialFeeSpec) ([]entity.TeacherSpecialFeeID, error) {
 	teacherSpecialFeeIDs := make([]entity.TeacherSpecialFeeID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			teacherSpecialFeeID, err := qtx.InsertTeacherSpecialFee(newCtx, mysql.InsertTeacherSpecialFeeParams{
+				Fee:       spec.Fee,
+				TeacherID: int64(spec.TeacherID),
+				CourseID:  int64(spec.CourseID),
+			})
+			if err != nil {
 
-	for _, spec := range specs {
-		teacherSpecialFeeID, err := qtx.InsertTeacherSpecialFee(ctx, mysql.InsertTeacherSpecialFeeParams{
-			Fee:       spec.Fee,
-			TeacherID: int64(spec.TeacherID),
-			CourseID:  int64(spec.CourseID),
-		})
-		if err != nil {
-
-			return []entity.TeacherSpecialFeeID{}, fmt.Errorf("qtx.InsertTeacherSpecialFee(): %w", err)
+				return fmt.Errorf("qtx.InsertTeacherSpecialFee(): %w", err)
+			}
+			teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, entity.TeacherSpecialFeeID(teacherSpecialFeeID))
 		}
-		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, entity.TeacherSpecialFeeID(teacherSpecialFeeID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return teacherSpecialFeeIDs, nil
@@ -1052,28 +982,22 @@ func (s entityServiceImpl) UpdateTeacherSpecialFees(ctx context.Context, specs [
 
 	teacherSpecialFeeIDs := make([]entity.TeacherSpecialFeeID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdateTeacherSpecialFee(newCtx, mysql.UpdateTeacherSpecialFeeParams{
+				Fee: spec.Fee,
+				ID:  int64(spec.TeacherSpecialFeeID),
+			})
+			if err != nil {
 
-	for _, spec := range specs {
-		err := qtx.UpdateTeacherSpecialFee(ctx, mysql.UpdateTeacherSpecialFeeParams{
-			Fee: spec.Fee,
-			ID:  int64(spec.TeacherSpecialFeeID),
-		})
-		if err != nil {
-
-			return []entity.TeacherSpecialFeeID{}, fmt.Errorf("qtx.UpdateTeacherSpecialFee(): %w", err)
+				return fmt.Errorf("qtx.UpdateTeacherSpecialFee(): %w", err)
+			}
+			teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, spec.TeacherSpecialFeeID)
 		}
-		teacherSpecialFeeIDs = append(teacherSpecialFeeIDs, spec.TeacherSpecialFeeID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.TeacherSpecialFeeID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return teacherSpecialFeeIDs, nil
@@ -1152,32 +1076,25 @@ func (s entityServiceImpl) GetEnrollmentPaymentsByIds(ctx context.Context, ids [
 func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs []entity.InsertEnrollmentPaymentSpec) ([]entity.EnrollmentPaymentID, error) {
 	enrollmentPaymentIDs := make([]entity.EnrollmentPaymentID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.EnrollmentPaymentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		enrollmentPaymentID, err := qtx.InsertEnrollmentPayment(ctx, mysql.InsertEnrollmentPaymentParams{
-			PaymentDate:  spec.PaymentDate,
-			BalanceTopUp: spec.BalanceTopUp,
-			Value:        spec.Value,
-			ValuePenalty: spec.ValuePenalty,
-			EnrollmentID: sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
-		})
-		if err != nil {
-			return []entity.EnrollmentPaymentID{}, fmt.Errorf("qtx.InsertEnrollmentPayment(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			enrollmentPaymentID, err := qtx.InsertEnrollmentPayment(newCtx, mysql.InsertEnrollmentPaymentParams{
+				PaymentDate:  spec.PaymentDate,
+				BalanceTopUp: spec.BalanceTopUp,
+				Value:        spec.Value,
+				ValuePenalty: spec.ValuePenalty,
+				EnrollmentID: sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.InsertEnrollmentPayment(): %w", err)
+			}
+			enrollmentPaymentIDs = append(enrollmentPaymentIDs, entity.EnrollmentPaymentID(enrollmentPaymentID))
 		}
-		enrollmentPaymentIDs = append(enrollmentPaymentIDs, entity.EnrollmentPaymentID(enrollmentPaymentID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.EnrollmentPaymentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.EnrollmentPaymentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
-
 	return enrollmentPaymentIDs, nil
 }
 
@@ -1189,30 +1106,24 @@ func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs [
 
 	enrollmentPaymentIDs := make([]entity.EnrollmentPaymentID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.EnrollmentPaymentID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		err := qtx.UpdateEnrollmentPayment(ctx, mysql.UpdateEnrollmentPaymentParams{
-			PaymentDate:  spec.PaymentDate,
-			BalanceTopUp: spec.BalanceTopUp,
-			Value:        spec.Value,
-			ValuePenalty: spec.ValuePenalty,
-			ID:           int64(spec.EnrollmentPaymentID),
-		})
-		if err != nil {
-			return []entity.EnrollmentPaymentID{}, fmt.Errorf("qtx.UpdateEnrollmentPayment(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdateEnrollmentPayment(newCtx, mysql.UpdateEnrollmentPaymentParams{
+				PaymentDate:  spec.PaymentDate,
+				BalanceTopUp: spec.BalanceTopUp,
+				Value:        spec.Value,
+				ValuePenalty: spec.ValuePenalty,
+				ID:           int64(spec.EnrollmentPaymentID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateEnrollmentPayment(): %w", err)
+			}
+			enrollmentPaymentIDs = append(enrollmentPaymentIDs, spec.EnrollmentPaymentID)
 		}
-		enrollmentPaymentIDs = append(enrollmentPaymentIDs, spec.EnrollmentPaymentID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.EnrollmentPaymentID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.EnrollmentPaymentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return enrollmentPaymentIDs, nil
@@ -1291,30 +1202,24 @@ func (s entityServiceImpl) GetStudentLearningTokensByIds(ctx context.Context, id
 func (s entityServiceImpl) InsertStudentLearningTokens(ctx context.Context, specs []entity.InsertStudentLearningTokenSpec) ([]entity.StudentLearningTokenID, error) {
 	studentLearningTokenIDs := make([]entity.StudentLearningTokenID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.StudentLearningTokenID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		studentLearningTokenID, err := qtx.InsertStudentLearningToken(ctx, mysql.InsertStudentLearningTokenParams{
-			Quota:             spec.Quota,
-			QuotaBonus:        spec.QuotaBonus,
-			CourseFeeValue:    spec.CourseFeeValue,
-			TransportFeeValue: spec.TransportFeeValue,
-			EnrollmentID:      int64(spec.StudentEnrollmentID),
-		})
-		if err != nil {
-			return []entity.StudentLearningTokenID{}, fmt.Errorf("qtx.InsertStudentLearningToken(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			studentLearningTokenID, err := qtx.InsertStudentLearningToken(newCtx, mysql.InsertStudentLearningTokenParams{
+				Quota:             spec.Quota,
+				QuotaBonus:        spec.QuotaBonus,
+				CourseFeeValue:    spec.CourseFeeValue,
+				TransportFeeValue: spec.TransportFeeValue,
+				EnrollmentID:      int64(spec.StudentEnrollmentID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.InsertStudentLearningToken(): %w", err)
+			}
+			studentLearningTokenIDs = append(studentLearningTokenIDs, entity.StudentLearningTokenID(studentLearningTokenID))
 		}
-		studentLearningTokenIDs = append(studentLearningTokenIDs, entity.StudentLearningTokenID(studentLearningTokenID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.StudentLearningTokenID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.StudentLearningTokenID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return studentLearningTokenIDs, nil
@@ -1328,30 +1233,24 @@ func (s entityServiceImpl) UpdateStudentLearningTokens(ctx context.Context, spec
 
 	studentLearningTokenIDs := make([]entity.StudentLearningTokenID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.StudentLearningTokenID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		err := qtx.UpdateStudentLearningToken(ctx, mysql.UpdateStudentLearningTokenParams{
-			Quota:             spec.Quota,
-			QuotaBonus:        spec.QuotaBonus,
-			CourseFeeValue:    spec.CourseFeeValue,
-			TransportFeeValue: spec.TransportFeeValue,
-			ID:                int64(spec.StudentLearningTokenID),
-		})
-		if err != nil {
-			return []entity.StudentLearningTokenID{}, fmt.Errorf("qtx.UpdateStudentLearningToken(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdateStudentLearningToken(newCtx, mysql.UpdateStudentLearningTokenParams{
+				Quota:             spec.Quota,
+				QuotaBonus:        spec.QuotaBonus,
+				CourseFeeValue:    spec.CourseFeeValue,
+				TransportFeeValue: spec.TransportFeeValue,
+				ID:                int64(spec.StudentLearningTokenID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateStudentLearningToken(): %w", err)
+			}
+			studentLearningTokenIDs = append(studentLearningTokenIDs, spec.StudentLearningTokenID)
 		}
-		studentLearningTokenIDs = append(studentLearningTokenIDs, spec.StudentLearningTokenID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.StudentLearningTokenID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.StudentLearningTokenID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return studentLearningTokenIDs, nil
@@ -1437,34 +1336,27 @@ func (s entityServiceImpl) GetPresencesByIds(ctx context.Context, ids []entity.P
 func (s entityServiceImpl) InsertPresences(ctx context.Context, specs []entity.InsertPresenceSpec) ([]entity.PresenceID, error) {
 	presenceIDs := make([]entity.PresenceID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.PresenceID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		presenceID, err := qtx.InsertPresence(ctx, mysql.InsertPresenceParams{
-			Date:                  spec.Date,
-			UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
-			Duration:              spec.Duration,
-			ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
-			TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
-			StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
-			TokenID:               int64(spec.StudentLearningTokenID),
-		})
-		if err != nil {
-			return []entity.PresenceID{}, fmt.Errorf("qtx.InsertPresence(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			presenceID, err := qtx.InsertPresence(newCtx, mysql.InsertPresenceParams{
+				Date:                  spec.Date,
+				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
+				Duration:              spec.Duration,
+				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
+				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
+				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
+				TokenID:               int64(spec.StudentLearningTokenID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.InsertPresence(): %w", err)
+			}
+			presenceIDs = append(presenceIDs, entity.PresenceID(presenceID))
 		}
-		presenceIDs = append(presenceIDs, entity.PresenceID(presenceID))
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.PresenceID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.PresenceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
-
 	return presenceIDs, nil
 }
 
@@ -1476,33 +1368,27 @@ func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.U
 
 	presenceIDs := make([]entity.PresenceID, 0, len(specs))
 
-	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
-	if err != nil {
-		return []entity.PresenceID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
-	}
-	defer tx.Rollback()
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for _, spec := range specs {
-		err := qtx.UpdatePresence(ctx, mysql.UpdatePresenceParams{
-			Date:                  spec.Date,
-			UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
-			Duration:              spec.Duration,
-			ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
-			TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
-			StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
-			TokenID:               int64(spec.StudentLearningTokenID),
-			ID:                    int64(spec.PresenceID),
-		})
-		if err != nil {
-			return []entity.PresenceID{}, fmt.Errorf("qtx.UpdatePresence(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			err := qtx.UpdatePresence(ctx, mysql.UpdatePresenceParams{
+				Date:                  spec.Date,
+				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
+				Duration:              spec.Duration,
+				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
+				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
+				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
+				TokenID:               int64(spec.StudentLearningTokenID),
+				ID:                    int64(spec.PresenceID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdatePresence(): %w", err)
+			}
+			presenceIDs = append(presenceIDs, spec.PresenceID)
 		}
-		presenceIDs = append(presenceIDs, spec.PresenceID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []entity.PresenceID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []entity.PresenceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return presenceIDs, nil

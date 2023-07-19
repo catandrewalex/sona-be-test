@@ -22,7 +22,6 @@ import (
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
-	"sonamusica-backend/network"
 )
 
 var (
@@ -149,10 +148,6 @@ func (s identityServiceImpl) GetUsersByIds(ctx context.Context, ids []identity.U
 	return users, nil
 }
 
-// InsertUsers insert users specified in spec in bulk, in single transaction (it's ALL successful or NONE successful).
-//
-// This methods check for existing *sql.Tx inside ctx, and will reuse the tx to execute the insertion.
-// Else, will create a new *sql.Tx and will be committed immediately.
 func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.InsertUserSpec) ([]identity.UserID, error) {
 	hashedPasswords := make([]string, 0, len(specs))
 	userDetails := make([][]byte, 0, len(specs))
@@ -173,51 +168,34 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 
 	userIds := make([]identity.UserID, 0, len(specs))
 	// We insert into 2 tables & also in bulk --> need to wrap inside SQL transaction
-	var tx *sql.Tx
-	var err error
-	isReusingExistingTx := false
-	if existingTx := network.GetSQLTx(ctx); existingTx != nil { // reuse existing pre-created SQL transaction (Tx) if exists
-		tx = existingTx
-		isReusingExistingTx = true
-	} else {
-		tx, err = s.mySQLQueries.Begin()
-		if err != nil {
-			return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for i, spec := range specs {
+			userID, err := qtx.InsertUser(newCtx, mysql.InsertUserParams{
+				Email:         spec.Email,
+				Username:      spec.Username,
+				UserDetail:    userDetails[i],
+				PrivilegeType: int32(spec.UserPrivilegeType),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.InsertUser(): %w", err)
+			}
+
+			_, err = qtx.InsertUserCredential(newCtx, mysql.InsertUserCredentialParams{
+				UserID:   userID,
+				Username: spec.Username,
+				Password: hashedPasswords[i],
+				Email:    spec.Email,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.InsertUserCredential(): %w", err)
+			}
+
+			userIds = append(userIds, identity.UserID(userID))
 		}
-		defer tx.Rollback()
-	}
-
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
-	for i, spec := range specs {
-		userID, err := qtx.InsertUser(ctx, mysql.InsertUserParams{
-			Email:         spec.Email,
-			Username:      spec.Username,
-			UserDetail:    userDetails[i],
-			PrivilegeType: int32(spec.UserPrivilegeType),
-		})
-		if err != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUser(): %w", err)
-		}
-
-		_, err = qtx.InsertUserCredential(ctx, mysql.InsertUserCredentialParams{
-			UserID:   userID,
-			Username: spec.Username,
-			Password: hashedPasswords[i],
-			Email:    spec.Email,
-		})
-		if err != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.InsertUserCredential(): %w", err)
-		}
-
-		userIds = append(userIds, identity.UserID(userID))
-	}
-
-	if !isReusingExistingTx {
-		err = tx.Commit()
-		if err != nil {
-			return []identity.UserID{}, fmt.Errorf("tx.Commit(): %w", err)
-		}
+		return nil
+	})
+	if err != nil {
+		return []identity.UserID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return userIds, nil
@@ -238,43 +216,37 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 		userDetails = append(userDetails, userDetail)
 	}
 
-	tx, err := s.mySQLQueries.Begin()
-	if err != nil {
-		return []identity.UserID{}, fmt.Errorf("mySQLDB.Begin(): %w", err)
-	}
-	defer tx.Rollback()
-
-	qtx := s.mySQLQueries.WithTxWrappedError(tx)
-
 	userIDs := make([]identity.UserID, 0, len(specs))
-	for i, spec := range specs {
-		err := qtx.UpdateUser(ctx, mysql.UpdateUserParams{
-			Username:      spec.Username,
-			Email:         spec.Email,
-			UserDetail:    userDetails[i],
-			PrivilegeType: int32(spec.UserPrivilegeType),
-			IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
-			ID:            int64(spec.UserID),
-		})
-		if err != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUser(): %w", err)
+
+	err = s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for i, spec := range specs {
+			err := qtx.UpdateUser(newCtx, mysql.UpdateUserParams{
+				Username:      spec.Username,
+				Email:         spec.Email,
+				UserDetail:    userDetails[i],
+				PrivilegeType: int32(spec.UserPrivilegeType),
+				IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
+				ID:            int64(spec.UserID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateUser(): %w", err)
+			}
+
+			err = qtx.UpdateUserCredentialInfoByUserId(newCtx, mysql.UpdateUserCredentialInfoByUserIdParams{
+				Username: spec.Username,
+				Email:    spec.Email,
+				UserID:   int64(spec.UserID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateUserCredentialInfoByUserId(): %w", err)
+			}
+
+			userIDs = append(userIDs, spec.UserID)
 		}
-
-		err = qtx.UpdateUserCredentialInfoByUserId(ctx, mysql.UpdateUserCredentialInfoByUserIdParams{
-			Username: spec.Username,
-			Email:    spec.Email,
-			UserID:   int64(spec.UserID),
-		})
-		if err != nil {
-			return []identity.UserID{}, fmt.Errorf("qtx.UpdateUserCredentialInfoByUserId(): %w", err)
-		}
-
-		userIDs = append(userIDs, spec.UserID)
-	}
-
-	err = tx.Commit()
+		return nil
+	})
 	if err != nil {
-		return []identity.UserID{}, fmt.Errorf("tx.Commit(): %w", err)
+		return []identity.UserID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return userIDs, nil
