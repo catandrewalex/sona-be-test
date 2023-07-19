@@ -106,22 +106,14 @@ CREATE TABLE presence
   duration INT NOT NULL,
   class_id BIGINT unsigned,
   teacher_id BIGINT unsigned,
+  student_id BIGINT unsigned,
   token_id BIGINT unsigned NOT NULL,
   -- `presence` stores historical records, and must not be deleted by CASCADE, but allow deletion of the parent entity
   FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE SET NULL,
+  FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE SET NULL,
   -- a `presence` must have a `student_learning_token` for calculating `presence` fee. If one wishes to delete a token ID, we force the `presence` to migrate to use another token.
   FOREIGN KEY (token_id) REFERENCES student_learning_token(id) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
-CREATE TABLE student_attend
-(
-  student_id BIGINT unsigned NOT NULL,
-  presence_id BIGINT unsigned NOT NULL,
-  CONSTRAINT pk_student_attend PRIMARY KEY (student_id, presence_id),
-  -- `student_attend` is an entity for many-to-many relationship
-  FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE CASCADE,
-  FOREIGN KEY (presence_id) REFERENCES presence(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE teacher_salary

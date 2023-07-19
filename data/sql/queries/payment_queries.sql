@@ -168,20 +168,18 @@ WHERE id = ? LIMIT 1;
 SELECT ts.id AS teacher_salary_id, profit_sharing_percentage, added_at,
     presence.id AS presence_id, date, used_student_token_quota, duration,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    class.id AS class_id, course_id, sqlc.embed(instrument), sqlc.embed(grade),
-    sa.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail
+    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
 
-    LEFT JOIN class on presence.class_id = class.id
+    LEFT JOIN class ON presence.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
-
-    LEFT JOIN student_attend AS sa ON presence.id = sa.presence_id
-    LEFT JOIN user AS user_student ON sa.student_id = user_student.id
 ORDER BY ts.id;
 
 -- name: InsertTeacherSalary :execlastid

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"database/sql"
 
@@ -1274,13 +1273,9 @@ func (s *BackendService) InsertEnrollmentPaymentsHandler(ctx context.Context, re
 
 	specs := make([]entity.InsertEnrollmentPaymentSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		paymentDate, err := time.Parse(output.DateFormat_Date, param.PaymentDate)
-		if err != nil {
-			return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("time.Parse(): %v", err), nil, "")
-		}
 		specs = append(specs, entity.InsertEnrollmentPaymentSpec{
 			StudentEnrollmentID: param.StudentEnrollmentID,
-			PaymentDate:         paymentDate,
+			PaymentDate:         param.PaymentDate,
 			BalanceTopUp:        param.BalanceTopUp,
 			Value:               param.Value,
 			ValuePenalty:        param.ValuePenalty,
@@ -1313,13 +1308,9 @@ func (s *BackendService) UpdateEnrollmentPaymentsHandler(ctx context.Context, re
 
 	specs := make([]entity.UpdateEnrollmentPaymentSpec, 0, len(req.Data))
 	for _, param := range req.Data {
-		paymentDate, err := time.Parse(output.DateFormat_Date, param.PaymentDate)
-		if err != nil {
-			return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("time.Parse(): %v", err), nil, "")
-		}
 		specs = append(specs, entity.UpdateEnrollmentPaymentSpec{
 			EnrollmentPaymentID: param.EnrollmentPaymentID,
-			PaymentDate:         paymentDate,
+			PaymentDate:         param.PaymentDate,
 			BalanceTopUp:        param.BalanceTopUp,
 			Value:               param.Value,
 			ValuePenalty:        param.ValuePenalty,
@@ -1490,6 +1481,144 @@ func (s *BackendService) DeleteStudentLearningTokensHandler(ctx context.Context,
 
 	return &output.DeleteStudentLearningTokensResponse{
 		Message: "Successfully deleted studentLearningTokens",
+	}, nil
+}
+
+func (s *BackendService) GetPresencesHandler(ctx context.Context, req *output.GetPresencesRequest) (*output.GetPresencesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	paginationSpec := util.PaginationSpec{
+		Page:           req.Page,
+		ResultsPerPage: req.ResultsPerPage,
+	}
+	timeFilter := util.TimeSpec{
+		StartDatetime: req.StartDatetime,
+		EndDatetime:   req.EndDatetime,
+	}
+	getPresencesResult, err := s.entityService.GetPresences(ctx, paginationSpec, timeFilter)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetPresences(): %w", err), nil, "Failed to get courses")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getPresencesResult.PaginationResult)
+
+	return &output.GetPresencesResponse{
+		Data: output.GetPresencesResult{
+			Results:            getPresencesResult.Presences,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetPresenceByIdHandler(ctx context.Context, req *output.GetPresenceRequest) (*output.GetPresenceResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	presence, err := s.entityService.GetPresenceById(ctx, req.PresenceID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetPresenceById()", "presence")
+	}
+
+	return &output.GetPresenceResponse{
+		Data: presence,
+	}, nil
+}
+
+func (s *BackendService) InsertPresencesHandler(ctx context.Context, req *output.InsertPresencesRequest) (*output.InsertPresencesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]entity.InsertPresenceSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, entity.InsertPresenceSpec{
+			ClassID:                param.ClassID,
+			TeacherID:              param.TeacherID,
+			StudentID:              param.StudentID,
+			StudentLearningTokenID: param.StudentLearningTokenID,
+			Date:                   param.Date,
+			UsedStudentTokenQuota:  param.UsedStudentTokenQuota,
+			Duration:               param.Duration,
+		})
+	}
+
+	presenceIDs, err := s.entityService.InsertPresences(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "entityService.InsertPresences()", "presence")
+	}
+	mainLog.Info("Presences created: presenceIDs='%v'", presenceIDs)
+
+	presences, err := s.entityService.GetPresencesByIds(ctx, presenceIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetPresencesByIds: %v", err), nil, "")
+	}
+
+	return &output.InsertPresencesResponse{
+		Data: output.UpsertPresenceResult{
+			Results: presences,
+		},
+		Message: "Successfully created presences",
+	}, nil
+}
+
+func (s *BackendService) UpdatePresencesHandler(ctx context.Context, req *output.UpdatePresencesRequest) (*output.UpdatePresencesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]entity.UpdatePresenceSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, entity.UpdatePresenceSpec{
+			PresenceID:             param.PresenceID,
+			ClassID:                param.ClassID,
+			TeacherID:              param.TeacherID,
+			StudentID:              param.StudentID,
+			StudentLearningTokenID: param.StudentLearningTokenID,
+			Date:                   param.Date,
+			UsedStudentTokenQuota:  param.UsedStudentTokenQuota,
+			Duration:               param.Duration,
+		})
+	}
+
+	presenceIDs, err := s.entityService.UpdatePresences(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "entityService.UpdatePresences()", "presence")
+	}
+	mainLog.Info("Presences updated: presenceIDs='%v'", presenceIDs)
+
+	presences, err := s.entityService.GetPresencesByIds(ctx, presenceIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetPresencesByIds: %v", err), nil, "")
+	}
+
+	return &output.UpdatePresencesResponse{
+		Data: output.UpsertPresenceResult{
+			Results: presences,
+		},
+		Message: "Successfully updated presences",
+	}, nil
+}
+
+func (s *BackendService) DeletePresencesHandler(ctx context.Context, req *output.DeletePresencesRequest) (*output.DeletePresencesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]entity.PresenceID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.PresenceID)
+	}
+
+	err := s.entityService.DeletePresences(ctx, ids)
+	if err != nil {
+		return nil, handleDeletionError(err, "identityService.DeletePresences()", "presence")
+	}
+
+	return &output.DeletePresencesResponse{
+		Message: "Successfully deleted presences",
 	}, nil
 }
 

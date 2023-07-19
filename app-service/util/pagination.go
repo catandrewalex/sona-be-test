@@ -12,9 +12,11 @@ const (
 
 func (s *PaginationSpec) SetDefaultOnInvalidValues() {
 	if s.Page <= 0 {
+		mainLog.Warn("Found invalid value for Page (<= 0), reverting to default value='%d'", default_Page)
 		s.Page = default_Page
 	}
 	if s.ResultsPerPage <= 0 {
+		mainLog.Warn("Found invalid value for ResultsPerPage (<= 0), reverting to default value='%d'", default_ResultsPerPage)
 		s.ResultsPerPage = default_ResultsPerPage
 	}
 }

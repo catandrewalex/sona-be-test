@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -198,7 +199,12 @@ func (wrapper JSONSerdeWrapper) parseRequest(r *http.Request, rType reflect.Type
 func convertURLQueryToJSONString(encodedURLQuery string) []byte {
 	jsonStruct := make(map[string]interface{}, 0)
 
-	queries := strings.Split(encodedURLQuery, "&")
+	unescaped, err := url.PathUnescape(encodedURLQuery)
+	if err != nil {
+		panic(fmt.Sprintf("error on url.PathUnescape() while parsing URL Query=%q", encodedURLQuery))
+	}
+
+	queries := strings.Split(unescaped, "&")
 	for _, query := range queries {
 		splittedQuery := strings.Split(query, "=")
 		if len(splittedQuery) == 2 {
@@ -217,7 +223,7 @@ func convertURLQueryToJSONString(encodedURLQuery string) []byte {
 
 	jsonString, err := json.Marshal(jsonStruct)
 	if err != nil {
-		panic(fmt.Sprintf("error on json.Marshal() while parsing URL Query=%q", encodedURLQuery))
+		panic(fmt.Sprintf("error on json.Marshal() while parsing URL Query=%q", unescaped))
 	}
 
 	return jsonString

@@ -716,20 +716,18 @@ const getTeacherSalaries = `-- name: GetTeacherSalaries :many
 SELECT ts.id AS teacher_salary_id, profit_sharing_percentage, added_at,
     presence.id AS presence_id, date, used_student_token_quota, duration,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    class.id AS class_id, course_id, instrument.id, instrument.name, grade.id, grade.name,
-    sa.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail
+    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
 
-    LEFT JOIN class on presence.class_id = class.id
+    LEFT JOIN class ON presence.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
-
-    LEFT JOIN student_attend AS sa ON presence.id = sa.presence_id
-    LEFT JOIN user AS user_student ON sa.student_id = user_student.id
 ORDER BY ts.id
 `
 
@@ -744,13 +742,13 @@ type GetTeacherSalariesRow struct {
 	TeacherID               sql.NullInt64
 	TeacherUsername         sql.NullString
 	TeacherDetail           []byte
-	ClassID                 sql.NullInt64
-	CourseID                sql.NullInt64
-	Instrument              Instrument
-	Grade                   Grade
 	StudentID               sql.NullInt64
 	StudentUsername         sql.NullString
 	StudentDetail           []byte
+	Class                   Class
+	Course                  Course
+	Instrument              Instrument
+	Grade                   Grade
 }
 
 func (q *Queries) GetTeacherSalaries(ctx context.Context) ([]GetTeacherSalariesRow, error) {
@@ -773,15 +771,23 @@ func (q *Queries) GetTeacherSalaries(ctx context.Context) ([]GetTeacherSalariesR
 			&i.TeacherID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
-			&i.ClassID,
-			&i.CourseID,
+			&i.StudentID,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
 			&i.Instrument.ID,
 			&i.Instrument.Name,
 			&i.Grade.ID,
 			&i.Grade.Name,
-			&i.StudentID,
-			&i.StudentUsername,
-			&i.StudentDetail,
 		); err != nil {
 			return nil, err
 		}

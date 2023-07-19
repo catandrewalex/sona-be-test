@@ -274,3 +274,67 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 
 	return studentLearningTokens
 }
+
+func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []entity.Presence {
+	presences := make([]entity.Presence, 0, len(presenceRows))
+	for _, presenceRow := range presenceRows {
+		var classInfo *entity.ClassInfo_Minimal
+		classId := entity.ClassID(presenceRow.Class.ID)
+		if classId != entity.ClassID(entity.ClassID_None) {
+			classInfo = &entity.ClassInfo_Minimal{
+				ClassID: entity.ClassID(presenceRow.Class.ID),
+				CourseInfo: entity.CourseInfo_Minimal{
+					CourseID:   entity.CourseID(presenceRow.Course.ID),
+					Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{presenceRow.Instrument})[0],
+					Grade:      NewGradesFromMySQLGrades([]mysql.Grade{presenceRow.Grade})[0],
+				},
+				TransportFee:  presenceRow.Class.TransportFee,
+				IsDeactivated: util.Int32ToBool(presenceRow.Class.IsDeactivated),
+			}
+		}
+
+		var teacherInfo *entity.TeacherInfo_Minimal
+		teacherId := entity.TeacherID(presenceRow.TeacherID.Int64)
+		if presenceRow.TeacherID.Valid && teacherId != entity.TeacherID_None {
+			teacherInfo = &entity.TeacherInfo_Minimal{
+				TeacherID: teacherId,
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   presenceRow.TeacherUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(presenceRow.TeacherDetail, mainLog),
+				},
+			}
+		}
+
+		var studentInfo *entity.StudentInfo_Minimal
+		studentId := entity.StudentID(presenceRow.StudentID.Int64)
+		if presenceRow.StudentID.Valid && studentId != entity.StudentID_None {
+			studentInfo = &entity.StudentInfo_Minimal{
+				StudentID: studentId,
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   presenceRow.StudentUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(presenceRow.StudentDetail, mainLog),
+				},
+			}
+		}
+
+		presences = append(presences, entity.Presence{
+			PresenceID:  entity.PresenceID(presenceRow.PresenceID),
+			ClassInfo:   classInfo,
+			TeacherInfo: teacherInfo,
+			StudentInfo: studentInfo,
+			StudentLearningToken: entity.StudentLearningToken_Minimal{
+				StudentLearningTokenID: entity.StudentLearningTokenID(presenceRow.StudentLearningToken.ID),
+				Quota:                  presenceRow.StudentLearningToken.Quota,
+				QuotaBonus:             presenceRow.StudentLearningToken.QuotaBonus,
+				CourseFeeValue:         presenceRow.StudentLearningToken.CourseFeeValue,
+				TransportFeeValue:      presenceRow.StudentLearningToken.TransportFeeValue,
+				LastUpdatedAt:          presenceRow.StudentLearningToken.LastUpdatedAt,
+			},
+			Date:                  presenceRow.Date,
+			UsedStudentTokenQuota: presenceRow.UsedStudentTokenQuota,
+			Duration:              presenceRow.Duration,
+		})
+	}
+
+	return presences
+}

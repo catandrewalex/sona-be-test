@@ -63,3 +63,21 @@ func (r GetStudentLearningTokenByIdRow) ToGetStudentLearningTokensRow() GetStude
 func (r GetStudentLearningTokensByIdsRow) ToGetStudentLearningTokensRow() GetStudentLearningTokensRow {
 	return GetStudentLearningTokensRow(r)
 }
+
+// ============================== PRESENCE ==============================
+
+func (r GetPresenceByIdRow) ToGetPresencesRow() GetPresencesRow {
+	return GetPresencesRow(r)
+}
+func (r GetPresencesByIdsRow) ToGetPresencesRow() GetPresencesRow {
+	return GetPresencesRow(r)
+}
+func (r GetPresencesByClassIdRow) ToGetPresencesRow() GetPresencesRow {
+	return GetPresencesRow(r)
+}
+func (r GetPresencesByTeacherIdRow) ToGetPresencesRow() GetPresencesRow {
+	return GetPresencesRow(r)
+}
+func (r GetPresencesByStudentIdRow) ToGetPresencesRow() GetPresencesRow {
+	return GetPresencesRow(r)
+}

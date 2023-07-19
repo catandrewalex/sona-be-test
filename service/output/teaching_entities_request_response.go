@@ -31,11 +31,9 @@ const (
 
 	MaxPage_GetStudentLearningTokens           = Default_MaxPage
 	MaxResultsPerPage_GetStudentLearningTokens = Default_MaxResultsPerPage
-)
 
-const (
-	DateFormat_Date     = "2006-01-02"
-	DateFormat_Datetime = time.RFC3339
+	MaxPage_GetPresences           = Default_MaxPage
+	MaxResultsPerPage_GetPresences = Default_MaxResultsPerPage
 )
 
 // ============================== INSTRUMENT ==============================
@@ -555,7 +553,7 @@ type InsertEnrollmentPaymentsRequest struct {
 }
 type InsertEnrollmentPaymentsRequestParam struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
-	PaymentDate         string                     `json:"paymentDate"` // in format: "2023-05-30"
+	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 	Value               int32                      `json:"value,omitempty"`
 	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
@@ -568,11 +566,16 @@ type InsertEnrollmentPaymentsResponse struct {
 func (r InsertEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
-	for _, datum := range r.Data {
-		if _, err := time.Parse(DateFormat_Date, datum.PaymentDate); err != nil {
-			errorDetail["paymentDate"] = fmt.Sprintf("invalid paymentDate format. accepted date format is %q", DateFormat_Date)
+	for i, datum := range r.Data {
+		if datum.BalanceTopUp < 0 {
+			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = fmt.Sprintf("balanceTopUp must be >= 0")
 		}
-		break
+		if datum.Value < 0 {
+			errorDetail[fmt.Sprintf("data.%d.value", i)] = fmt.Sprintf("value must be >= 0")
+		}
+		if datum.ValuePenalty < 0 {
+			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = fmt.Sprintf("valuePenalty must be >= 0")
+		}
 	}
 
 	if len(errorDetail) > 0 {
@@ -586,8 +589,8 @@ type UpdateEnrollmentPaymentsRequest struct {
 }
 type UpdateEnrollmentPaymentsRequestParam struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
-	PaymentDate         string                     `json:"paymentDate"` // in format: "2023-05-30"
-	BalanceTopUp        int32                      `json:"balanceTopUp"`
+	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
+	BalanceTopUp        int32                      `json:"balanceTopUp,omitempty"`
 	Value               int32                      `json:"value,omitempty"`
 	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
 }
@@ -599,11 +602,16 @@ type UpdateEnrollmentPaymentsResponse struct {
 func (r UpdateEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
-	for _, datum := range r.Data {
-		if _, err := time.Parse(DateFormat_Date, datum.PaymentDate); err != nil {
-			errorDetail["paymentDate"] = fmt.Sprintf("invalid paymentDate format. accepted date format is %q", DateFormat_Date)
+	for i, datum := range r.Data {
+		if datum.BalanceTopUp < 0 {
+			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = fmt.Sprintf("balanceTopUp must be >= 0")
 		}
-		break
+		if datum.Value < 0 {
+			errorDetail[fmt.Sprintf("data.%d.value", i)] = fmt.Sprintf("value must be >= 0")
+		}
+		if datum.ValuePenalty < 0 {
+			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = fmt.Sprintf("valuePenalty must be >= 0")
+		}
 	}
 
 	if len(errorDetail) > 0 {
@@ -630,7 +638,7 @@ func (r DeleteEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-// ============================== ENROLLMENT_PAYMENT ==============================
+// ============================== STUDENT_LEARNING_TOKEN ==============================
 
 type GetStudentLearningTokensRequest struct {
 	PaginationRequest
@@ -721,5 +729,139 @@ type DeleteStudentLearningTokensResponse struct {
 }
 
 func (r DeleteStudentLearningTokensRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== PRESENCE ==============================
+
+type GetPresencesRequest struct {
+	PaginationRequest
+	TimeFilter
+}
+type GetPresencesResponse struct {
+	Data    GetPresencesResult `json:"data"`
+	Message string             `json:"message,omitempty"`
+}
+type GetPresencesResult struct {
+	Results []entity.Presence `json:"results"`
+	PaginationResponse
+}
+
+func (r GetPresencesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetPresences, MaxResultsPerPage_GetPresences); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetPresenceRequest struct {
+	PresenceID entity.PresenceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+}
+type GetPresenceResponse struct {
+	Data    entity.Presence `json:"data"`
+	Message string          `json:"message,omitempty"`
+}
+
+func (r GetPresenceRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+type InsertPresencesRequest struct {
+	Data []InsertPresencesRequestParam `json:"data"`
+}
+type InsertPresencesRequestParam struct {
+	ClassID                entity.ClassID                `json:"classID"`
+	TeacherID              entity.TeacherID              `json:"teacherID"`
+	StudentID              entity.StudentID              `json:"studentID"`
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	Date                   time.Time                     `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
+	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota,omitempty"`
+	Duration               int32                         `json:"duration,omitempty"`
+}
+type InsertPresencesResponse struct {
+	Data    UpsertPresenceResult `json:"data"`
+	Message string               `json:"message,omitempty"`
+}
+
+func (r InsertPresencesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.UsedStudentTokenQuota < 0 {
+			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = fmt.Sprintf("usedStudentTokenQuota must be >= 0")
+		}
+		if datum.Duration < 0 {
+			errorDetail[fmt.Sprintf("data.%d.duration", i)] = fmt.Sprintf("duration must be >= 0")
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type UpdatePresencesRequest struct {
+	Data []UpdatePresencesRequestParam `json:"data"`
+}
+type UpdatePresencesRequestParam struct {
+	PresenceID             entity.PresenceID             `json:"presenceID"`
+	ClassID                entity.ClassID                `json:"classID"`
+	TeacherID              entity.TeacherID              `json:"teacherID"`
+	StudentID              entity.StudentID              `json:"studentID"`
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	Date                   time.Time                     `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
+	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota"`
+	Duration               int32                         `json:"duration"`
+}
+type UpdatePresencesResponse struct {
+	Data    UpsertPresenceResult `json:"data"`
+	Message string               `json:"message,omitempty"`
+}
+
+func (r UpdatePresencesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.UsedStudentTokenQuota < 0 {
+			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = fmt.Sprintf("usedStudentTokenQuota must be >= 0")
+		}
+		if datum.Duration < 0 {
+			errorDetail[fmt.Sprintf("data.%d.duration", i)] = fmt.Sprintf("duration must be >= 0")
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type UpsertPresenceResult struct {
+	Results []entity.Presence `json:"results"`
+}
+
+type DeletePresencesRequest struct {
+	Data []DeletePresencesRequestParam `json:"data"`
+}
+type DeletePresencesRequestParam struct {
+	PresenceID entity.PresenceID `json:"presenceID"`
+}
+type DeletePresencesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r DeletePresencesRequest) Validate() errs.ValidationError {
 	return nil
 }

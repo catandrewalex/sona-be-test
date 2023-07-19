@@ -64,6 +64,7 @@ type Class struct {
 	IsDeactivated        bool                  `json:"isDeactivated"`
 }
 
+// ClassInfo_Minimal is a subset of struct Class that must have the same schema.
 type ClassInfo_Minimal struct {
 	ClassID       ClassID            `json:"classId"`
 	CourseInfo    CourseInfo_Minimal `json:"course"`
@@ -101,6 +102,27 @@ type StudentLearningToken struct {
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
 	StudentEnrollmentInfo  StudentEnrollment      `json:"studentEnrollment"`
+}
+
+// StudentLearningToken_Minimal is a subset of struct StudentLearningToken that must have the same schema.
+type StudentLearningToken_Minimal struct {
+	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenID"`
+	Quota                  int32                  `json:"quota"`
+	QuotaBonus             int32                  `json:"quotaBonus"`
+	CourseFeeValue         int32                  `json:"courseFeeValue"`
+	TransportFeeValue      int32                  `json:"transportFeeValue"`
+	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
+}
+
+type Presence struct {
+	PresenceID            PresenceID                   `json:"presenceId"`
+	ClassInfo             *ClassInfo_Minimal           `json:"class,omitempty"`
+	TeacherInfo           *TeacherInfo_Minimal         `json:"teacher,omitempty"`
+	StudentInfo           *StudentInfo_Minimal         `json:"student,omitempty"`
+	StudentLearningToken  StudentLearningToken_Minimal `json:"studentLearningToken"`
+	Date                  time.Time                    `json:"date"`
+	UsedStudentTokenQuota float64                      `json:"usedStudentTokenQuota"`
+	Duration              int32                        `json:"duration"`
 }
 
 type TeacherID int64
@@ -194,6 +216,13 @@ type EntityService interface {
 	InsertStudentLearningTokens(ctx context.Context, specs []InsertStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
 	UpdateStudentLearningTokens(ctx context.Context, specs []UpdateStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
+
+	GetPresences(ctx context.Context, pagination util.PaginationSpec, timeFilter util.TimeSpec) (GetPresencesResult, error)
+	GetPresenceById(ctx context.Context, id PresenceID) (Presence, error)
+	GetPresencesByIds(ctx context.Context, ids []PresenceID) ([]Presence, error)
+	InsertPresences(ctx context.Context, specs []InsertPresenceSpec) ([]PresenceID, error)
+	UpdatePresences(ctx context.Context, specs []UpdatePresenceSpec) ([]PresenceID, error)
+	DeletePresences(ctx context.Context, ids []PresenceID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -354,7 +383,7 @@ func (s UpdateEnrollmentPaymentSpec) GetInt64ID() int64 {
 	return int64(s.EnrollmentPaymentID)
 }
 
-// ============================== ENROLLMENT_PAYMENT ==============================
+// ============================== STUDENT_LEARNING_TOKEN ==============================
 
 type GetStudentLearningTokensResult struct {
 	StudentLearningTokens []StudentLearningToken
@@ -379,4 +408,36 @@ type UpdateStudentLearningTokenSpec struct {
 
 func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {
 	return int64(s.StudentLearningTokenID)
+}
+
+// ============================== PRESENCE ==============================
+
+type GetPresencesResult struct {
+	Presences        []Presence
+	PaginationResult util.PaginationResult
+}
+
+type InsertPresenceSpec struct {
+	ClassID                ClassID
+	TeacherID              TeacherID
+	StudentID              StudentID
+	StudentLearningTokenID StudentLearningTokenID
+	Date                   time.Time
+	UsedStudentTokenQuota  float64
+	Duration               int32
+}
+
+type UpdatePresenceSpec struct {
+	PresenceID             PresenceID
+	ClassID                ClassID
+	TeacherID              TeacherID
+	StudentID              StudentID
+	StudentLearningTokenID StudentLearningTokenID
+	Date                   time.Time
+	UsedStudentTokenQuota  float64
+	Duration               int32
+}
+
+func (s UpdatePresenceSpec) GetInt64ID() int64 {
+	return int64(s.PresenceID)
 }

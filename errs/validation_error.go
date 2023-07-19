@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"sonamusica-backend/logging"
 	"strings"
+	"time"
 )
 
 var (
@@ -92,7 +93,7 @@ func getStructZeroValuesErrorDetail(struct_ interface{}, fieldNamePrefix string)
 		logging.HTTPServerLogger.Debug("\tvalueField type: %s", valueField.Type())
 		logging.HTTPServerLogger.Debug("\tvalueField kind: %s", valueField.Kind())
 
-		if valueField.Kind() == reflect.Struct { // recursively check struct zero values
+		if valueField.Kind() == reflect.Struct && valueField.Type() != reflect.TypeOf(time.Time{}) { // recursively check struct zero values, but skip time.Time() whose fields shouldn't be iterated
 			childErrorDetail := getStructZeroValuesErrorDetail(valueField.Interface(), fieldName)
 			for k, v := range childErrorDetail {
 				errorDetail[k] = v

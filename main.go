@@ -135,6 +135,12 @@ func main() {
 		authRouter.Post("/studentLearningTokens", jsonSerdeWrapper.WrapFunc(backendService.InsertStudentLearningTokensHandler))
 		authRouter.Put("/studentLearningTokens", jsonSerdeWrapper.WrapFunc(backendService.UpdateStudentLearningTokensHandler))
 		authRouter.Delete("/studentLearningTokens", jsonSerdeWrapper.WrapFunc(backendService.DeleteStudentLearningTokensHandler))
+
+		authRouter.Get("/presences", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesHandler))
+		authRouter.Get("/presence/{PresenceID}", jsonSerdeWrapper.WrapFunc(backendService.GetPresenceByIdHandler, "PresenceID"))
+		authRouter.Post("/presences", jsonSerdeWrapper.WrapFunc(backendService.InsertPresencesHandler))
+		authRouter.Put("/presences", jsonSerdeWrapper.WrapFunc(backendService.UpdatePresencesHandler))
+		authRouter.Delete("/presences", jsonSerdeWrapper.WrapFunc(backendService.DeletePresencesHandler))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

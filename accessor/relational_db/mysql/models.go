@@ -52,17 +52,13 @@ type Presence struct {
 	Duration              int32
 	ClassID               sql.NullInt64
 	TeacherID             sql.NullInt64
+	StudentID             sql.NullInt64
 	TokenID               int64
 }
 
 type Student struct {
 	ID     int64
 	UserID int64
-}
-
-type StudentAttend struct {
-	StudentID  int64
-	PresenceID int64
 }
 
 type StudentEnrollment struct {

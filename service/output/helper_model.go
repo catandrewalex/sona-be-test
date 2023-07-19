@@ -2,6 +2,7 @@ package output
 
 import (
 	"fmt"
+	"time"
 
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/errs"
@@ -54,4 +55,23 @@ func NewPaginationResponse(paginationResult util.PaginationResult) PaginationRes
 		TotalResults: paginationResult.TotalResults,
 		CurrentPage:  paginationResult.CurrentPage,
 	}
+}
+
+type TimeFilter struct {
+	StartDatetime time.Time `json:"startDatetime,omitempty"`
+	EndDatetime   time.Time `json:"endDatetime,omitempty"`
+}
+
+func (r TimeFilter) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if !r.EndDatetime.IsZero() && r.StartDatetime.After(r.EndDatetime) {
+		errorDetail["startDatetime"] = "startDatetime must be less than endDatetime"
+		errorDetail["endDatetime"] = "endDatetime must be greater than startDatetime"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
 }

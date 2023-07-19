@@ -1370,3 +1370,154 @@ func (s entityServiceImpl) DeleteStudentLearningTokens(ctx context.Context, ids 
 
 	return nil
 }
+
+func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.PaginationSpec, timeFilter util.TimeSpec) (entity.GetPresencesResult, error) {
+	pagination.SetDefaultOnInvalidValues()
+	limit, offset := pagination.GetLimitAndOffset()
+
+	timeFilter.SetDefaultForZeroValues()
+	presenceRows, err := s.mySQLQueries.GetPresences(ctx, mysql.GetPresencesParams{
+		Date:   timeFilter.StartDatetime,
+		Date_2: timeFilter.EndDatetime,
+		Limit:  int32(limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.GetPresences(): %w", err)
+	}
+
+	presences := NewPresencesFromGetPresencesRow(presenceRows)
+
+	totalResults, err := s.mySQLQueries.CountPresences(ctx, mysql.CountPresencesParams{
+		Date:   timeFilter.StartDatetime,
+		Date_2: timeFilter.EndDatetime,
+	})
+	if err != nil {
+		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+	}
+
+	return entity.GetPresencesResult{
+		Presences:        presences,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
+	}, nil
+}
+
+func (s entityServiceImpl) GetPresenceById(ctx context.Context, id entity.PresenceID) (entity.Presence, error) {
+	presenceRow, err := s.mySQLQueries.GetPresenceById(ctx, int64(id))
+	if err != nil {
+		return entity.Presence{}, fmt.Errorf("mySQLQueries.GetPresenceById(): %w", err)
+	}
+
+	presence := NewPresencesFromGetPresencesRow([]mysql.GetPresencesRow{presenceRow.ToGetPresencesRow()})[0]
+
+	return presence, nil
+}
+
+func (s entityServiceImpl) GetPresencesByIds(ctx context.Context, ids []entity.PresenceID) ([]entity.Presence, error) {
+	idsInt := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		idsInt = append(idsInt, int64(id))
+	}
+
+	presenceRows, err := s.mySQLQueries.GetPresencesByIds(ctx, idsInt)
+	if err != nil {
+		return []entity.Presence{}, fmt.Errorf("mySQLQueries.GetPresencesByIds(): %w", err)
+	}
+
+	presenceRowsConverted := make([]mysql.GetPresencesRow, 0, len(presenceRows))
+	for _, row := range presenceRows {
+		presenceRowsConverted = append(presenceRowsConverted, row.ToGetPresencesRow())
+	}
+
+	presences := NewPresencesFromGetPresencesRow(presenceRowsConverted)
+
+	return presences, nil
+}
+
+func (s entityServiceImpl) InsertPresences(ctx context.Context, specs []entity.InsertPresenceSpec) ([]entity.PresenceID, error) {
+	presenceIDs := make([]entity.PresenceID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []entity.PresenceID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		presenceID, err := qtx.InsertPresence(ctx, mysql.InsertPresenceParams{
+			Date:                  spec.Date,
+			UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
+			Duration:              spec.Duration,
+			ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
+			TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
+			StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
+			TokenID:               int64(spec.StudentLearningTokenID),
+		})
+		if err != nil {
+			return []entity.PresenceID{}, fmt.Errorf("qtx.InsertPresence(): %w", err)
+		}
+		presenceIDs = append(presenceIDs, entity.PresenceID(presenceID))
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []entity.PresenceID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return presenceIDs, nil
+}
+
+func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.UpdatePresenceSpec) ([]entity.PresenceID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountPresencesByIds)
+	if errV != nil {
+		return []entity.PresenceID{}, errV
+	}
+
+	presenceIDs := make([]entity.PresenceID, 0, len(specs))
+
+	tx, err := s.mySQLQueries.BeginTx(ctx, nil)
+	if err != nil {
+		return []entity.PresenceID{}, fmt.Errorf("mySQLQueries.BeginTx(): %w", err)
+	}
+	defer tx.Rollback()
+	qtx := s.mySQLQueries.WithTxWrappedError(tx)
+
+	for _, spec := range specs {
+		err := qtx.UpdatePresence(ctx, mysql.UpdatePresenceParams{
+			Date:                  spec.Date,
+			UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
+			Duration:              spec.Duration,
+			ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
+			TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
+			StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
+			TokenID:               int64(spec.StudentLearningTokenID),
+			ID:                    int64(spec.PresenceID),
+		})
+		if err != nil {
+			return []entity.PresenceID{}, fmt.Errorf("qtx.UpdatePresence(): %w", err)
+		}
+		presenceIDs = append(presenceIDs, spec.PresenceID)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return []entity.PresenceID{}, fmt.Errorf("tx.Commit(): %w", err)
+	}
+
+	return presenceIDs, nil
+}
+
+func (s entityServiceImpl) DeletePresences(ctx context.Context, ids []entity.PresenceID) error {
+	presenceIdsInt64 := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		presenceIdsInt64 = append(presenceIdsInt64, int64(id))
+	}
+
+	err := s.mySQLQueries.DeletePresencesByIds(ctx, presenceIdsInt64)
+	if err != nil {
+		return fmt.Errorf("mySQLQueries.DeletePresenceByIds(): %w", err)
+	}
+
+	return nil
+}
