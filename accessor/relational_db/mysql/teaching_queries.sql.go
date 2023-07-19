@@ -634,6 +634,20 @@ func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow
 	return items, nil
 }
 
+const getClassTeacherId = `-- name: GetClassTeacherId :one
+SELECT class.teacher_id FROM class
+WHERE class.id = ?
+LIMIT 1
+`
+
+// ============================== CLASS ==============================
+func (q *Queries) GetClassTeacherId(ctx context.Context, id int64) (sql.NullInt64, error) {
+	row := q.db.QueryRowContext(ctx, getClassTeacherId, id)
+	var teacher_id sql.NullInt64
+	err := row.Scan(&teacher_id)
+	return teacher_id, err
+}
+
 const getClasses = `-- name: GetClasses :many
 WITH class_paginated AS (
     SELECT id, transport_fee, teacher_id, course_id, is_deactivated FROM class
@@ -683,7 +697,6 @@ type GetClassesRow struct {
 	DefaultDurationMinute int32
 }
 
-// ============================== CLASS ==============================
 func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetClassesRow, error) {
 	sql := getClasses
 	var queryParams []interface{}

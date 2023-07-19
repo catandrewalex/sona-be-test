@@ -20,6 +20,8 @@ import (
 	entityImpl "sonamusica-backend/app-service/entity/impl"
 	"sonamusica-backend/app-service/identity"
 	identityImpl "sonamusica-backend/app-service/identity/impl"
+	"sonamusica-backend/app-service/teaching"
+	teachingImpl "sonamusica-backend/app-service/teaching/impl"
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
@@ -38,6 +40,7 @@ type BackendService struct {
 
 	identityService identity.IdentityService
 	entityService   entity.EntityService
+	teachingService teaching.TeachingService
 }
 
 func NewBackendService() *BackendService {
@@ -66,10 +69,13 @@ func NewBackendService() *BackendService {
 
 	entityService := entityImpl.NewEntityServiceImpl(mySqlQueries, identityService)
 
+	teachingService := teachingImpl.NewTeachingServiceImpl(mySqlQueries, entityService)
+
 	return &BackendService{
 		jwtService:      jwtService,
 		identityService: identityService,
 		entityService:   entityService,
+		teachingService: teachingService,
 	}
 }
 
@@ -1404,7 +1410,6 @@ func (s *BackendService) InsertStudentLearningTokensHandler(ctx context.Context,
 		specs = append(specs, entity.InsertStudentLearningTokenSpec{
 			StudentEnrollmentID: param.StudentEnrollmentID,
 			Quota:               param.Quota,
-			QuotaBonus:          param.QuotaBonus,
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
 		})
@@ -1439,7 +1444,6 @@ func (s *BackendService) UpdateStudentLearningTokensHandler(ctx context.Context,
 		specs = append(specs, entity.UpdateStudentLearningTokenSpec{
 			StudentLearningTokenID: param.StudentLearningTokenID,
 			Quota:                  param.Quota,
-			QuotaBonus:             param.QuotaBonus,
 			CourseFeeValue:         param.CourseFeeValue,
 			TransportFeeValue:      param.TransportFeeValue,
 		})
@@ -1619,6 +1623,43 @@ func (s *BackendService) DeletePresencesHandler(ctx context.Context, req *output
 
 	return &output.DeletePresencesResponse{
 		Message: "Successfully deleted presences",
+	}, nil
+}
+
+func (s *BackendService) GetEnrollmentPaymentInvoice(ctx context.Context, req *output.GetEnrollmentPaymentInvoiceRequest) (*output.GetEnrollmentPaymentInvoiceResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	paymentInvoice, err := s.teachingService.CalculateStudentEnrollmentInvoice(ctx, req.StudentEnrollmentID)
+	if err != nil {
+		return nil, handleReadError(err, "teachingService.CalculateStudentEnrollmentInvoice()", "studentEnrollment")
+	}
+
+	return &output.GetEnrollmentPaymentInvoiceResponse{
+		Data: paymentInvoice,
+	}, nil
+}
+
+func (s *BackendService) SubmitEnrollmentPayment(ctx context.Context, req *output.SubmitEnrollmentPaymentRequest) (*output.SubmitEnrollmentPaymentResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	err := s.teachingService.SubmitStudentEnrollmentPayment(ctx, teaching.SubmitStudentEnrollmentPaymentSpec{
+		StudentEnrollmentID: req.StudentEnrollmentID,
+		PaymentDate:         req.PaymentDate,
+		BalanceTopUp:        req.BalanceTopUp,
+		PenaltyFeeValue:     req.PenaltyFeeValue,
+		CourseFeeValue:      req.CourseFeeValue,
+		TransportFeeValue:   req.TransportFeeValue,
+	})
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.SubmitStudentEnrollmentPayment()", "enrollmentPayment")
+	}
+
+	return &output.SubmitEnrollmentPaymentResponse{
+		Message: "Successfully submitted enrollmentPayment",
 	}, nil
 }
 

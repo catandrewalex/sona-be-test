@@ -568,13 +568,13 @@ func (r InsertEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 
 	for i, datum := range r.Data {
 		if datum.BalanceTopUp < 0 {
-			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = fmt.Sprintf("balanceTopUp must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = "balanceTopUp must be >= 0"
 		}
 		if datum.Value < 0 {
-			errorDetail[fmt.Sprintf("data.%d.value", i)] = fmt.Sprintf("value must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.value", i)] = "value must be >= 0"
 		}
 		if datum.ValuePenalty < 0 {
-			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = fmt.Sprintf("valuePenalty must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = "valuePenalty must be >= 0"
 		}
 	}
 
@@ -604,13 +604,13 @@ func (r UpdateEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 
 	for i, datum := range r.Data {
 		if datum.BalanceTopUp < 0 {
-			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = fmt.Sprintf("balanceTopUp must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = "balanceTopUp must be >= 0"
 		}
 		if datum.Value < 0 {
-			errorDetail[fmt.Sprintf("data.%d.value", i)] = fmt.Sprintf("value must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.value", i)] = "value must be >= 0"
 		}
 		if datum.ValuePenalty < 0 {
-			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = fmt.Sprintf("valuePenalty must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = "valuePenalty must be >= 0"
 		}
 	}
 
@@ -797,10 +797,10 @@ func (r InsertPresencesRequest) Validate() errs.ValidationError {
 
 	for i, datum := range r.Data {
 		if datum.UsedStudentTokenQuota < 0 {
-			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = fmt.Sprintf("usedStudentTokenQuota must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = "usedStudentTokenQuota must be >= 0"
 		}
 		if datum.Duration < 0 {
-			errorDetail[fmt.Sprintf("data.%d.duration", i)] = fmt.Sprintf("duration must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.duration", i)] = "duration must be >= 0"
 		}
 	}
 
@@ -833,10 +833,10 @@ func (r UpdatePresencesRequest) Validate() errs.ValidationError {
 
 	for i, datum := range r.Data {
 		if datum.UsedStudentTokenQuota < 0 {
-			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = fmt.Sprintf("usedStudentTokenQuota must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = "usedStudentTokenQuota must be >= 0"
 		}
 		if datum.Duration < 0 {
-			errorDetail[fmt.Sprintf("data.%d.duration", i)] = fmt.Sprintf("duration must be >= 0")
+			errorDetail[fmt.Sprintf("data.%d.duration", i)] = "duration must be >= 0"
 		}
 	}
 

@@ -214,6 +214,11 @@ DELETE FROM course
 WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== CLASS ============================== */
+-- name: GetClassTeacherId :one
+SELECT class.teacher_id FROM class
+WHERE class.id = ?
+LIMIT 1;
+
 -- name: GetClasses :many
 WITH class_paginated AS (
     SELECT * FROM class

@@ -387,6 +387,67 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 	return items, nil
 }
 
+const getSLTByEnrollmentIdAndCourseFeeAndTransportFee = `-- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
+SELECT id, quota, course_fee_value, transport_fee_value, last_updated_at, enrollment_id FROM student_learning_token
+WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?
+`
+
+type GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams struct {
+	EnrollmentID      int64
+	CourseFeeValue    int32
+	TransportFeeValue int32
+}
+
+func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Context, arg GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams) (StudentLearningToken, error) {
+	row := q.db.QueryRowContext(ctx, getSLTByEnrollmentIdAndCourseFeeAndTransportFee, arg.EnrollmentID, arg.CourseFeeValue, arg.TransportFeeValue)
+	var i StudentLearningToken
+	err := row.Scan(
+		&i.ID,
+		&i.Quota,
+		&i.CourseFeeValue,
+		&i.TransportFeeValue,
+		&i.LastUpdatedAt,
+		&i.EnrollmentID,
+	)
+	return i, err
+}
+
+const getSLTWithNegativeQuotaByEnrollmentId = `-- name: GetSLTWithNegativeQuotaByEnrollmentId :many
+SELECT id, quota, course_fee_value, transport_fee_value, last_updated_at, enrollment_id FROM student_learning_token
+WHERE enrollment_id = ? AND quota < 0
+`
+
+// ============================== STUDENT_LEARNING_TOKEN ==============================
+func (q *Queries) GetSLTWithNegativeQuotaByEnrollmentId(ctx context.Context, enrollmentID int64) ([]StudentLearningToken, error) {
+	rows, err := q.db.QueryContext(ctx, getSLTWithNegativeQuotaByEnrollmentId, enrollmentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []StudentLearningToken
+	for rows.Next() {
+		var i StudentLearningToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.Quota,
+			&i.CourseFeeValue,
+			&i.TransportFeeValue,
+			&i.LastUpdatedAt,
+			&i.EnrollmentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStudentLearningTokenById = `-- name: GetStudentLearningTokenById :one
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -419,7 +480,6 @@ type GetStudentLearningTokenByIdRow struct {
 	Grade                  Grade
 }
 
-// ============================== STUDENT_LEARNING_TOKEN ==============================
 func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (GetStudentLearningTokenByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getStudentLearningTokenById, id)
 	var i GetStudentLearningTokenByIdRow
@@ -810,6 +870,21 @@ func (q *Queries) GetTeacherSalaryById(ctx context.Context, id int64) (TeacherSa
 		&i.AddedAt,
 	)
 	return i, err
+}
+
+const incrementSLTQuotaById = `-- name: IncrementSLTQuotaById :exec
+UPDATE student_learning_token SET quota = quota + ?
+WHERE id = ?
+`
+
+type IncrementSLTQuotaByIdParams struct {
+	Quota int32
+	ID    int64
+}
+
+func (q *Queries) IncrementSLTQuotaById(ctx context.Context, arg IncrementSLTQuotaByIdParams) error {
+	_, err := q.db.ExecContext(ctx, incrementSLTQuotaById, arg.Quota, arg.ID)
+	return err
 }
 
 const insertEnrollmentPayment = `-- name: InsertEnrollmentPayment :execlastid
