@@ -27,7 +27,7 @@ CREATE TABLE grade
 CREATE TABLE course
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  default_fee BIGINT NOT NULL,
+  default_fee INT NOT NULL,
   default_duration_minute INT NOT NULL,
   instrument_id BIGINT unsigned NOT NULL,
   grade_id BIGINT unsigned NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE course
 CREATE TABLE class
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  transport_fee BIGINT NOT NULL,
+  transport_fee INT NOT NULL,
   teacher_id BIGINT unsigned,
   course_id BIGINT unsigned NOT NULL,
   is_deactivated TINYINT NOT NULL DEFAULT 0,
@@ -78,7 +78,6 @@ CREATE TABLE student_learning_token
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   quota INT NOT NULL DEFAULT 4,
-  quota_bonus INT NOT NULL DEFAULT 0,
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
   last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -90,7 +89,7 @@ CREATE TABLE student_learning_token
 CREATE TABLE teacher_special_fee
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  fee BIGINT NOT NULL,
+  fee INT NOT NULL,
   teacher_id BIGINT unsigned NOT NULL,
   course_id BIGINT unsigned NOT NULL,
   -- `teacher_special_fee` acts as an additional information, and couples a `teacher` with a `course`. We can simply delete this record by CASCADE

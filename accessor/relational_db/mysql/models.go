@@ -12,7 +12,7 @@ import (
 
 type Class struct {
 	ID            int64
-	TransportFee  int64
+	TransportFee  int32
 	TeacherID     sql.NullInt64
 	CourseID      int64
 	IsDeactivated int32
@@ -20,7 +20,7 @@ type Class struct {
 
 type Course struct {
 	ID                    int64
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 	InstrumentID          int64
 	GradeID               int64
@@ -71,7 +71,6 @@ type StudentEnrollment struct {
 type StudentLearningToken struct {
 	ID                int64
 	Quota             int32
-	QuotaBonus        int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
 	LastUpdatedAt     time.Time
@@ -92,7 +91,7 @@ type TeacherSalary struct {
 
 type TeacherSpecialFee struct {
 	ID        int64
-	Fee       int64
+	Fee       int32
 	TeacherID int64
 	CourseID  int64
 }

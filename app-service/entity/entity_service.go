@@ -44,15 +44,8 @@ type Course struct {
 	CourseID              CourseID   `json:"courseId"`
 	Instrument            Instrument `json:"instrument"`
 	Grade                 Grade      `json:"grade"`
-	DefaultFee            int64      `json:"defaultFee"`
+	DefaultFee            int32      `json:"defaultFee"`
 	DefaultDurationMinute int32      `json:"defaultDurationMinute"`
-}
-
-// CourseInfo_Minimal is a subset of struct Course that must have the same schema.
-type CourseInfo_Minimal struct {
-	CourseID   CourseID   `json:"courseId"`
-	Instrument Instrument `json:"instrument"`
-	Grade      Grade      `json:"grade"`
 }
 
 type Class struct {
@@ -60,16 +53,16 @@ type Class struct {
 	TeacherInfo_Minimal  *TeacherInfo_Minimal  `json:"teacher,omitempty"` // class without teacher is a valid class
 	StudentInfos_Minimal []StudentInfo_Minimal `json:"students"`
 	Course               Course                `json:"course"`
-	TransportFee         int64                 `json:"transportFee"`
+	TransportFee         int32                 `json:"transportFee"`
 	IsDeactivated        bool                  `json:"isDeactivated"`
 }
 
 // ClassInfo_Minimal is a subset of struct Class that must have the same schema.
 type ClassInfo_Minimal struct {
-	ClassID       ClassID            `json:"classId"`
-	CourseInfo    CourseInfo_Minimal `json:"course"`
-	TransportFee  int64              `json:"transportFee"`
-	IsDeactivated bool               `json:"isDeactivated"`
+	ClassID       ClassID `json:"classId"`
+	Course        Course  `json:"course"`
+	TransportFee  int32   `json:"transportFee"`
+	IsDeactivated bool    `json:"isDeactivated"`
 }
 
 type StudentEnrollment struct {
@@ -81,8 +74,8 @@ type StudentEnrollment struct {
 type TeacherSpecialFee struct {
 	TeacherSpecialFeeID TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
 	TeacherInfo         TeacherInfo_Minimal `json:"teacher"`
-	CourseInfo          CourseInfo_Minimal  `json:"course"`
-	Fee                 int64               `json:"fee"`
+	Course              Course              `json:"course"`
+	Fee                 int32               `json:"fee"`
 }
 
 type EnrollmentPayment struct {
@@ -97,7 +90,6 @@ type EnrollmentPayment struct {
 type StudentLearningToken struct {
 	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenID"`
 	Quota                  int32                  `json:"quota"`
-	QuotaBonus             int32                  `json:"quotaBonus"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
@@ -108,7 +100,6 @@ type StudentLearningToken struct {
 type StudentLearningToken_Minimal struct {
 	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenID"`
 	Quota                  int32                  `json:"quota"`
-	QuotaBonus             int32                  `json:"quotaBonus"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
@@ -195,6 +186,7 @@ type EntityService interface {
 	DeleteClasses(ctx context.Context, ids []ClassID) error
 
 	GetStudentEnrollments(ctx context.Context, pagination util.PaginationSpec) (GetStudentEnrollmentsResult, error)
+	GetStudentEnrollmentById(ctx context.Context, ids StudentEnrollmentID) (StudentEnrollment, error)
 
 	GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (GetTeacherSpecialFeesResult, error)
 	GetTeacherSpecialFeeById(ctx context.Context, id TeacherSpecialFeeID) (TeacherSpecialFee, error)
@@ -287,13 +279,13 @@ type GetCoursesResult struct {
 type InsertCourseSpec struct {
 	InstrumentID          InstrumentID
 	GradeID               GradeID
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
 type UpdateCourseSpec struct {
 	CourseID              CourseID
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -312,14 +304,14 @@ type InsertClassSpec struct {
 	TeacherID    TeacherID
 	StudentIDs   []StudentID
 	CourseID     CourseID
-	TransportFee int64
+	TransportFee int32
 }
 
 type UpdateClassSpec struct {
 	ClassID       ClassID
 	TeacherID     TeacherID
 	StudentIDs    []StudentID
-	TransportFee  int64
+	TransportFee  int32
 	IsDeactivated bool
 }
 
@@ -344,12 +336,12 @@ type GetTeacherSpecialFeesResult struct {
 type InsertTeacherSpecialFeeSpec struct {
 	TeacherID TeacherID
 	CourseID  CourseID
-	Fee       int64
+	Fee       int32
 }
 
 type UpdateTeacherSpecialFeeSpec struct {
 	TeacherSpecialFeeID TeacherSpecialFeeID
-	Fee                 int64
+	Fee                 int32
 }
 
 func (s UpdateTeacherSpecialFeeSpec) GetInt64ID() int64 {
@@ -393,7 +385,6 @@ type GetStudentLearningTokensResult struct {
 type InsertStudentLearningTokenSpec struct {
 	StudentEnrollmentID StudentEnrollmentID
 	Quota               int32
-	QuotaBonus          int32
 	CourseFeeValue      int32
 	TransportFeeValue   int32
 }
@@ -401,7 +392,6 @@ type InsertStudentLearningTokenSpec struct {
 type UpdateStudentLearningTokenSpec struct {
 	StudentLearningTokenID StudentLearningTokenID
 	Quota                  int32
-	QuotaBonus             int32
 	CourseFeeValue         int32
 	TransportFeeValue      int32
 }

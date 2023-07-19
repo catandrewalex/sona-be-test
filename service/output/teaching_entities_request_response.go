@@ -254,7 +254,7 @@ type InsertCoursesRequest struct {
 type InsertCoursesRequestParam struct {
 	InstrumentID          entity.InstrumentID `json:"instrumentId"`
 	GradeID               entity.GradeID      `json:"gradeId"`
-	DefaultFee            int64               `json:"defaultFee"`
+	DefaultFee            int32               `json:"defaultFee"`
 	DefaultDurationMinute int32               `json:"defaultDurationMinute"`
 }
 type InsertCoursesResponse struct {
@@ -271,7 +271,7 @@ type UpdateCoursesRequest struct {
 }
 type UpdateCoursesRequestParam struct {
 	CourseID              entity.CourseID `json:"courseId"`
-	DefaultFee            int64           `json:"defaultFee"`
+	DefaultFee            int32           `json:"defaultFee"`
 	DefaultDurationMinute int32           `json:"defaultDurationMinute"`
 }
 type UpdateCoursesResponse struct {
@@ -347,7 +347,7 @@ type InsertClassesRequestParam struct {
 	TeacherID    entity.TeacherID   `json:"teacherId"`
 	StudentIDs   []entity.StudentID `json:"studentIds"`
 	CourseID     entity.CourseID    `json:"courseId"`
-	TransportFee int64              `json:"transportFee,omitempty"`
+	TransportFee int32              `json:"transportFee,omitempty"`
 }
 type InsertClassesResponse struct {
 	Data    UpsertClassResult `json:"data"`
@@ -365,7 +365,7 @@ type UpdateClassesRequestParam struct {
 	ClassID       entity.ClassID     `json:"classId"`
 	TeacherID     entity.TeacherID   `json:"teacherId"`
 	StudentIDs    []entity.StudentID `json:"StudentIds"`
-	TransportFee  int64              `json:"transportFee,omitempty"`
+	TransportFee  int32              `json:"transportFee,omitempty"`
 	IsDeactivated bool               `json:"isDeactivated,omitempty"`
 }
 type UpdateClassesResponse struct {
@@ -465,7 +465,7 @@ type InsertTeacherSpecialFeesRequest struct {
 type InsertTeacherSpecialFeesRequestParam struct {
 	TeacherID entity.TeacherID `json:"teacherId"`
 	CourseID  entity.CourseID  `json:"courseId"`
-	Fee       int64            `json:"fee"`
+	Fee       int32            `json:"fee"`
 }
 type InsertTeacherSpecialFeesResponse struct {
 	Data    UpsertTeacherSpecialFeeResult `json:"data"`
@@ -481,7 +481,7 @@ type UpdateTeacherSpecialFeesRequest struct {
 }
 type UpdateTeacherSpecialFeesRequestParam struct {
 	TeacherSpecialFeeID entity.TeacherSpecialFeeID `json:"teacherSpecialFeeId"`
-	Fee                 int64                      `json:"fee"`
+	Fee                 int32                      `json:"fee"`
 }
 type UpdateTeacherSpecialFeesResponse struct {
 	Data    UpsertTeacherSpecialFeeResult `json:"data"`
@@ -682,7 +682,6 @@ type InsertStudentLearningTokensRequest struct {
 type InsertStudentLearningTokensRequestParam struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
 	Quota               int32                      `json:"quota"`
-	QuotaBonus          int32                      `json:"quotaBonus,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 }
@@ -701,7 +700,6 @@ type UpdateStudentLearningTokensRequest struct {
 type UpdateStudentLearningTokensRequestParam struct {
 	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
 	Quota                  int32                         `json:"quota"`
-	QuotaBonus             int32                         `json:"quotaBonus,omitempty"`
 	CourseFeeValue         int32                         `json:"courseFeeValue,omitempty"`
 	TransportFeeValue      int32                         `json:"transportFeeValue,omitempty"`
 }

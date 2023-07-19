@@ -814,7 +814,7 @@ func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, c
 
 	studentIDToEnrollmentIDMap := make(map[entity.StudentID]entity.StudentEnrollmentID, len(enrollments))
 	for _, enrollment := range enrollments {
-		studentIDToEnrollmentIDMap[entity.StudentID(enrollment.StudentID)] = entity.StudentEnrollmentID(enrollment.ID)
+		studentIDToEnrollmentIDMap[entity.StudentID(enrollment.StudentID)] = entity.StudentEnrollmentID(enrollment.StudentEnrollmentID)
 	}
 
 	finalStudentIDsMap := make(map[entity.StudentID]bool, 0)
@@ -828,7 +828,7 @@ func calculateClassStudentsDifference(ctx context.Context, qtx *mysql.Queries, c
 	}
 	for _, enrollment := range enrollments {
 		if _, ok := finalStudentIDsMap[entity.StudentID(enrollment.StudentID)]; !ok {
-			disabledStudentEnrollmentIDs = append(disabledStudentEnrollmentIDs, entity.StudentEnrollmentID(enrollment.ID))
+			disabledStudentEnrollmentIDs = append(disabledStudentEnrollmentIDs, entity.StudentEnrollmentID(enrollment.StudentEnrollmentID))
 		}
 	}
 
@@ -891,6 +891,17 @@ func (s entityServiceImpl) GetStudentEnrollments(ctx context.Context, pagination
 		StudentEnrollments: studentEnrollments,
 		PaginationResult:   *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
+}
+
+func (s entityServiceImpl) GetStudentEnrollmentById(ctx context.Context, id entity.StudentEnrollmentID) (entity.StudentEnrollment, error) {
+	studentEnrollmentRow, err := s.mySQLQueries.GetStudentEnrollmentById(ctx, int64(id))
+	if err != nil {
+		return entity.StudentEnrollment{}, fmt.Errorf("mySQLQueries.GetStudentEnrollmentById(): %w", err)
+	}
+
+	teacherSpecialFee := NewStudentEnrollmentsFromGetStudentEnrollmentsRow([]mysql.GetStudentEnrollmentsRow{studentEnrollmentRow.ToGetStudentEnrollmentsRow()})[0]
+
+	return teacherSpecialFee, nil
 }
 
 func (s entityServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeacherSpecialFeesResult, error) {
@@ -1206,7 +1217,6 @@ func (s entityServiceImpl) InsertStudentLearningTokens(ctx context.Context, spec
 		for _, spec := range specs {
 			studentLearningTokenID, err := qtx.InsertStudentLearningToken(newCtx, mysql.InsertStudentLearningTokenParams{
 				Quota:             spec.Quota,
-				QuotaBonus:        spec.QuotaBonus,
 				CourseFeeValue:    spec.CourseFeeValue,
 				TransportFeeValue: spec.TransportFeeValue,
 				EnrollmentID:      int64(spec.StudentEnrollmentID),
@@ -1237,7 +1247,6 @@ func (s entityServiceImpl) UpdateStudentLearningTokens(ctx context.Context, spec
 		for _, spec := range specs {
 			err := qtx.UpdateStudentLearningToken(newCtx, mysql.UpdateStudentLearningTokenParams{
 				Quota:             spec.Quota,
-				QuotaBonus:        spec.QuotaBonus,
 				CourseFeeValue:    spec.CourseFeeValue,
 				TransportFeeValue: spec.TransportFeeValue,
 				ID:                int64(spec.StudentLearningTokenID),

@@ -34,6 +34,12 @@ func (r GetClassesByIdsRow) ToGetClassesRow() GetClassesRow {
 	return GetClassesRow(r)
 }
 
+// ============================== STUDENT_ENROLLMENT ==============================
+
+func (r GetStudentEnrollmentByIdRow) ToGetStudentEnrollmentsRow() GetStudentEnrollmentsRow {
+	return GetStudentEnrollmentsRow(r)
+}
+
 // ============================== TEACHER_SPECIAL_FEE ==============================
 
 func (r GetTeacherSpecialFeeByIdRow) ToGetTeacherSpecialFeesRow() GetTeacherSpecialFeesRow {

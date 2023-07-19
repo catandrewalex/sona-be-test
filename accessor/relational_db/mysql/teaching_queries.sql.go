@@ -579,7 +579,7 @@ WHERE class.id = ?
 
 type GetClassByIdRow struct {
 	ClassID               int64
-	TransportFee          int64
+	TransportFee          int32
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
@@ -590,7 +590,7 @@ type GetClassByIdRow struct {
 	Grade                 Grade
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -668,7 +668,7 @@ type GetClassesParams struct {
 
 type GetClassesRow struct {
 	ClassID               int64
-	TransportFee          int64
+	TransportFee          int32
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
@@ -679,7 +679,7 @@ type GetClassesRow struct {
 	Grade                 Grade
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -760,7 +760,7 @@ ORDER BY class.id
 
 type GetClassesByIdsRow struct {
 	ClassID               int64
-	TransportFee          int64
+	TransportFee          int32
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
@@ -771,7 +771,7 @@ type GetClassesByIdsRow struct {
 	Grade                 Grade
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -847,7 +847,7 @@ ORDER BY class.id
 
 type GetClassesByStudentIdRow struct {
 	ClassID               int64
-	TransportFee          int64
+	TransportFee          int32
 	IsDeactivated         int32
 	CourseID              int64
 	TeacherID             sql.NullInt64
@@ -855,7 +855,7 @@ type GetClassesByStudentIdRow struct {
 	TeacherDetail         []byte
 	Instrument            Instrument
 	Grade                 Grade
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -918,7 +918,7 @@ ORDER BY class.id
 
 type GetClassesByTeacherIdRow struct {
 	ClassID               int64
-	TransportFee          int64
+	TransportFee          int32
 	IsDeactivated         int32
 	CourseID              int64
 	StudentID             sql.NullInt64
@@ -926,7 +926,7 @@ type GetClassesByTeacherIdRow struct {
 	Grade                 Grade
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -979,7 +979,7 @@ type GetCourseByIdRow struct {
 	CourseID              int64
 	Instrument            Instrument
 	Grade                 Grade
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -1016,7 +1016,7 @@ type GetCoursesRow struct {
 	CourseID              int64
 	Instrument            Instrument
 	Grade                 Grade
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -1072,7 +1072,7 @@ type GetCoursesByGradeIdRow struct {
 	CourseID              int64
 	Instrument            Instrument
 	Grade                 Grade
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -1119,7 +1119,7 @@ type GetCoursesByIdsRow struct {
 	CourseID              int64
 	Instrument            Instrument
 	Grade                 Grade
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -1184,7 +1184,7 @@ type GetCoursesByInstrumentIdRow struct {
 	CourseID              int64
 	Instrument            Instrument
 	Grade                 Grade
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 }
 
@@ -1456,10 +1456,62 @@ func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (GetStud
 	return i, err
 }
 
+const getStudentEnrollmentById = `-- name: GetStudentEnrollmentById :one
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND se.id = ?
+`
+
+type GetStudentEnrollmentByIdRow struct {
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
+// ============================== STUDENT_ENROLLMENT ==============================
+func (q *Queries) GetStudentEnrollmentById(ctx context.Context, id int64) (GetStudentEnrollmentByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getStudentEnrollmentById, id)
+	var i GetStudentEnrollmentByIdRow
+	err := row.Scan(
+		&i.StudentEnrollmentID,
+		&i.StudentID,
+		&i.StudentUsername,
+		&i.StudentDetail,
+		&i.Class.ID,
+		&i.Class.TransportFee,
+		&i.Class.TeacherID,
+		&i.Class.CourseID,
+		&i.Class.IsDeactivated,
+		&i.Course.ID,
+		&i.Course.DefaultFee,
+		&i.Course.DefaultDurationMinute,
+		&i.Course.InstrumentID,
+		&i.Course.GradeID,
+		&i.Instrument.ID,
+		&i.Instrument.Name,
+		&i.Grade.ID,
+		&i.Grade.Name,
+	)
+	return i, err
+}
+
 const getStudentEnrollments = `-- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name, course.default_fee AS course_default_fee
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -1486,7 +1538,6 @@ type GetStudentEnrollmentsRow struct {
 	Course              Course
 	Instrument          Instrument
 	Grade               Grade
-	CourseDefaultFee    int64
 }
 
 func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrollmentsParams) ([]GetStudentEnrollmentsRow, error) {
@@ -1517,7 +1568,6 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrol
 			&i.Instrument.Name,
 			&i.Grade.ID,
 			&i.Grade.Name,
-			&i.CourseDefaultFee,
 		); err != nil {
 			return nil, err
 		}
@@ -1533,24 +1583,58 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrol
 }
 
 const getStudentEnrollmentsByClassId = `-- name: GetStudentEnrollmentsByClassId :many
-SELECT id, student_id, class_id, is_deleted FROM student_enrollment
-WHERE class_id = ?
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND class_id = ?
 `
 
-func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID int64) ([]StudentEnrollment, error) {
+type GetStudentEnrollmentsByClassIdRow struct {
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
+func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID int64) ([]GetStudentEnrollmentsByClassIdRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStudentEnrollmentsByClassId, classID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StudentEnrollment
+	var items []GetStudentEnrollmentsByClassIdRow
 	for rows.Next() {
-		var i StudentEnrollment
+		var i GetStudentEnrollmentsByClassIdRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.StudentEnrollmentID,
 			&i.StudentID,
-			&i.ClassID,
-			&i.IsDeleted,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -1566,12 +1650,31 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 }
 
 const getStudentEnrollmentsByIds = `-- name: GetStudentEnrollmentsByIds :many
-SELECT id, student_id, class_id, is_deleted FROM student_enrollment
-WHERE id IN (/*SLICE:ids*/?)
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND se.id IN (/*SLICE:ids*/?)
 `
 
-// ============================== STUDENT_ENROLLMENT ==============================
-func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) ([]StudentEnrollment, error) {
+type GetStudentEnrollmentsByIdsRow struct {
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
+func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) ([]GetStudentEnrollmentsByIdsRow, error) {
 	sql := getStudentEnrollmentsByIds
 	var queryParams []interface{}
 	if len(ids) > 0 {
@@ -1587,14 +1690,28 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StudentEnrollment
+	var items []GetStudentEnrollmentsByIdsRow
 	for rows.Next() {
-		var i StudentEnrollment
+		var i GetStudentEnrollmentsByIdsRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.StudentEnrollmentID,
 			&i.StudentID,
-			&i.ClassID,
-			&i.IsDeleted,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -1610,24 +1727,58 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 }
 
 const getStudentEnrollmentsByStudentId = `-- name: GetStudentEnrollmentsByStudentId :many
-SELECT id, student_id, class_id, is_deleted FROM student_enrollment
-WHERE student_id = ?
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND student_id = ?
 `
 
-func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentID int64) ([]StudentEnrollment, error) {
+type GetStudentEnrollmentsByStudentIdRow struct {
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
+func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentID int64) ([]GetStudentEnrollmentsByStudentIdRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStudentEnrollmentsByStudentId, studentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StudentEnrollment
+	var items []GetStudentEnrollmentsByStudentIdRow
 	for rows.Next() {
-		var i StudentEnrollment
+		var i GetStudentEnrollmentsByStudentIdRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.StudentEnrollmentID,
 			&i.StudentID,
-			&i.ClassID,
-			&i.IsDeleted,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
 		); err != nil {
 			return nil, err
 		}
@@ -1826,7 +1977,7 @@ func (q *Queries) GetTeacherByUserId(ctx context.Context, userID int64) (GetTeac
 const getTeacherSpecialFeeById = `-- name: GetTeacherSpecialFeeById :one
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee AS original_course_fee
+    course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1838,14 +1989,13 @@ WHERE teacher_special_fee.id = ? LIMIT 1
 
 type GetTeacherSpecialFeeByIdRow struct {
 	TeacherSpecialFeeID int64
-	Fee                 int64
+	Fee                 int32
 	TeacherID           int64
 	TeacherUsername     string
 	TeacherDetail       json.RawMessage
-	CourseID            int64
+	Course              Course
 	Instrument          Instrument
 	Grade               Grade
-	OriginalCourseFee   int64
 }
 
 func (q *Queries) GetTeacherSpecialFeeById(ctx context.Context, id int64) (GetTeacherSpecialFeeByIdRow, error) {
@@ -1857,12 +2007,15 @@ func (q *Queries) GetTeacherSpecialFeeById(ctx context.Context, id int64) (GetTe
 		&i.TeacherID,
 		&i.TeacherUsername,
 		&i.TeacherDetail,
-		&i.CourseID,
+		&i.Course.ID,
+		&i.Course.DefaultFee,
+		&i.Course.DefaultDurationMinute,
+		&i.Course.InstrumentID,
+		&i.Course.GradeID,
 		&i.Instrument.ID,
 		&i.Instrument.Name,
 		&i.Grade.ID,
 		&i.Grade.Name,
-		&i.OriginalCourseFee,
 	)
 	return i, err
 }
@@ -1870,7 +2023,7 @@ func (q *Queries) GetTeacherSpecialFeeById(ctx context.Context, id int64) (GetTe
 const getTeacherSpecialFees = `-- name: GetTeacherSpecialFees :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee AS original_course_fee
+    course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1888,14 +2041,13 @@ type GetTeacherSpecialFeesParams struct {
 
 type GetTeacherSpecialFeesRow struct {
 	TeacherSpecialFeeID int64
-	Fee                 int64
+	Fee                 int32
 	TeacherID           int64
 	TeacherUsername     string
 	TeacherDetail       json.RawMessage
-	CourseID            int64
+	Course              Course
 	Instrument          Instrument
 	Grade               Grade
-	OriginalCourseFee   int64
 }
 
 // ============================== TEACHER_SPECIAL_FEE ==============================
@@ -1914,12 +2066,15 @@ func (q *Queries) GetTeacherSpecialFees(ctx context.Context, arg GetTeacherSpeci
 			&i.TeacherID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
-			&i.CourseID,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
 			&i.Instrument.ID,
 			&i.Instrument.Name,
 			&i.Grade.ID,
 			&i.Grade.Name,
-			&i.OriginalCourseFee,
 		); err != nil {
 			return nil, err
 		}
@@ -1937,7 +2092,7 @@ func (q *Queries) GetTeacherSpecialFees(ctx context.Context, arg GetTeacherSpeci
 const getTeacherSpecialFeesByIds = `-- name: GetTeacherSpecialFeesByIds :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee AS original_course_fee
+    course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1949,14 +2104,13 @@ WHERE teacher_special_fee.id IN (/*SLICE:ids*/?)
 
 type GetTeacherSpecialFeesByIdsRow struct {
 	TeacherSpecialFeeID int64
-	Fee                 int64
+	Fee                 int32
 	TeacherID           int64
 	TeacherUsername     string
 	TeacherDetail       json.RawMessage
-	CourseID            int64
+	Course              Course
 	Instrument          Instrument
 	Grade               Grade
-	OriginalCourseFee   int64
 }
 
 func (q *Queries) GetTeacherSpecialFeesByIds(ctx context.Context, ids []int64) ([]GetTeacherSpecialFeesByIdsRow, error) {
@@ -1984,12 +2138,15 @@ func (q *Queries) GetTeacherSpecialFeesByIds(ctx context.Context, ids []int64) (
 			&i.TeacherID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
-			&i.CourseID,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
 			&i.Instrument.ID,
 			&i.Instrument.Name,
 			&i.Grade.ID,
 			&i.Grade.Name,
-			&i.OriginalCourseFee,
 		); err != nil {
 			return nil, err
 		}
@@ -2007,7 +2164,7 @@ func (q *Queries) GetTeacherSpecialFeesByIds(ctx context.Context, ids []int64) (
 const getTeacherSpecialFeesByTeacherId = `-- name: GetTeacherSpecialFeesByTeacherId :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee AS original_course_fee
+    course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -2020,14 +2177,13 @@ ORDER BY course.id
 
 type GetTeacherSpecialFeesByTeacherIdRow struct {
 	TeacherSpecialFeeID int64
-	Fee                 int64
+	Fee                 int32
 	TeacherID           int64
 	TeacherUsername     string
 	TeacherDetail       json.RawMessage
-	CourseID            int64
+	Course              Course
 	Instrument          Instrument
 	Grade               Grade
-	OriginalCourseFee   int64
 }
 
 func (q *Queries) GetTeacherSpecialFeesByTeacherId(ctx context.Context, teacherID int64) ([]GetTeacherSpecialFeesByTeacherIdRow, error) {
@@ -2045,12 +2201,15 @@ func (q *Queries) GetTeacherSpecialFeesByTeacherId(ctx context.Context, teacherI
 			&i.TeacherID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
-			&i.CourseID,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
 			&i.Instrument.ID,
 			&i.Instrument.Name,
 			&i.Grade.ID,
 			&i.Grade.Name,
-			&i.OriginalCourseFee,
 		); err != nil {
 			return nil, err
 		}
@@ -2077,7 +2236,7 @@ type GetTeacherSpecialFeesByTeacherIdAndCourseIdParams struct {
 
 type GetTeacherSpecialFeesByTeacherIdAndCourseIdRow struct {
 	ID  int64
-	Fee int64
+	Fee int32
 }
 
 func (q *Queries) GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx context.Context, arg GetTeacherSpecialFeesByTeacherIdAndCourseIdParams) (GetTeacherSpecialFeesByTeacherIdAndCourseIdRow, error) {
@@ -2210,7 +2369,7 @@ INSERT INTO class (
 `
 
 type InsertClassParams struct {
-	TransportFee  int64
+	TransportFee  int32
 	TeacherID     sql.NullInt64
 	CourseID      int64
 	IsDeactivated int32
@@ -2238,7 +2397,7 @@ INSERT INTO course (
 `
 
 type InsertCourseParams struct {
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 	InstrumentID          int64
 	GradeID               int64
@@ -2332,7 +2491,7 @@ INSERT INTO teacher_special_fee (
 `
 
 type InsertTeacherSpecialFeeParams struct {
-	Fee       int64
+	Fee       int32
 	TeacherID int64
 	CourseID  int64
 }
@@ -2351,7 +2510,7 @@ WHERE id = ?
 `
 
 type UpdateClassParams struct {
-	TransportFee  int64
+	TransportFee  int32
 	TeacherID     sql.NullInt64
 	IsDeactivated int32
 	ID            int64
@@ -2388,7 +2547,7 @@ WHERE id = ?
 `
 
 type UpdateClassInfoParams struct {
-	TransportFee int64
+	TransportFee int32
 	ID           int64
 }
 
@@ -2433,7 +2592,7 @@ WHERE id = ?
 `
 
 type UpdateCourseInfoParams struct {
-	DefaultFee            int64
+	DefaultFee            int32
 	DefaultDurationMinute int32
 	ID                    int64
 }
@@ -2494,7 +2653,7 @@ WHERE id = ?
 `
 
 type UpdateTeacherSpecialFeeParams struct {
-	Fee int64
+	Fee int32
 	ID  int64
 }
 

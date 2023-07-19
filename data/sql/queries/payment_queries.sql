@@ -73,7 +73,7 @@ WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== STUDENT_LEARNING_TOKEN ============================== */
 -- name: GetStudentLearningTokenById :one
-SELECT slt.id AS student_learning_token_id, quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM student_learning_token AS slt
@@ -88,7 +88,7 @@ FROM student_learning_token AS slt
 WHERE slt.id = ? LIMIT 1;
 
 -- name: GetStudentLearningTokensByIds :many
-SELECT slt.id AS student_learning_token_id, quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM student_learning_token AS slt
@@ -103,7 +103,7 @@ FROM student_learning_token AS slt
 WHERE slt.id IN (sqlc.slice('ids'));
 
 -- name: GetStudentLearningTokensByEnrollmentId :many
-SELECT slt.id AS student_learning_token_id, quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM student_learning_token AS slt
@@ -118,7 +118,7 @@ FROM student_learning_token AS slt
 WHERE slt.enrollment_id = ?;
 
 -- name: GetStudentLearningTokens :many
-SELECT slt.id AS student_learning_token_id, quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM student_learning_token AS slt
@@ -142,13 +142,13 @@ SELECT Count(id) AS total FROM student_learning_token;
 
 -- name: InsertStudentLearningToken :execlastid
 INSERT INTO student_learning_token (
-    quota, quota_bonus, course_fee_value, transport_fee_value, enrollment_id
+    quota, course_fee_value, transport_fee_value, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?
 );
 
 -- name: UpdateStudentLearningToken :exec
-UPDATE student_learning_token SET quota = ?, quota_bonus = ?, course_fee_value = ?, transport_fee_value = ?
+UPDATE student_learning_token SET quota = ?, course_fee_value = ?, transport_fee_value = ?
 WHERE id = ?;
 
 -- name: DeleteStudentLearningTokenById :exec

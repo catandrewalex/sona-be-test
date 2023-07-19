@@ -231,15 +231,15 @@ INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 575000, 
 
 /* ============================== STUDENT_LEARNING_TOKEN ============================== */
 INSERT INTO student_learning_token (
-    quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, last_updated_at, enrollment_id
 ) VALUES (
-    1, 0, 375000, 0, '2023-04-01 07:00:00', 1
+    1, 0, 375000, '2023-04-01 07:00:00', 1
 );
 
 INSERT INTO student_learning_token (
-    quota, quota_bonus, course_fee_value, transport_fee_value, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, last_updated_at, enrollment_id
 ) VALUES (
-    0, 0, 850000, 0, '2023-04-01 08:00:00', 2
+    0, 0, 850000, '2023-04-01 08:00:00', 2
 );
 
 /* ============================== PRESENCE & STUDENT_ATTEND ============================== */

@@ -362,22 +362,62 @@ DELETE FROM class
 WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== STUDENT_ENROLLMENT ============================== */
+-- name: GetStudentEnrollmentById :one
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND se.id = ?;
+
 -- name: GetStudentEnrollmentsByIds :many
-SELECT * FROM student_enrollment
-WHERE id IN (sqlc.slice('ids'));
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND se.id IN (sqlc.slice('ids'));
 
 -- name: GetStudentEnrollmentsByStudentId :many
-SELECT * FROM student_enrollment
-WHERE student_id = ?;
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND student_id = ?;
 
 -- name: GetStudentEnrollmentsByClassId :many
-SELECT * FROM student_enrollment
-WHERE class_id = ?;
+SELECT se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+FROM student_enrollment AS se
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE se.is_deleted = 0 AND class_id = ?;
 
 -- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade), course.default_fee AS course_default_fee
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -428,7 +468,7 @@ WHERE class_id IN (sqlc.slice('classIds'));
 -- name: GetTeacherSpecialFees :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
+    sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -448,7 +488,7 @@ SELECT Count(id) AS total FROM teacher_special_fee;
 -- name: GetTeacherSpecialFeeById :one
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
+    sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -460,7 +500,7 @@ WHERE teacher_special_fee.id = ? LIMIT 1;
 -- name: GetTeacherSpecialFeesByIds :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
+    sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -472,7 +512,7 @@ WHERE teacher_special_fee.id IN (sqlc.slice('ids'));
 -- name: GetTeacherSpecialFeesByTeacherId :many
 SELECT teacher_special_fee.id AS teacher_special_fee_id, fee,
     teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    course.id AS course_id, sqlc.embed(instrument), sqlc.embed(grade), default_fee AS original_course_fee
+    sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM teacher_special_fee
     JOIN teacher ON teacher_id = teacher.id
     JOIN user AS user_teacher ON teacher.user_id = user_teacher.id

@@ -166,10 +166,12 @@ func NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows []m
 			},
 			ClassInfo: entity.ClassInfo_Minimal{
 				ClassID: entity.ClassID(studentEnrollmentRow.Class.ID),
-				CourseInfo: entity.CourseInfo_Minimal{
-					CourseID:   entity.CourseID(studentEnrollmentRow.Course.ID),
-					Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{studentEnrollmentRow.Instrument})[0],
-					Grade:      NewGradesFromMySQLGrades([]mysql.Grade{studentEnrollmentRow.Grade})[0],
+				Course: entity.Course{
+					CourseID:              entity.CourseID(studentEnrollmentRow.Course.ID),
+					Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{studentEnrollmentRow.Instrument})[0],
+					Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{studentEnrollmentRow.Grade})[0],
+					DefaultFee:            studentEnrollmentRow.Course.DefaultFee,
+					DefaultDurationMinute: studentEnrollmentRow.Course.DefaultDurationMinute,
 				},
 				TransportFee:  studentEnrollmentRow.Class.TransportFee,
 				IsDeactivated: util.Int32ToBool(studentEnrollmentRow.Class.IsDeactivated),
@@ -192,10 +194,12 @@ func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []m
 					UserDetail: identity.UnmarshalUserDetail(teacherSpecialFeeRow.TeacherDetail, mainLog),
 				},
 			},
-			CourseInfo: entity.CourseInfo_Minimal{
-				CourseID:   entity.CourseID(teacherSpecialFeeRow.CourseID),
-				Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{teacherSpecialFeeRow.Instrument})[0],
-				Grade:      NewGradesFromMySQLGrades([]mysql.Grade{teacherSpecialFeeRow.Grade})[0],
+			Course: entity.Course{
+				CourseID:              entity.CourseID(teacherSpecialFeeRow.Course.ID),
+				Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{teacherSpecialFeeRow.Instrument})[0],
+				Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{teacherSpecialFeeRow.Grade})[0],
+				DefaultFee:            teacherSpecialFeeRow.Course.DefaultFee,
+				DefaultDurationMinute: teacherSpecialFeeRow.Course.DefaultDurationMinute,
 			},
 			Fee: teacherSpecialFeeRow.Fee,
 		})
@@ -220,10 +224,12 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 				},
 				ClassInfo: entity.ClassInfo_Minimal{
 					ClassID: entity.ClassID(enrollmentPaymentRow.Class.ID),
-					CourseInfo: entity.CourseInfo_Minimal{
-						CourseID:   entity.CourseID(enrollmentPaymentRow.Course.ID),
-						Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{enrollmentPaymentRow.Instrument})[0],
-						Grade:      NewGradesFromMySQLGrades([]mysql.Grade{enrollmentPaymentRow.Grade})[0],
+					Course: entity.Course{
+						CourseID:              entity.CourseID(enrollmentPaymentRow.Course.ID),
+						Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{enrollmentPaymentRow.Instrument})[0],
+						Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{enrollmentPaymentRow.Grade})[0],
+						DefaultFee:            enrollmentPaymentRow.Course.DefaultFee,
+						DefaultDurationMinute: enrollmentPaymentRow.Course.DefaultDurationMinute,
 					},
 					TransportFee:  enrollmentPaymentRow.Class.TransportFee,
 					IsDeactivated: util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
@@ -255,17 +261,18 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 				},
 				ClassInfo: entity.ClassInfo_Minimal{
 					ClassID: entity.ClassID(sltRow.Class.ID),
-					CourseInfo: entity.CourseInfo_Minimal{
-						CourseID:   entity.CourseID(sltRow.Course.ID),
-						Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{sltRow.Instrument})[0],
-						Grade:      NewGradesFromMySQLGrades([]mysql.Grade{sltRow.Grade})[0],
+					Course: entity.Course{
+						CourseID:              entity.CourseID(sltRow.Course.ID),
+						Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{sltRow.Instrument})[0],
+						Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{sltRow.Grade})[0],
+						DefaultFee:            sltRow.Course.DefaultFee,
+						DefaultDurationMinute: sltRow.Course.DefaultDurationMinute,
 					},
 					TransportFee:  sltRow.Class.TransportFee,
 					IsDeactivated: util.Int32ToBool(sltRow.Class.IsDeactivated),
 				},
 			},
 			Quota:             sltRow.Quota,
-			QuotaBonus:        sltRow.QuotaBonus,
 			CourseFeeValue:    sltRow.CourseFeeValue,
 			TransportFeeValue: sltRow.TransportFeeValue,
 			LastUpdatedAt:     sltRow.LastUpdatedAt,
@@ -283,10 +290,12 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 		if classId != entity.ClassID(entity.ClassID_None) {
 			classInfo = &entity.ClassInfo_Minimal{
 				ClassID: entity.ClassID(presenceRow.Class.ID),
-				CourseInfo: entity.CourseInfo_Minimal{
-					CourseID:   entity.CourseID(presenceRow.Course.ID),
-					Instrument: NewInstrumentsFromMySQLInstruments([]mysql.Instrument{presenceRow.Instrument})[0],
-					Grade:      NewGradesFromMySQLGrades([]mysql.Grade{presenceRow.Grade})[0],
+				Course: entity.Course{
+					CourseID:              entity.CourseID(presenceRow.Course.ID),
+					Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{presenceRow.Instrument})[0],
+					Grade:                 NewGradesFromMySQLGrades([]mysql.Grade{presenceRow.Grade})[0],
+					DefaultFee:            presenceRow.Course.DefaultFee,
+					DefaultDurationMinute: presenceRow.Course.DefaultDurationMinute,
 				},
 				TransportFee:  presenceRow.Class.TransportFee,
 				IsDeactivated: util.Int32ToBool(presenceRow.Class.IsDeactivated),
@@ -325,7 +334,6 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 			StudentLearningToken: entity.StudentLearningToken_Minimal{
 				StudentLearningTokenID: entity.StudentLearningTokenID(presenceRow.StudentLearningToken.ID),
 				Quota:                  presenceRow.StudentLearningToken.Quota,
-				QuotaBonus:             presenceRow.StudentLearningToken.QuotaBonus,
 				CourseFeeValue:         presenceRow.StudentLearningToken.CourseFeeValue,
 				TransportFeeValue:      presenceRow.StudentLearningToken.TransportFeeValue,
 				LastUpdatedAt:          presenceRow.StudentLearningToken.LastUpdatedAt,
