@@ -99,7 +99,7 @@ type TeacherSpecialFee struct {
 type User struct {
 	ID            int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -109,6 +109,6 @@ type User struct {
 type UserCredential struct {
 	UserID   int64
 	Username string
-	Email    string
+	Email    sql.NullString
 	Password string
 }

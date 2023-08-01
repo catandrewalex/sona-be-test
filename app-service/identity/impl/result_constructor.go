@@ -12,7 +12,7 @@ func NewUsersFromMySQLUsers(userRows []mysql.User) []identity.User {
 		users = append(users, identity.User{
 			UserID:        identity.UserID(userRow.ID),
 			Username:      userRow.Username,
-			Email:         userRow.Email,
+			Email:         userRow.Email.String,
 			UserDetail:    identity.UnmarshalUserDetail(userRow.UserDetail, mainLog),
 			PrivilegeType: identity.UserPrivilegeType(userRow.PrivilegeType),
 			IsDeactivated: util.Int32ToBool(userRow.IsDeactivated),

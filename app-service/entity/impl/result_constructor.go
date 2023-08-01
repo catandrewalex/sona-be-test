@@ -15,7 +15,7 @@ func NewTeachersFromGetTeachersRow(teacherRows []mysql.GetTeachersRow) []entity.
 			User: identity.User{
 				UserID:        identity.UserID(teacherRow.UserID),
 				Username:      teacherRow.Username,
-				Email:         teacherRow.Email,
+				Email:         teacherRow.Email.String,
 				UserDetail:    identity.UnmarshalUserDetail(teacherRow.UserDetail, mainLog),
 				PrivilegeType: identity.UserPrivilegeType(teacherRow.PrivilegeType),
 				IsDeactivated: util.Int32ToBool(teacherRow.IsDeactivated),
@@ -35,7 +35,7 @@ func NewStudentsFromGetStudentsRow(studentRows []mysql.GetStudentsRow) []entity.
 			User: identity.User{
 				UserID:        identity.UserID(studentRow.UserID),
 				Username:      studentRow.Username,
-				Email:         studentRow.Email,
+				Email:         studentRow.Email.String,
 				UserDetail:    identity.UnmarshalUserDetail(studentRow.UserDetail, mainLog),
 				PrivilegeType: identity.UserPrivilegeType(studentRow.PrivilegeType),
 				IsDeactivated: util.Int32ToBool(studentRow.IsDeactivated),

@@ -7,6 +7,7 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"strings"
 )
@@ -144,7 +145,7 @@ SELECT id, username, email, user_detail, privilege_type, is_deactivated, created
 WHERE email = ? LIMIT 1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
@@ -184,7 +185,7 @@ const getUserCredentialByEmail = `-- name: GetUserCredentialByEmail :one
 SELECT user_id, username, email, password FROM user_credential WHERE email = ?
 `
 
-func (q *Queries) GetUserCredentialByEmail(ctx context.Context, email string) (UserCredential, error) {
+func (q *Queries) GetUserCredentialByEmail(ctx context.Context, email sql.NullString) (UserCredential, error) {
 	row := q.db.QueryRowContext(ctx, getUserCredentialByEmail, email)
 	var i UserCredential
 	err := row.Scan(
@@ -462,7 +463,7 @@ INSERT INTO user (
 `
 
 type InsertUserParams struct {
-	Email         string
+	Email         sql.NullString
 	Username      string
 	UserDetail    json.RawMessage
 	PrivilegeType int32
@@ -492,7 +493,7 @@ INSERT INTO user_credential (
 type InsertUserCredentialParams struct {
 	UserID   int64
 	Username string
-	Email    string
+	Email    sql.NullString
 	Password string
 }
 
@@ -513,7 +514,7 @@ const isUserExist = `-- name: IsUserExist :one
 SELECT EXISTS(SELECT id FROM user WHERE email = ? LIMIT 1)
 `
 
-func (q *Queries) IsUserExist(ctx context.Context, email string) (bool, error) {
+func (q *Queries) IsUserExist(ctx context.Context, email sql.NullString) (bool, error) {
 	row := q.db.QueryRowContext(ctx, isUserExist, email)
 	var exists bool
 	err := row.Scan(&exists)
@@ -540,7 +541,7 @@ UPDATE user SET username = ?, email = ?, user_detail = ?, privilege_type = ?, is
 
 type UpdateUserParams struct {
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -565,7 +566,7 @@ UPDATE user_credential SET username = ?, email = ? WHERE user_id = ?
 
 type UpdateUserCredentialInfoByUserIdParams struct {
 	Username string
-	Email    string
+	Email    sql.NullString
 	UserID   int64
 }
 
@@ -580,7 +581,7 @@ UPDATE user SET username = ?, email = ?, user_detail = ? WHERE id = ?
 
 type UpdateUserInfoParams struct {
 	Username   string
-	Email      string
+	Email      sql.NullString
 	UserDetail json.RawMessage
 	ID         int64
 }

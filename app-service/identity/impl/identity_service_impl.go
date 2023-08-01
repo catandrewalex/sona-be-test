@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/matcornic/hermes/v2"
@@ -170,8 +171,10 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 	// We insert into 2 tables & also in bulk --> need to wrap inside SQL transaction
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for i, spec := range specs {
+			email := strings.TrimSpace(spec.Email)
+			sqlEmail := sql.NullString{String: email, Valid: email != ""}
 			userID, err := qtx.InsertUser(newCtx, mysql.InsertUserParams{
-				Email:         spec.Email,
+				Email:         sqlEmail,
 				Username:      spec.Username,
 				UserDetail:    userDetails[i],
 				PrivilegeType: int32(spec.UserPrivilegeType),
@@ -184,7 +187,7 @@ func (s identityServiceImpl) InsertUsers(ctx context.Context, specs []identity.I
 				UserID:   userID,
 				Username: spec.Username,
 				Password: hashedPasswords[i],
-				Email:    spec.Email,
+				Email:    sqlEmail,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.InsertUserCredential(): %w", err)
@@ -220,9 +223,11 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 
 	err = s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for i, spec := range specs {
+			email := strings.TrimSpace(spec.Email)
+			sqlEmail := sql.NullString{String: email, Valid: email != ""}
 			err := qtx.UpdateUser(newCtx, mysql.UpdateUserParams{
 				Username:      spec.Username,
-				Email:         spec.Email,
+				Email:         sqlEmail,
 				UserDetail:    userDetails[i],
 				PrivilegeType: int32(spec.UserPrivilegeType),
 				IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
@@ -234,7 +239,7 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 
 			err = qtx.UpdateUserCredentialInfoByUserId(newCtx, mysql.UpdateUserCredentialInfoByUserIdParams{
 				Username: spec.Username,
-				Email:    spec.Email,
+				Email:    sqlEmail,
 				UserID:   int64(spec.UserID),
 			})
 			if err != nil {
@@ -287,7 +292,7 @@ func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignU
 }
 
 func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginUserSpec) (identity.LoginUserResult, error) {
-	userCredential, err := s.mySQLQueries.GetUserCredentialByEmail(ctx, spec.UsernameOrEmail)
+	userCredential, err := s.mySQLQueries.GetUserCredentialByEmail(ctx, sql.NullString{String: spec.UsernameOrEmail, Valid: true})
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
@@ -330,14 +335,14 @@ func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginU
 }
 
 func (s identityServiceImpl) ForgotPassword(ctx context.Context, spec identity.ForgotPasswordSpec) error {
-	user, err := s.mySQLQueries.GetUserByEmail(ctx, spec.Email)
+	user, err := s.mySQLQueries.GetUserByEmail(ctx, sql.NullString{String: spec.Email, Valid: true})
 	if err != nil {
 		return fmt.Errorf("GetUserByEmail(): %w", err)
 	}
 
 	userID := identity.UserID(user.ID)
 	recipientName := user.Username
-	recipientEmail := user.Email
+	recipientEmail := user.Email.String
 
 	if userID == identity.UserID_None {
 		mainLog.Error("ForgotPassword invoked on non-existing user with email='%s", spec.Email)

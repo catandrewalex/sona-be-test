@@ -1412,7 +1412,7 @@ type GetStudentByIdRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -1446,7 +1446,7 @@ type GetStudentByUserIdRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -1822,7 +1822,7 @@ type GetStudentsRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -1871,7 +1871,7 @@ type GetStudentsByIdsRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -1930,7 +1930,7 @@ type GetTeacherByIdRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -1964,7 +1964,7 @@ type GetTeacherByUserIdRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -2275,7 +2275,7 @@ type GetTeachersRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
@@ -2324,7 +2324,7 @@ type GetTeachersByIdsRow struct {
 	ID            int64
 	UserID        int64
 	Username      string
-	Email         string
+	Email         sql.NullString
 	UserDetail    json.RawMessage
 	PrivilegeType int32
 	IsDeactivated int32
