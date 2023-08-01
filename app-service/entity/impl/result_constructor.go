@@ -133,6 +133,7 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []entity.Class
 				TransportFee:         classRow.TransportFee,
 				IsDeactivated:        util.Int32ToBool(classRow.IsDeactivated),
 			})
+			prevClassId = classId
 		} else {
 			// Populate students
 			studentId := entity.StudentID(classRow.StudentID.Int64)
