@@ -51,7 +51,7 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 	if teacherID.Valid {
 		teacherSpecialFee, err := s.mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx, mysql.GetTeacherSpecialFeesByTeacherIdAndCourseIdParams{
 			TeacherID: teacherID.Int64,
-			CourseID:  int64(studentEnrollmentID),
+			CourseID:  int64(studentEnrollment.ClassInfo.Course.CourseID),
 		})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore 404 NotFound error
 			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(): %w", err)
