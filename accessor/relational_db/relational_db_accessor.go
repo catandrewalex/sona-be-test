@@ -28,7 +28,7 @@ func NewMySQLQueries(db *sql.DB) *MySQLQueries {
 // ExecuteInTransaction is useful for:
 //  1. Simplifying SQLC's boilerplate for database transaction (db.Begin(), WithTx(tx), Rollback(), Commit(), etc.)
 //  2. Allow continuous database transaction across methods, by putting the sql.Tx inside Context.
-//     Later, recursed ExecuteInTransaction() can later reuse the sql.Tx if it exists inside the Context.
+//     Later, recursed ExecuteInTransaction() can reuse the sql.Tx if it exists inside the Context.
 func (q MySQLQueries) ExecuteInTransaction(ctx context.Context, wrappedFunc func(context.Context, *mysql.Queries) error) error {
 	var tx *sql.Tx
 	var err error

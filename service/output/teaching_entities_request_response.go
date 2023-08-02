@@ -555,7 +555,8 @@ type InsertEnrollmentPaymentsRequestParam struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
 	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
-	Value               int32                      `json:"value,omitempty"`
+	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
+	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
 }
 type InsertEnrollmentPaymentsResponse struct {
@@ -570,8 +571,11 @@ func (r InsertEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 		if datum.BalanceTopUp < 0 {
 			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = "balanceTopUp must be >= 0"
 		}
-		if datum.Value < 0 {
-			errorDetail[fmt.Sprintf("data.%d.value", i)] = "value must be >= 0"
+		if datum.CourseFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.courseFeeValue", i)] = "courseFeeValue must be >= 0"
+		}
+		if datum.TransportFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.transportFeeValue", i)] = "transportFeeValue must be >= 0"
 		}
 		if datum.ValuePenalty < 0 {
 			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = "valuePenalty must be >= 0"
@@ -591,7 +595,8 @@ type UpdateEnrollmentPaymentsRequestParam struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
 	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp,omitempty"`
-	Value               int32                      `json:"value,omitempty"`
+	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
+	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
 }
 type UpdateEnrollmentPaymentsResponse struct {
@@ -606,8 +611,11 @@ func (r UpdateEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 		if datum.BalanceTopUp < 0 {
 			errorDetail[fmt.Sprintf("data.%d.balanceTopUp", i)] = "balanceTopUp must be >= 0"
 		}
-		if datum.Value < 0 {
-			errorDetail[fmt.Sprintf("data.%d.value", i)] = "value must be >= 0"
+		if datum.CourseFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.courseFeeValue", i)] = "courseFeeValue must be >= 0"
+		}
+		if datum.TransportFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.transportFeeValue", i)] = "transportFeeValue must be >= 0"
 		}
 		if datum.ValuePenalty < 0 {
 			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = "valuePenalty must be >= 0"

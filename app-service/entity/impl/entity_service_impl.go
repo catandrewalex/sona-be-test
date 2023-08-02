@@ -1090,11 +1090,12 @@ func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs [
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			enrollmentPaymentID, err := qtx.InsertEnrollmentPayment(newCtx, mysql.InsertEnrollmentPaymentParams{
-				PaymentDate:  spec.PaymentDate,
-				BalanceTopUp: spec.BalanceTopUp,
-				Value:        spec.Value,
-				ValuePenalty: spec.ValuePenalty,
-				EnrollmentID: sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
+				PaymentDate:       spec.PaymentDate,
+				BalanceTopUp:      spec.BalanceTopUp,
+				CourseFeeValue:    spec.CourseFeeValue,
+				TransportFeeValue: spec.TransportFeeValue,
+				ValuePenalty:      spec.ValuePenalty,
+				EnrollmentID:      sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.InsertEnrollmentPayment(): %w", err)
@@ -1120,11 +1121,12 @@ func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs [
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			err := qtx.UpdateEnrollmentPayment(newCtx, mysql.UpdateEnrollmentPaymentParams{
-				PaymentDate:  spec.PaymentDate,
-				BalanceTopUp: spec.BalanceTopUp,
-				Value:        spec.Value,
-				ValuePenalty: spec.ValuePenalty,
-				ID:           int64(spec.EnrollmentPaymentID),
+				PaymentDate:       spec.PaymentDate,
+				BalanceTopUp:      spec.BalanceTopUp,
+				CourseFeeValue:    spec.CourseFeeValue,
+				TransportFeeValue: spec.TransportFeeValue,
+				ValuePenalty:      spec.ValuePenalty,
+				ID:                int64(spec.EnrollmentPaymentID),
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.UpdateEnrollmentPayment(): %w", err)

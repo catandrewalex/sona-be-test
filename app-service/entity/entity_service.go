@@ -83,7 +83,8 @@ type EnrollmentPayment struct {
 	StudentEnrollmentInfo StudentEnrollment   `json:"studentEnrollment"`
 	PaymentDate           time.Time           `json:"paymentDate"`
 	BalanceTopUp          int32               `json:"balanceTopUp"`
-	Value                 int32               `json:"value"`
+	CourseFeeValue        int32               `json:"courseFeeValue"`
+	TransportFeeValue     int32               `json:"transportFeeValue"`
 	ValuePenalty          int32               `json:"valuePenalty"`
 }
 
@@ -359,7 +360,8 @@ type InsertEnrollmentPaymentSpec struct {
 	StudentEnrollmentID StudentEnrollmentID
 	PaymentDate         time.Time
 	BalanceTopUp        int32
-	Value               int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
 	ValuePenalty        int32
 }
 
@@ -367,7 +369,8 @@ type UpdateEnrollmentPaymentSpec struct {
 	EnrollmentPaymentID EnrollmentPaymentID
 	PaymentDate         time.Time
 	BalanceTopUp        int32
-	Value               int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
 	ValuePenalty        int32
 }
 

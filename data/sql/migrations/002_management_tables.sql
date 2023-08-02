@@ -67,7 +67,8 @@ CREATE TABLE enrollment_payment
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   payment_date TIMESTAMP NOT NULL,
   balance_top_up INT NOT NULL,
-  value INT NOT NULL,
+  course_fee_value INT NOT NULL,
+  transport_fee_value INT NOT NULL,
   value_penalty INT NOT NULL,
   enrollment_id BIGINT unsigned,
   -- `enrollment_payment` stores historical records, and must not be deleted by CASCADE, but allow deletion of the parent entity

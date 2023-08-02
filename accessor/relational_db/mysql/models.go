@@ -27,12 +27,13 @@ type Course struct {
 }
 
 type EnrollmentPayment struct {
-	ID           int64
-	PaymentDate  time.Time
-	BalanceTopUp int32
-	Value        int32
-	ValuePenalty int32
-	EnrollmentID sql.NullInt64
+	ID                int64
+	PaymentDate       time.Time
+	BalanceTopUp      int32
+	CourseFeeValue    int32
+	TransportFeeValue int32
+	ValuePenalty      int32
+	EnrollmentID      sql.NullInt64
 }
 
 type Grade struct {

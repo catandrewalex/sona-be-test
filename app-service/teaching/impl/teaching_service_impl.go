@@ -50,7 +50,7 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 	}
 	if teacherID.Valid {
 		teacherSpecialFee, err := s.mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx, mysql.GetTeacherSpecialFeesByTeacherIdAndCourseIdParams{
-			TeacherID: 0,
+			TeacherID: teacherID.Int64,
 			CourseID:  int64(studentEnrollmentID),
 		})
 		if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore 404 NotFound error
@@ -85,13 +85,13 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 
 func (s teachingServiceImpl) SubmitStudentEnrollmentPayment(ctx context.Context, spec teaching.SubmitStudentEnrollmentPaymentSpec) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
-		paidValue := spec.CourseFeeValue + spec.TransportFeeValue
 		_, err := s.entityService.InsertEnrollmentPayments(newCtx, []entity.InsertEnrollmentPaymentSpec{
 			{
 				StudentEnrollmentID: spec.StudentEnrollmentID,
 				PaymentDate:         spec.PaymentDate,
 				BalanceTopUp:        spec.BalanceTopUp,
-				Value:               paidValue,
+				CourseFeeValue:      spec.CourseFeeValue,
+				TransportFeeValue:   spec.TransportFeeValue,
 				ValuePenalty:        spec.PenaltyFeeValue,
 			},
 		})
@@ -133,6 +133,89 @@ func (s teachingServiceImpl) SubmitStudentEnrollmentPayment(ctx context.Context,
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
 			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
+}
+
+func (s teachingServiceImpl) EditStudentEnrollmentPaymentBalance(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentBalanceSpec) error {
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(spec.EnrollmentPaymentID))
+		if err != nil {
+			return fmt.Errorf("qtx.GetEnrollmentPaymentById(): %w", err)
+		}
+
+		updatedSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams{
+			EnrollmentID:      prevEP.StudentEnrollmentID,
+			CourseFeeValue:    prevEP.CourseFeeValue,
+			TransportFeeValue: prevEP.TransportFeeValue,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
+		}
+
+		quotaChange := spec.BalanceTopUp - prevEP.BalanceTopUp
+		err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+			Quota: quotaChange,
+			ID:    updatedSLT.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+		}
+
+		err = qtx.UpdateEnrollmentPaymentBalance(newCtx, mysql.UpdateEnrollmentPaymentBalanceParams{
+			BalanceTopUp: spec.BalanceTopUp,
+			ID:           int64(spec.EnrollmentPaymentID),
+		})
+		if err != nil {
+			return fmt.Errorf("entityService.UpdateEnrollmentPayments(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
+}
+
+func (s teachingServiceImpl) RemoveStudentEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error {
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(enrollmentPaymentID))
+		if err != nil {
+			return fmt.Errorf("qtx.GetEnrollmentPaymentById(): %w", err)
+		}
+
+		updatedSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams{
+			EnrollmentID:      prevEP.StudentEnrollmentID,
+			CourseFeeValue:    prevEP.CourseFeeValue,
+			TransportFeeValue: prevEP.TransportFeeValue,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
+		}
+
+		quotaChange := -1 * prevEP.BalanceTopUp
+		err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+			Quota: quotaChange,
+			ID:    updatedSLT.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+		}
+
+		err = s.entityService.DeleteEnrollmentPayments(newCtx, []entity.EnrollmentPaymentID{
+			entity.EnrollmentPaymentID(prevEP.StudentEnrollmentID),
+		})
+		if err != nil {
+			return fmt.Errorf("entityService.DeleteEnrollmentPayments(): %w", err)
 		}
 
 		return nil

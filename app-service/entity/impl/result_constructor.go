@@ -236,10 +236,11 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 					IsDeactivated: util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
 				},
 			},
-			PaymentDate:  enrollmentPaymentRow.PaymentDate,
-			BalanceTopUp: enrollmentPaymentRow.BalanceTopUp,
-			Value:        enrollmentPaymentRow.Value,
-			ValuePenalty: enrollmentPaymentRow.ValuePenalty,
+			PaymentDate:       enrollmentPaymentRow.PaymentDate,
+			BalanceTopUp:      enrollmentPaymentRow.BalanceTopUp,
+			CourseFeeValue:    enrollmentPaymentRow.CourseFeeValue,
+			TransportFeeValue: enrollmentPaymentRow.TransportFeeValue,
+			ValuePenalty:      enrollmentPaymentRow.ValuePenalty,
 		})
 	}
 

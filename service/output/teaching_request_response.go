@@ -54,3 +54,37 @@ func (r SubmitEnrollmentPaymentRequest) Validate() errs.ValidationError {
 
 	return nil
 }
+
+type EditEnrollmentPaymentBalanceRequest struct {
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+	PaymentDate         time.Time                  `json:"paymentDate"`
+	BalanceTopUp        int32                      `json:"balanceTopUp"`
+}
+type EditEnrollmentPaymentBalanceResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r EditEnrollmentPaymentBalanceRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if r.BalanceTopUp < 0 {
+		errorDetail["balanceTopUp"] = "balanceTopUp must be >= 0"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
+type RemoveEnrollmentPaymentRequest struct {
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+}
+type RemoveEnrollmentPaymentResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r RemoveEnrollmentPaymentRequest) Validate() errs.ValidationError {
+	return nil
+}

@@ -150,7 +150,7 @@ func (q *Queries) DeleteTeacherSalaryById(ctx context.Context, id int64) error {
 }
 
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM enrollment_payment AS ep
@@ -169,7 +169,8 @@ type GetEnrollmentPaymentByIdRow struct {
 	EnrollmentPaymentID int64
 	PaymentDate         time.Time
 	BalanceTopUp        int32
-	Value               int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
 	ValuePenalty        int32
 	StudentEnrollmentID int64
 	StudentID           int64
@@ -189,7 +190,8 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 		&i.EnrollmentPaymentID,
 		&i.PaymentDate,
 		&i.BalanceTopUp,
-		&i.Value,
+		&i.CourseFeeValue,
+		&i.TransportFeeValue,
 		&i.ValuePenalty,
 		&i.StudentEnrollmentID,
 		&i.StudentID,
@@ -214,7 +216,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 }
 
 const getEnrollmentPayments = `-- name: GetEnrollmentPayments :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM enrollment_payment AS ep
@@ -239,7 +241,8 @@ type GetEnrollmentPaymentsRow struct {
 	EnrollmentPaymentID int64
 	PaymentDate         time.Time
 	BalanceTopUp        int32
-	Value               int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
 	ValuePenalty        int32
 	StudentEnrollmentID int64
 	StudentID           int64
@@ -264,7 +267,8 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 			&i.EnrollmentPaymentID,
 			&i.PaymentDate,
 			&i.BalanceTopUp,
-			&i.Value,
+			&i.CourseFeeValue,
+			&i.TransportFeeValue,
 			&i.ValuePenalty,
 			&i.StudentEnrollmentID,
 			&i.StudentID,
@@ -299,7 +303,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 }
 
 const getEnrollmentPaymentsByIds = `-- name: GetEnrollmentPaymentsByIds :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
 FROM enrollment_payment AS ep
@@ -318,7 +322,8 @@ type GetEnrollmentPaymentsByIdsRow struct {
 	EnrollmentPaymentID int64
 	PaymentDate         time.Time
 	BalanceTopUp        int32
-	Value               int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
 	ValuePenalty        int32
 	StudentEnrollmentID int64
 	StudentID           int64
@@ -353,7 +358,8 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 			&i.EnrollmentPaymentID,
 			&i.PaymentDate,
 			&i.BalanceTopUp,
-			&i.Value,
+			&i.CourseFeeValue,
+			&i.TransportFeeValue,
 			&i.ValuePenalty,
 			&i.StudentEnrollmentID,
 			&i.StudentID,
@@ -889,25 +895,27 @@ func (q *Queries) IncrementSLTQuotaById(ctx context.Context, arg IncrementSLTQuo
 
 const insertEnrollmentPayment = `-- name: InsertEnrollmentPayment :execlastid
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, value, value_penalty, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertEnrollmentPaymentParams struct {
-	PaymentDate  time.Time
-	BalanceTopUp int32
-	Value        int32
-	ValuePenalty int32
-	EnrollmentID sql.NullInt64
+	PaymentDate       time.Time
+	BalanceTopUp      int32
+	CourseFeeValue    int32
+	TransportFeeValue int32
+	ValuePenalty      int32
+	EnrollmentID      sql.NullInt64
 }
 
 func (q *Queries) InsertEnrollmentPayment(ctx context.Context, arg InsertEnrollmentPaymentParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, insertEnrollmentPayment,
 		arg.PaymentDate,
 		arg.BalanceTopUp,
-		arg.Value,
+		arg.CourseFeeValue,
+		arg.TransportFeeValue,
 		arg.ValuePenalty,
 		arg.EnrollmentID,
 	)
@@ -968,26 +976,43 @@ func (q *Queries) InsertTeacherSalary(ctx context.Context, arg InsertTeacherSala
 }
 
 const updateEnrollmentPayment = `-- name: UpdateEnrollmentPayment :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, value = ?, value_penalty = ?
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, course_fee_value = ?, transport_fee_value = ?, value_penalty = ?
 WHERE id = ?
 `
 
 type UpdateEnrollmentPaymentParams struct {
-	PaymentDate  time.Time
-	BalanceTopUp int32
-	Value        int32
-	ValuePenalty int32
-	ID           int64
+	PaymentDate       time.Time
+	BalanceTopUp      int32
+	CourseFeeValue    int32
+	TransportFeeValue int32
+	ValuePenalty      int32
+	ID                int64
 }
 
 func (q *Queries) UpdateEnrollmentPayment(ctx context.Context, arg UpdateEnrollmentPaymentParams) error {
 	_, err := q.db.ExecContext(ctx, updateEnrollmentPayment,
 		arg.PaymentDate,
 		arg.BalanceTopUp,
-		arg.Value,
+		arg.CourseFeeValue,
+		arg.TransportFeeValue,
 		arg.ValuePenalty,
 		arg.ID,
 	)
+	return err
+}
+
+const updateEnrollmentPaymentBalance = `-- name: UpdateEnrollmentPaymentBalance :exec
+UPDATE enrollment_payment SET balance_top_up = ?
+WHERE id = ?
+`
+
+type UpdateEnrollmentPaymentBalanceParams struct {
+	BalanceTopUp int32
+	ID           int64
+}
+
+func (q *Queries) UpdateEnrollmentPaymentBalance(ctx context.Context, arg UpdateEnrollmentPaymentBalanceParams) error {
+	_, err := q.db.ExecContext(ctx, updateEnrollmentPaymentBalance, arg.BalanceTopUp, arg.ID)
 	return err
 }
 

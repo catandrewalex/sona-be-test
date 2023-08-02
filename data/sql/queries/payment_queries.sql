@@ -1,6 +1,6 @@
 /* ============================== ENROLLMENT_PAYMENT ============================== */
 -- name: GetEnrollmentPaymentById :one
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM enrollment_payment AS ep
@@ -15,7 +15,7 @@ FROM enrollment_payment AS ep
 WHERE ep.id = ? LIMIT 1;
 
 -- name: GetEnrollmentPaymentsByIds :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM enrollment_payment AS ep
@@ -30,7 +30,7 @@ FROM enrollment_payment AS ep
 WHERE ep.id IN (sqlc.slice('ids'));
 
 -- name: GetEnrollmentPayments :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
 FROM enrollment_payment AS ep
@@ -54,13 +54,17 @@ SELECT Count(id) AS total FROM enrollment_payment;
 
 -- name: InsertEnrollmentPayment :execlastid
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, value, value_penalty, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 );
 
 -- name: UpdateEnrollmentPayment :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, value = ?, value_penalty = ?
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, course_fee_value = ?, transport_fee_value = ?, value_penalty = ?
+WHERE id = ?;
+
+-- name: UpdateEnrollmentPaymentBalance :exec
+UPDATE enrollment_payment SET balance_top_up = ?
 WHERE id = ?;
 
 -- name: DeleteEnrollmentPaymentById :exec

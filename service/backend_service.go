@@ -1283,7 +1283,8 @@ func (s *BackendService) InsertEnrollmentPaymentsHandler(ctx context.Context, re
 			StudentEnrollmentID: param.StudentEnrollmentID,
 			PaymentDate:         param.PaymentDate,
 			BalanceTopUp:        param.BalanceTopUp,
-			Value:               param.Value,
+			CourseFeeValue:      param.CourseFeeValue,
+			TransportFeeValue:   param.TransportFeeValue,
 			ValuePenalty:        param.ValuePenalty,
 		})
 	}
@@ -1318,7 +1319,8 @@ func (s *BackendService) UpdateEnrollmentPaymentsHandler(ctx context.Context, re
 			EnrollmentPaymentID: param.EnrollmentPaymentID,
 			PaymentDate:         param.PaymentDate,
 			BalanceTopUp:        param.BalanceTopUp,
-			Value:               param.Value,
+			CourseFeeValue:      param.CourseFeeValue,
+			TransportFeeValue:   param.TransportFeeValue,
 			ValuePenalty:        param.ValuePenalty,
 		})
 	}
@@ -1660,6 +1662,40 @@ func (s *BackendService) SubmitEnrollmentPayment(ctx context.Context, req *outpu
 
 	return &output.SubmitEnrollmentPaymentResponse{
 		Message: "Successfully submitted enrollmentPayment",
+	}, nil
+}
+
+func (s *BackendService) EditEnrollmentPaymentBalance(ctx context.Context, req *output.EditEnrollmentPaymentBalanceRequest) (*output.EditEnrollmentPaymentBalanceResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	err := s.teachingService.EditStudentEnrollmentPaymentBalance(ctx, teaching.EditStudentEnrollmentPaymentBalanceSpec{
+		EnrollmentPaymentID: req.EnrollmentPaymentID,
+		PaymentDate:         req.PaymentDate,
+		BalanceTopUp:        req.BalanceTopUp,
+	})
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.EditStudentEnrollmentBalancePayment()", "enrollmentPayment")
+	}
+
+	return &output.EditEnrollmentPaymentBalanceResponse{
+		Message: "Successfully editted enrollmentPayment balance",
+	}, nil
+}
+
+func (s *BackendService) RemoveEnrollmentPayment(ctx context.Context, req *output.RemoveEnrollmentPaymentRequest) (*output.RemoveEnrollmentPaymentResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	err := s.teachingService.RemoveStudentEnrollmentPayment(ctx, req.EnrollmentPaymentID)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.RemoveStudentEnrollmentPayment()", "enrollmentPayment")
+	}
+
+	return &output.RemoveEnrollmentPaymentResponse{
+		Message: "Successfully removed enrollmentPayment",
 	}, nil
 }
 

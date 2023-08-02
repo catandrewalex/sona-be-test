@@ -144,6 +144,8 @@ func main() {
 
 		authRouter.Get("/enrollmentPaymentInvoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
 		authRouter.Post("/submitEnrollmentPayment", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
+		authRouter.Post("/editEnrollmentPaymentBalance", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentBalance))
+		authRouter.Post("/removeEnrollmentPayment", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

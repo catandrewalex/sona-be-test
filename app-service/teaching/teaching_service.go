@@ -23,6 +23,8 @@ type StudentEnrollmentInvoice struct {
 type TeachingService interface {
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
 	SubmitStudentEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
+	EditStudentEnrollmentPaymentBalance(ctx context.Context, spec EditStudentEnrollmentPaymentBalanceSpec) error
+	RemoveStudentEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
 
 	AddPresence(ctx context.Context, spec AddPresenceSpec) error
 }
@@ -35,6 +37,11 @@ type SubmitStudentEnrollmentPaymentSpec struct {
 	PenaltyFeeValue   int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
+}
+type EditStudentEnrollmentPaymentBalanceSpec struct {
+	EnrollmentPaymentID entity.EnrollmentPaymentID
+	PaymentDate         time.Time
+	BalanceTopUp        int32
 }
 
 type AddPresenceSpec struct {
