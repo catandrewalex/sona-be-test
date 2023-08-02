@@ -78,6 +78,8 @@ type IdentityService interface {
 	LoginUser(ctx context.Context, spec LoginUserSpec) (LoginUserResult, error)
 	ForgotPassword(ctx context.Context, spec ForgotPasswordSpec) error
 	ResetPassword(ctx context.Context, spec ResetPasswordSpec) error
+
+	VerifyUserAuthority(ctx context.Context, minimalPrivilegeType UserPrivilegeType) (bool, error)
 }
 
 func UnmarshalUserDetail(jsonRaw json.RawMessage, logger logging.Logger) UserDetail {

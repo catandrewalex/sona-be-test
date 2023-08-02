@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
+	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/config"
 	"sonamusica-backend/logging"
 	"sonamusica-backend/service"
@@ -71,9 +72,11 @@ func main() {
 	baseRouter.Post("/forgot-password", jsonSerdeWrapper.WrapFunc(backendService.ForgotPasswordHandler))
 	baseRouter.Post("/reset-password", jsonSerdeWrapper.WrapFunc(backendService.ResetPasswordHandler))
 
-	// Router group for authenticated endpoints
+	// Router group for admin-only endpoints
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Admin))
+
 		authRouter.Get("/users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
 		authRouter.Get("/user/{UserID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "UserID"))
 		authRouter.Post("/users", jsonSerdeWrapper.WrapFunc(backendService.InsertUsersHandler))
@@ -141,6 +144,12 @@ func main() {
 		authRouter.Post("/presences", jsonSerdeWrapper.WrapFunc(backendService.InsertPresencesHandler))
 		authRouter.Put("/presences", jsonSerdeWrapper.WrapFunc(backendService.UpdatePresencesHandler))
 		authRouter.Delete("/presences", jsonSerdeWrapper.WrapFunc(backendService.DeletePresencesHandler))
+	})
+
+	// Router group for member-only (and above) endpoints
+	baseRouter.Group(func(authRouter chi.Router) {
+		authRouter.Use(backendService.AuthenticationMiddleware)
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
 		authRouter.Get("/enrollmentPaymentInvoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
 		authRouter.Post("/submitEnrollmentPayment", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))

@@ -40,8 +40,6 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("entityService.GetStudentEnrollmentById(): %w", err)
 	}
 
-	fmt.Printf("%+v\n", studentEnrollment)
-
 	// calculate Course Fee
 	courseFeeValue := studentEnrollment.ClassInfo.Course.DefaultFee
 	teacherID, err := s.mySQLQueries.GetClassTeacherId(ctx, int64(studentEnrollment.ClassInfo.ClassID))

@@ -23,6 +23,7 @@ import (
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
+	"sonamusica-backend/network"
 )
 
 var (
@@ -397,6 +398,18 @@ func (s identityServiceImpl) ResetPassword(ctx context.Context, spec identity.Re
 	}
 
 	return nil
+}
+
+func (s identityServiceImpl) VerifyUserAuthority(ctx context.Context, minimalPrivilegeType identity.UserPrivilegeType) (bool, error) {
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.UserID == identity.UserID_None {
+		return false, fmt.Errorf("request is unauthenticated")
+	}
+
+	if authInfo.PrivilegeType < minimalPrivilegeType {
+		return false, nil
+	}
+	return true, nil
 }
 
 func hashPassword(password string) (string, error) {

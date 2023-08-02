@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"sonamusica-backend/app-service/auth"
+	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/logging"
 	"sonamusica-backend/network"
 )
 
-// AuthenticationMiddleware is a middleware function for request authentication using JWT
+// AuthenticationMiddleware is a middleware to authenticate request using JWT
 func (s *BackendService) AuthenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := r.Header.Get("Authorization")
@@ -50,6 +51,27 @@ func (s *BackendService) AuthenticationMiddleware(next http.Handler) http.Handle
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// AuthorizationMiddleware is an intermediate function to return a middleware to check user authority.
+func (s *BackendService) AuthorizationMiddleware(minimalPrivilegeType identity.UserPrivilegeType) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			isValid, err := s.identityService.VerifyUserAuthority(r.Context(), minimalPrivilegeType)
+			if err != nil {
+				logging.HTTPServerLogger.Error(fmt.Sprintf("Unable to verify user: %v", err))
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+
+			if !isValid {
+				http.Error(w, "user is not authorized to access this resources", http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func RequestContextMiddleware(next http.Handler) http.Handler {
