@@ -553,7 +553,7 @@ type InsertEnrollmentPaymentsRequest struct {
 	Data []InsertEnrollmentPaymentsRequestParam `json:"data"`
 }
 type InsertEnrollmentPaymentsRequestParam struct {
-	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
+	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
@@ -593,7 +593,7 @@ type UpdateEnrollmentPaymentsRequest struct {
 	Data []UpdateEnrollmentPaymentsRequestParam `json:"data"`
 }
 type UpdateEnrollmentPaymentsRequestParam struct {
-	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
@@ -637,7 +637,7 @@ type DeleteEnrollmentPaymentsRequest struct {
 	Data []DeleteEnrollmentPaymentsRequestParam `json:"data"`
 }
 type DeleteEnrollmentPaymentsRequestParam struct {
-	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 }
 type DeleteEnrollmentPaymentsResponse struct {
 	Message string `json:"message,omitempty"`
@@ -689,7 +689,7 @@ type InsertStudentLearningTokensRequest struct {
 	Data []InsertStudentLearningTokensRequestParam `json:"data"`
 }
 type InsertStudentLearningTokensRequestParam struct {
-	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
+	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
 	Quota               int32                      `json:"quota"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
@@ -707,7 +707,7 @@ type UpdateStudentLearningTokensRequest struct {
 	Data []UpdateStudentLearningTokensRequestParam `json:"data"`
 }
 type UpdateStudentLearningTokensRequestParam struct {
-	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenId"`
 	Quota                  int32                         `json:"quota"`
 	CourseFeeValue         int32                         `json:"courseFeeValue,omitempty"`
 	TransportFeeValue      int32                         `json:"transportFeeValue,omitempty"`
@@ -729,7 +729,7 @@ type DeleteStudentLearningTokensRequest struct {
 	Data []DeleteStudentLearningTokensRequestParam `json:"data"`
 }
 type DeleteStudentLearningTokensRequestParam struct {
-	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenId"`
 }
 type DeleteStudentLearningTokensResponse struct {
 	Message string `json:"message,omitempty"`
@@ -788,10 +788,10 @@ type InsertPresencesRequest struct {
 	Data []InsertPresencesRequestParam `json:"data"`
 }
 type InsertPresencesRequestParam struct {
-	ClassID                entity.ClassID                `json:"classID"`
-	TeacherID              entity.TeacherID              `json:"teacherID"`
-	StudentID              entity.StudentID              `json:"studentID"`
-	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	ClassID                entity.ClassID                `json:"classId"`
+	TeacherID              entity.TeacherID              `json:"teacherId"`
+	StudentID              entity.StudentID              `json:"studentId"`
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenId"`
 	Date                   time.Time                     `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota,omitempty"`
 	Duration               int32                         `json:"duration,omitempty"`
@@ -823,11 +823,11 @@ type UpdatePresencesRequest struct {
 	Data []UpdatePresencesRequestParam `json:"data"`
 }
 type UpdatePresencesRequestParam struct {
-	PresenceID             entity.PresenceID             `json:"presenceID"`
-	ClassID                entity.ClassID                `json:"classID"`
-	TeacherID              entity.TeacherID              `json:"teacherID"`
-	StudentID              entity.StudentID              `json:"studentID"`
-	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenID"`
+	PresenceID             entity.PresenceID             `json:"presenceId"`
+	ClassID                entity.ClassID                `json:"classId"`
+	TeacherID              entity.TeacherID              `json:"teacherId"`
+	StudentID              entity.StudentID              `json:"studentId"`
+	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenId"`
 	Date                   time.Time                     `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota"`
 	Duration               int32                         `json:"duration"`
@@ -863,7 +863,7 @@ type DeletePresencesRequest struct {
 	Data []DeletePresencesRequestParam `json:"data"`
 }
 type DeletePresencesRequestParam struct {
-	PresenceID entity.PresenceID `json:"presenceID"`
+	PresenceID entity.PresenceID `json:"presenceId"`
 }
 type DeletePresencesResponse struct {
 	Message string `json:"message,omitempty"`

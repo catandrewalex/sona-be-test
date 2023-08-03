@@ -66,7 +66,7 @@ type ClassInfo_Minimal struct {
 }
 
 type StudentEnrollment struct {
-	StudentEnrollmentID StudentEnrollmentID `json:"studentEnrollmentID"`
+	StudentEnrollmentID StudentEnrollmentID `json:"studentEnrollmentId"`
 	StudentInfo         StudentInfo_Minimal `json:"student"`
 	ClassInfo           ClassInfo_Minimal   `json:"class"`
 }
@@ -89,7 +89,7 @@ type EnrollmentPayment struct {
 }
 
 type StudentLearningToken struct {
-	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenID"`
+	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenId"`
 	Quota                  int32                  `json:"quota"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
@@ -99,7 +99,7 @@ type StudentLearningToken struct {
 
 // StudentLearningToken_Minimal is a subset of struct StudentLearningToken that must have the same schema.
 type StudentLearningToken_Minimal struct {
-	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenID"`
+	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenId"`
 	Quota                  int32                  `json:"quota"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`

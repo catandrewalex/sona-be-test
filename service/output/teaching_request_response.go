@@ -21,7 +21,7 @@ func (r GetEnrollmentPaymentInvoiceRequest) Validate() errs.ValidationError {
 }
 
 type SubmitEnrollmentPaymentRequest struct {
-	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentID"`
+	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"`
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
@@ -56,7 +56,7 @@ func (r SubmitEnrollmentPaymentRequest) Validate() errs.ValidationError {
 }
 
 type EditEnrollmentPaymentBalanceRequest struct {
-	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"`
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 }
@@ -79,7 +79,7 @@ func (r EditEnrollmentPaymentBalanceRequest) Validate() errs.ValidationError {
 }
 
 type RemoveEnrollmentPaymentRequest struct {
-	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentID"`
+	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 }
 type RemoveEnrollmentPaymentResponse struct {
 	Message string `json:"message,omitempty"`
