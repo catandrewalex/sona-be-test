@@ -737,6 +737,7 @@ func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.Upd
 			err := s.mySQLQueries.UpdateClass(newCtx, mysql.UpdateClassParams{
 				TransportFee:  spec.TransportFee,
 				TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
+				CourseID:      int64(spec.CourseID),
 				IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
 				ID:            classId,
 			})

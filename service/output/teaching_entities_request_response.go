@@ -365,6 +365,7 @@ type UpdateClassesRequestParam struct {
 	ClassID       entity.ClassID     `json:"classId"`
 	TeacherID     entity.TeacherID   `json:"teacherId"`
 	StudentIDs    []entity.StudentID `json:"StudentIds"`
+	CourseID      entity.CourseID    `json:"courseId"`
 	TransportFee  int32              `json:"transportFee,omitempty"`
 	IsDeactivated bool               `json:"isDeactivated,omitempty"`
 }

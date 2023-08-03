@@ -339,7 +339,7 @@ INSERT INTO class (
 );
 
 -- name: UpdateClass :exec
-UPDATE class SET transport_fee = ?, teacher_id = ?, is_deactivated = ?
+UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, is_deactivated = ?
 WHERE id = ?;
 
 -- name: UpdateClassInfo :exec

@@ -2518,13 +2518,14 @@ func (q *Queries) InsertTeacherSpecialFee(ctx context.Context, arg InsertTeacher
 }
 
 const updateClass = `-- name: UpdateClass :exec
-UPDATE class SET transport_fee = ?, teacher_id = ?, is_deactivated = ?
+UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, is_deactivated = ?
 WHERE id = ?
 `
 
 type UpdateClassParams struct {
 	TransportFee  int32
 	TeacherID     sql.NullInt64
+	CourseID      int64
 	IsDeactivated int32
 	ID            int64
 }
@@ -2533,6 +2534,7 @@ func (q *Queries) UpdateClass(ctx context.Context, arg UpdateClassParams) error 
 	_, err := q.db.ExecContext(ctx, updateClass,
 		arg.TransportFee,
 		arg.TeacherID,
+		arg.CourseID,
 		arg.IsDeactivated,
 		arg.ID,
 	)

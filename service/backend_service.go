@@ -1044,6 +1044,7 @@ func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.U
 			ClassID:       param.ClassID,
 			TeacherID:     param.TeacherID,
 			StudentIDs:    param.StudentIDs,
+			CourseID:      param.CourseID,
 			TransportFee:  param.TransportFee,
 			IsDeactivated: param.IsDeactivated,
 		})

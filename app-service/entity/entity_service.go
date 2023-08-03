@@ -312,6 +312,7 @@ type UpdateClassSpec struct {
 	ClassID       ClassID
 	TeacherID     TeacherID
 	StudentIDs    []StudentID
+	CourseID      CourseID
 	TransportFee  int32
 	IsDeactivated bool
 }
