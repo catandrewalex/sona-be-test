@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  mysql:
+    container_name: sonamusica_mysql
+    image: mysql:8.1.0
+    environment:
+      MYSQL_ROOT_PASSWORD: p4ssw0rd
+    env_file:
+      - .env
+    ports:
+      - "3306:3306"
+    volumes:
+      - "./scripts/mysql/init_user.sql:/docker-entrypoint-initdb.d/init_user.sql"

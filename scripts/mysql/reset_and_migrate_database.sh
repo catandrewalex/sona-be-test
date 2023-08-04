@@ -19,14 +19,14 @@ fi
 
 echo "Dropping database ${DB_NAME}..."
 mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${DB_NAME};"
-echo "Database dropped.\n"
+echo "Database dropped."
 
 echo "Running migrations..."
 for f in ./data/sql/migrations/*.sql; do
     echo "Running migration $(basename "$f" .sql)..."
     mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
 done
-echo "Migrations executed successfully.\n"
+echo "Migrations executed successfully."
 
 # Ask for user input
 read -p "Do you want to proceed? (y/n): " user_input
@@ -50,7 +50,7 @@ if [[ $user_input == "y" ]]; then
         echo "Executing $(basename "$f" .sql)..."
         mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
     done
-    echo "Database population executed successfully.\n"
+    echo "Database population executed successfully."
 elif [[ $user_input == "n" ]]; then
     :
     # Do nothing

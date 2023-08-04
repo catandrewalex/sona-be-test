@@ -8,19 +8,41 @@ Backend part for the administration app of Sonamusica, a private music school in
 
 - [Golang](https://go.dev/) 1.9 or higher (tested in 1.9)
 
+## Setup
+
+1. Turn on the MySQL database. Check for [init_user.sql](scripts/mysql/init_user.sql) for the default created user & database.
+
+    ```sh
+    docker-compose up -d
+    ```
+
+2. Migrate the database
+
+    - Windows
+
+        ```bat
+        .\scripts\mysql\reset_and_migrate_database.bat
+        ```
+
+    - Linux or MacOS
+
+        ```sh
+        ./scripts/mysql/reset_and_migrate_database.sh
+        ```
+
 ## Execution
 
-### Windows
+- Windows
 
-```bat
-.\scripts\build_and_run.bat
-```
+    ```bat
+    .\scripts\build_and_run.bat
+    ```
 
-### Linux & MacOS
+- Linux & MacOS
 
-```sh
-./scripts/build_and_run.sh
-```
+    ```sh
+    ./scripts/build_and_run.sh
+    ```
 
 ## API Contract
 
@@ -31,20 +53,6 @@ Backend part for the administration app of Sonamusica, a private music school in
 2. URL query parameter
     - parsed from URL query parameter (`?param1=x&param2=y`) if JSON body doesn't exist  
     - currently only supports `int`, `float`, and `string`
-
-## Migrate Database
-
-### Windows
-
-```bat
-.\scripts\mysql\reset_and_migrate_database.bat
-```
-
-### Linux or MacOS
-
-```sh
-./scripts/mysql/reset_and_migrate_database.sh
-```
 
 ## Generate Go Structs & Interfaces from Raw SQL Queries using SQLC
 
