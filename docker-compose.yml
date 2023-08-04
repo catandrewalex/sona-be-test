@@ -5,7 +5,7 @@ services:
     container_name: sonamusica_mysql
     image: mysql:8.1.0
     environment:
-      MYSQL_ROOT_PASSWORD: p4ssw0rd
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
     env_file:
       - .env
     ports:

@@ -27,7 +27,7 @@ Backend part for the administration app of Sonamusica, a private music school in
     - Linux or MacOS
 
         ```sh
-        ./scripts/mysql/reset_and_migrate_database.sh
+        bash ./scripts/mysql/reset_and_migrate_database.sh
         ```
 
 ## Execution
