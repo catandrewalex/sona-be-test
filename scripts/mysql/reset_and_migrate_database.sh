@@ -29,7 +29,7 @@ done
 echo "Migrations executed successfully."
 
 # Ask for user input
-read -p "Do you want to proceed? (y/n): " user_input
+read -p "Do you want to populate with development seed? (y/n): " user_input
 
 # Convert user input to lowercase
 user_input=${user_input,,}
@@ -40,7 +40,7 @@ valid_responses=("y" "n")
 # Check if the response is valid
 while [[ ! " ${valid_responses[@]} " =~ " ${user_input} " ]]; do
     echo "Invalid input. Please enter either 'y' or 'n'."
-    read -p "Do you want to proceed? (y/n): " user_input
+    read -p "Do you want to populate with development seed? (y/n): " user_input
     user_input=${user_input,,}
 done
 
