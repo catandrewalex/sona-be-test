@@ -17,9 +17,9 @@ fi
 : ${DB_HOST:=localhost}
 : ${DB_PORT:=3306}
 
-echo "Dropping database ${DB_NAME}..."
+echo "Recreating database ${DB_NAME}..."
 mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${DB_NAME};"
-echo "Database dropped."
+echo "Database has been recreated."
 
 echo "Running migrations..."
 for f in ./data/sql/migrations/*.sql; do

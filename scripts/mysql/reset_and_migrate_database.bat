@@ -22,9 +22,9 @@ if "%DB_PASSWORD%" == "" set "DB_PASSWORD=password"
 if "%DB_HOST%" == "" set "DB_HOST=localhost"
 if "%DB_PORT%" == "" set "DB_PORT=3306"
 
-echo Dropping database %DB_NAME%...
+echo Recreating database %DB_NAME%...
 mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% -e "DROP DATABASE IF EXISTS %DB_NAME%; CREATE DATABASE %DB_NAME%;"
-echo Database dropped.
+echo Database has been recreated.
 echo.
 
 echo Running migrations...

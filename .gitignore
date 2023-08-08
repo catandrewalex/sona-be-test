@@ -25,6 +25,9 @@ go.work
 .env.*
 !.env.example
 
+# Search engine data
+data/typesense
+
 # Etc
 sql_debug_helper.sql
 debugging/
