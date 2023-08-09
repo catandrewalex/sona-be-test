@@ -228,13 +228,17 @@ FROM enrollment_payment AS ep
     JOIN course ON class.course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+WHERE
+    ep.payment_date >= ? AND ep.payment_date <= ?
 ORDER BY ep.id
 LIMIT ? OFFSET ?
 `
 
 type GetEnrollmentPaymentsParams struct {
-	Limit  int32
-	Offset int32
+	StartDate time.Time
+	EndDate   time.Time
+	Limit     int32
+	Offset    int32
 }
 
 type GetEnrollmentPaymentsRow struct {
@@ -255,7 +259,12 @@ type GetEnrollmentPaymentsRow struct {
 }
 
 func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPaymentsParams) ([]GetEnrollmentPaymentsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEnrollmentPayments, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, getEnrollmentPayments,
+		arg.StartDate,
+		arg.EndDate,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +363,102 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 	var items []GetEnrollmentPaymentsByIdsRow
 	for rows.Next() {
 		var i GetEnrollmentPaymentsByIdsRow
+		if err := rows.Scan(
+			&i.EnrollmentPaymentID,
+			&i.PaymentDate,
+			&i.BalanceTopUp,
+			&i.CourseFeeValue,
+			&i.TransportFeeValue,
+			&i.ValuePenalty,
+			&i.StudentEnrollmentID,
+			&i.StudentID,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEnrollmentPaymentsDescendingDate = `-- name: GetEnrollmentPaymentsDescendingDate :many
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name
+FROM enrollment_payment AS ep
+    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
+
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON class.course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE
+    ep.payment_date >= ? AND ep.payment_date <= ?
+ORDER BY ep.payment_date DESC, ep.id DESC
+LIMIT ? OFFSET ?
+`
+
+type GetEnrollmentPaymentsDescendingDateParams struct {
+	StartDate time.Time
+	EndDate   time.Time
+	Limit     int32
+	Offset    int32
+}
+
+type GetEnrollmentPaymentsDescendingDateRow struct {
+	EnrollmentPaymentID int64
+	PaymentDate         time.Time
+	BalanceTopUp        int32
+	CourseFeeValue      int32
+	TransportFeeValue   int32
+	ValuePenalty        int32
+	StudentEnrollmentID int64
+	StudentID           int64
+	StudentUsername     string
+	StudentDetail       json.RawMessage
+	Class               Class
+	Course              Course
+	Instrument          Instrument
+	Grade               Grade
+}
+
+func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg GetEnrollmentPaymentsDescendingDateParams) ([]GetEnrollmentPaymentsDescendingDateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEnrollmentPaymentsDescendingDate,
+		arg.StartDate,
+		arg.EndDate,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEnrollmentPaymentsDescendingDateRow
+	for rows.Next() {
+		var i GetEnrollmentPaymentsDescendingDateRow
 		if err := rows.Scan(
 			&i.EnrollmentPaymentID,
 			&i.PaymentDate,

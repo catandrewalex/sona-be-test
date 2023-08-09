@@ -1029,18 +1029,42 @@ func (s entityServiceImpl) DeleteTeacherSpecialFees(ctx context.Context, ids []e
 	return nil
 }
 
-func (s entityServiceImpl) GetEnrollmentPayments(ctx context.Context, pagination util.PaginationSpec) (entity.GetEnrollmentPaymentsResult, error) {
+func (s entityServiceImpl) GetEnrollmentPayments(ctx context.Context, pagination util.PaginationSpec, timeFilter util.TimeSpec, sortRecent bool) (entity.GetEnrollmentPaymentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPayments(ctx, mysql.GetEnrollmentPaymentsParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
-	})
-	if err != nil {
-		return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.GetEnrollmentPayments(): %w", err)
-	}
 
-	enrollmentPayments := NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows)
+	timeFilter.SetDefaultForZeroValues()
+	enrollmentPayments := make([]entity.EnrollmentPayment, 0)
+
+	if !sortRecent { // sqlc dynamic query is so bad that we need to do this :(
+		enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPayments(ctx, mysql.GetEnrollmentPaymentsParams{
+			StartDate: timeFilter.StartDatetime,
+			EndDate:   timeFilter.EndDatetime,
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+		})
+		if err != nil {
+			return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.GetEnrollmentPayments(): %w", err)
+		}
+		enrollmentPayments = NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows)
+
+	} else {
+		enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPaymentsDescendingDate(ctx, mysql.GetEnrollmentPaymentsDescendingDateParams{
+			StartDate: timeFilter.StartDatetime,
+			EndDate:   timeFilter.EndDatetime,
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+		})
+		if err != nil {
+			return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.GetEnrollmentPaymentsDescendingDate(): %w", err)
+		}
+
+		enrollmentPaymentRowsConverted := make([]mysql.GetEnrollmentPaymentsRow, 0, len(enrollmentPaymentRows))
+		for _, row := range enrollmentPaymentRows {
+			enrollmentPaymentRowsConverted = append(enrollmentPaymentRowsConverted, row.ToGetEnrollmentPaymentsRow())
+		}
+		enrollmentPayments = NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRowsConverted)
+	}
 
 	totalResults, err := s.mySQLQueries.CountEnrollmentPayments(ctx)
 	if err != nil {
@@ -1288,10 +1312,10 @@ func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.Pag
 
 	timeFilter.SetDefaultForZeroValues()
 	presenceRows, err := s.mySQLQueries.GetPresences(ctx, mysql.GetPresencesParams{
-		Date:   timeFilter.StartDatetime,
-		Date_2: timeFilter.EndDatetime,
-		Limit:  int32(limit),
-		Offset: int32(offset),
+		StartDate: timeFilter.StartDatetime,
+		EndDate:   timeFilter.EndDatetime,
+		Limit:     int32(limit),
+		Offset:    int32(offset),
 	})
 	if err != nil {
 		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.GetPresences(): %w", err)

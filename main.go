@@ -151,6 +151,7 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
+		authRouter.Get("/searchEnrollmentPayments", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayments))
 		authRouter.Get("/enrollmentPaymentInvoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
 		authRouter.Post("/submitEnrollmentPayment", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
 		authRouter.Post("/editEnrollmentPaymentBalance", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentBalance))

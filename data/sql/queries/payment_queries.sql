@@ -42,7 +42,27 @@ FROM enrollment_payment AS ep
     JOIN course ON class.course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+WHERE
+    ep.payment_date >= sqlc.arg('startDate') AND ep.payment_date <= sqlc.arg('endDate')
 ORDER BY ep.id
+LIMIT ? OFFSET ?;
+
+-- name: GetEnrollmentPaymentsDescendingDate :many
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
+    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+FROM enrollment_payment AS ep
+    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
+
+    JOIN user AS user_student ON se.student_id = user_student.id
+    
+    JOIN class on se.class_id = class.id
+    JOIN course ON class.course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+WHERE
+    ep.payment_date >= sqlc.arg('startDate') AND ep.payment_date <= sqlc.arg('endDate')
+ORDER BY ep.payment_date DESC, ep.id DESC
 LIMIT ? OFFSET ?;
 
 -- name: CountEnrollmentPaymentsByIds :one

@@ -196,7 +196,7 @@ type EntityService interface {
 	UpdateTeacherSpecialFees(ctx context.Context, specs []UpdateTeacherSpecialFeeSpec) ([]TeacherSpecialFeeID, error)
 	DeleteTeacherSpecialFees(ctx context.Context, ids []TeacherSpecialFeeID) error
 
-	GetEnrollmentPayments(ctx context.Context, pagination util.PaginationSpec) (GetEnrollmentPaymentsResult, error)
+	GetEnrollmentPayments(ctx context.Context, pagination util.PaginationSpec, timeFilter util.TimeSpec, sortRecent bool) (GetEnrollmentPaymentsResult, error)
 	GetEnrollmentPaymentById(ctx context.Context, id EnrollmentPaymentID) (EnrollmentPayment, error)
 	GetEnrollmentPaymentsByIds(ctx context.Context, ids []EnrollmentPaymentID) ([]EnrollmentPayment, error)
 	InsertEnrollmentPayments(ctx context.Context, specs []InsertEnrollmentPaymentSpec) ([]EnrollmentPaymentID, error)

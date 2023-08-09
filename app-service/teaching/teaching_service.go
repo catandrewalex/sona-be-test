@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"sonamusica-backend/app-service/entity"
+	"sonamusica-backend/app-service/util"
 )
 
 const (
@@ -21,10 +22,11 @@ type StudentEnrollmentInvoice struct {
 }
 
 type TeachingService interface {
+	SearchEnrollmentPayments(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
-	SubmitStudentEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
-	EditStudentEnrollmentPaymentBalance(ctx context.Context, spec EditStudentEnrollmentPaymentBalanceSpec) error
-	RemoveStudentEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
+	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
+	EditEnrollmentPaymentBalance(ctx context.Context, spec EditStudentEnrollmentPaymentBalanceSpec) error
+	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
 
 	AddPresence(ctx context.Context, spec AddPresenceSpec) error
 }

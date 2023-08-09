@@ -515,6 +515,7 @@ func (r DeleteTeacherSpecialFeesRequest) Validate() errs.ValidationError {
 
 type GetEnrollmentPaymentsRequest struct {
 	PaginationRequest
+	TimeFilter
 }
 type GetEnrollmentPaymentsResponse struct {
 	Data    GetEnrollmentPaymentsResult `json:"data"`
@@ -529,6 +530,12 @@ func (r GetEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 	if validationErr := r.PaginationRequest.Validate(MaxPage_GetEnrollmentPayments, MaxResultsPerPage_GetEnrollmentPayments); validationErr != nil {
 		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
 	}
 
 	if len(errorDetail) > 0 {

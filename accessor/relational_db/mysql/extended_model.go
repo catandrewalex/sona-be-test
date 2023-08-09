@@ -60,6 +60,9 @@ func (r GetEnrollmentPaymentByIdRow) ToGetEnrollmentPaymentsRow() GetEnrollmentP
 func (r GetEnrollmentPaymentsByIdsRow) ToGetEnrollmentPaymentsRow() GetEnrollmentPaymentsRow {
 	return GetEnrollmentPaymentsRow(r)
 }
+func (r GetEnrollmentPaymentsDescendingDateRow) ToGetEnrollmentPaymentsRow() GetEnrollmentPaymentsRow {
+	return GetEnrollmentPaymentsRow(r)
+}
 
 // ============================== STUDENT_LEARNING_TOKEN ==============================
 

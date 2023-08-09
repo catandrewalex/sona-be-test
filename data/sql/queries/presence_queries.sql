@@ -59,7 +59,7 @@ FROM presence_paginated
     LEFT JOIN grade ON course.grade_id = grade.id
 
     JOIN student_learning_token as slt ON presence_paginated.token_id = slt.id
-WHERE presence.date >= ? AND presence.date <= ?
+WHERE presence.date >= sqlc.arg('startDate') AND presence.date <= sqlc.arg('endDate')
 ORDER BY class.id;
 
 -- name: GetPresencesByTeacherId :many
@@ -84,7 +84,7 @@ FROM presence_paginated
     LEFT JOIN grade ON course.grade_id = grade.id
 
     JOIN student_learning_token as slt ON presence_paginated.token_id = slt.id
-WHERE presence.date >= ? AND presence.date <= ?
+WHERE presence.date >= sqlc.arg('startDate') AND presence.date <= sqlc.arg('endDate')
 ORDER BY class.id;
 
 -- name: GetPresencesByStudentId :many
@@ -109,7 +109,7 @@ FROM presence_paginated
     LEFT JOIN grade ON course.grade_id = grade.id
 
     JOIN student_learning_token as slt ON presence_paginated.token_id = slt.id
-WHERE presence.date >= ? AND presence.date <= ?
+WHERE presence.date >= sqlc.arg('startDate') AND presence.date <= sqlc.arg('endDate')
 ORDER BY class.id;
 
 -- name: GetPresences :many
@@ -129,7 +129,7 @@ FROM presence
     LEFT JOIN grade ON course.grade_id = grade.id
 
     JOIN student_learning_token as slt ON presence.token_id = slt.id
-WHERE presence.date >= ? AND presence.date <= ?
+WHERE presence.date >= sqlc.arg('startDate') AND presence.date <= sqlc.arg('endDate')
 ORDER BY class.id
 LIMIT ? OFFSET ?;
 

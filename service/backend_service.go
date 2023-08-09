@@ -1240,10 +1240,15 @@ func (s *BackendService) GetEnrollmentPaymentsHandler(ctx context.Context, req *
 		return nil, errV
 	}
 
-	getEnrollmentPaymentsResult, err := s.entityService.GetEnrollmentPayments(ctx, util.PaginationSpec{
+	paginationSpec := util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
-	})
+	}
+	timeFilter := util.TimeSpec{
+		StartDatetime: req.StartDatetime,
+		EndDatetime:   req.EndDatetime,
+	}
+	getEnrollmentPaymentsResult, err := s.entityService.GetEnrollmentPayments(ctx, paginationSpec, timeFilter, false)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPayments(): %w", err), nil, "Failed to get courses")
 	}
@@ -1629,6 +1634,27 @@ func (s *BackendService) DeletePresencesHandler(ctx context.Context, req *output
 	}, nil
 }
 
+func (s *BackendService) SearchEnrollmentPayments(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	timeFilter := util.TimeSpec{
+		StartDatetime: req.StartDatetime,
+		EndDatetime:   req.EndDatetime,
+	}
+	enrollmentPayments, err := s.teachingService.SearchEnrollmentPayments(ctx, timeFilter)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.SearchEnrollmentPayments(): %w", err), nil, "Failed to get courses")
+	}
+
+	return &output.SearchEnrollmentPaymentsResponse{
+		Data: output.SearchEnrollmentPaymentsResult{
+			Results: enrollmentPayments,
+		},
+	}, nil
+}
+
 func (s *BackendService) GetEnrollmentPaymentInvoice(ctx context.Context, req *output.GetEnrollmentPaymentInvoiceRequest) (*output.GetEnrollmentPaymentInvoiceResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -1649,7 +1675,7 @@ func (s *BackendService) SubmitEnrollmentPayment(ctx context.Context, req *outpu
 		return nil, errV
 	}
 
-	err := s.teachingService.SubmitStudentEnrollmentPayment(ctx, teaching.SubmitStudentEnrollmentPaymentSpec{
+	err := s.teachingService.SubmitEnrollmentPayment(ctx, teaching.SubmitStudentEnrollmentPaymentSpec{
 		StudentEnrollmentID: req.StudentEnrollmentID,
 		PaymentDate:         req.PaymentDate,
 		BalanceTopUp:        req.BalanceTopUp,
@@ -1671,7 +1697,7 @@ func (s *BackendService) EditEnrollmentPaymentBalance(ctx context.Context, req *
 		return nil, errV
 	}
 
-	err := s.teachingService.EditStudentEnrollmentPaymentBalance(ctx, teaching.EditStudentEnrollmentPaymentBalanceSpec{
+	err := s.teachingService.EditEnrollmentPaymentBalance(ctx, teaching.EditStudentEnrollmentPaymentBalanceSpec{
 		EnrollmentPaymentID: req.EnrollmentPaymentID,
 		PaymentDate:         req.PaymentDate,
 		BalanceTopUp:        req.BalanceTopUp,
@@ -1690,7 +1716,7 @@ func (s *BackendService) RemoveEnrollmentPayment(ctx context.Context, req *outpu
 		return nil, errV
 	}
 
-	err := s.teachingService.RemoveStudentEnrollmentPayment(ctx, req.EnrollmentPaymentID)
+	err := s.teachingService.RemoveEnrollmentPayment(ctx, req.EnrollmentPaymentID)
 	if err != nil {
 		return nil, handleUpsertionError(err, "teachingService.RemoveStudentEnrollmentPayment()", "enrollmentPayment")
 	}

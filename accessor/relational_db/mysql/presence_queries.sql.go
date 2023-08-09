@@ -235,10 +235,10 @@ LIMIT ? OFFSET ?
 `
 
 type GetPresencesParams struct {
-	Date   time.Time
-	Date_2 time.Time
-	Limit  int32
-	Offset int32
+	StartDate time.Time
+	EndDate   time.Time
+	Limit     int32
+	Offset    int32
 }
 
 type GetPresencesRow struct {
@@ -261,8 +261,8 @@ type GetPresencesRow struct {
 
 func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]GetPresencesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getPresences,
-		arg.Date,
-		arg.Date_2,
+		arg.StartDate,
+		arg.EndDate,
 		arg.Limit,
 		arg.Offset,
 	)
@@ -345,11 +345,11 @@ ORDER BY class.id
 `
 
 type GetPresencesByClassIdParams struct {
-	ClassID sql.NullInt64
-	Limit   int32
-	Offset  int32
-	Date    time.Time
-	Date_2  time.Time
+	ClassID   sql.NullInt64
+	Limit     int32
+	Offset    int32
+	StartDate time.Time
+	EndDate   time.Time
 }
 
 type GetPresencesByClassIdRow struct {
@@ -375,8 +375,8 @@ func (q *Queries) GetPresencesByClassId(ctx context.Context, arg GetPresencesByC
 		arg.ClassID,
 		arg.Limit,
 		arg.Offset,
-		arg.Date,
-		arg.Date_2,
+		arg.StartDate,
+		arg.EndDate,
 	)
 	if err != nil {
 		return nil, err
@@ -562,8 +562,8 @@ type GetPresencesByStudentIdParams struct {
 	StudentID sql.NullInt64
 	Limit     int32
 	Offset    int32
-	Date      time.Time
-	Date_2    time.Time
+	StartDate time.Time
+	EndDate   time.Time
 }
 
 type GetPresencesByStudentIdRow struct {
@@ -589,8 +589,8 @@ func (q *Queries) GetPresencesByStudentId(ctx context.Context, arg GetPresencesB
 		arg.StudentID,
 		arg.Limit,
 		arg.Offset,
-		arg.Date,
-		arg.Date_2,
+		arg.StartDate,
+		arg.EndDate,
 	)
 	if err != nil {
 		return nil, err
@@ -674,8 +674,8 @@ type GetPresencesByTeacherIdParams struct {
 	TeacherID sql.NullInt64
 	Limit     int32
 	Offset    int32
-	Date      time.Time
-	Date_2    time.Time
+	StartDate time.Time
+	EndDate   time.Time
 }
 
 type GetPresencesByTeacherIdRow struct {
@@ -701,8 +701,8 @@ func (q *Queries) GetPresencesByTeacherId(ctx context.Context, arg GetPresencesB
 		arg.TeacherID,
 		arg.Limit,
 		arg.Offset,
-		arg.Date,
-		arg.Date_2,
+		arg.StartDate,
+		arg.EndDate,
 	)
 	if err != nil {
 		return nil, err

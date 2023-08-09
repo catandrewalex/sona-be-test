@@ -10,6 +10,7 @@ import (
 	"sonamusica-backend/accessor/relational_db/mysql"
 	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/teaching"
+	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/logging"
 )
@@ -17,6 +18,11 @@ import (
 var (
 	configObject = config.Get()
 	mainLog      = logging.NewGoLogger("TeachingService", logging.GetLevel(configObject.LogLevel))
+)
+
+const (
+	pagination_FirstPage = 1
+	pagination_FetchAll  = 10000
 )
 
 type teachingServiceImpl struct {
@@ -32,6 +38,19 @@ func NewTeachingServiceImpl(mySQLQueries *relational_db.MySQLQueries, entityServ
 		mySQLQueries:  mySQLQueries,
 		entityService: entityService,
 	}
+}
+
+func (s teachingServiceImpl) SearchEnrollmentPayments(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error) {
+	paginationSpec := util.PaginationSpec{
+		Page:           pagination_FirstPage,
+		ResultsPerPage: pagination_FetchAll,
+	}
+	enrollmentPayments, err := s.entityService.GetEnrollmentPayments(ctx, paginationSpec, timeFilter, true)
+	if err != nil {
+		return []entity.EnrollmentPayment{}, fmt.Errorf("entityService.GetEnrollmentPayments(): %v", err)
+	}
+
+	return enrollmentPayments.EnrollmentPayments, nil
 }
 
 func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (teaching.StudentEnrollmentInvoice, error) {
@@ -81,7 +100,7 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 	}, nil
 }
 
-func (s teachingServiceImpl) SubmitStudentEnrollmentPayment(ctx context.Context, spec teaching.SubmitStudentEnrollmentPaymentSpec) error {
+func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec teaching.SubmitStudentEnrollmentPaymentSpec) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		_, err := s.entityService.InsertEnrollmentPayments(newCtx, []entity.InsertEnrollmentPaymentSpec{
 			{
@@ -142,7 +161,7 @@ func (s teachingServiceImpl) SubmitStudentEnrollmentPayment(ctx context.Context,
 	return nil
 }
 
-func (s teachingServiceImpl) EditStudentEnrollmentPaymentBalance(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentBalanceSpec) error {
+func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentBalanceSpec) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(spec.EnrollmentPaymentID))
 		if err != nil {
@@ -184,7 +203,7 @@ func (s teachingServiceImpl) EditStudentEnrollmentPaymentBalance(ctx context.Con
 	return nil
 }
 
-func (s teachingServiceImpl) RemoveStudentEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error {
+func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(enrollmentPaymentID))
 		if err != nil {

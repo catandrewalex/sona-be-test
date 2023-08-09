@@ -8,6 +8,33 @@ import (
 	"time"
 )
 
+type SearchEnrollmentPaymentsRequest struct {
+	TimeFilter
+}
+type SearchEnrollmentPaymentsResponse struct {
+	Data    SearchEnrollmentPaymentsResult `json:"data"`
+	Message string                         `json:"message,omitempty"`
+}
+
+type SearchEnrollmentPaymentsResult struct {
+	Results []entity.EnrollmentPayment `json:"results"`
+}
+
+func (r SearchEnrollmentPaymentsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
 type GetEnrollmentPaymentInvoiceRequest struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
