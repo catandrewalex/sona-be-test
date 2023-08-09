@@ -156,6 +156,18 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []entity.Class
 func NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows []mysql.GetStudentEnrollmentsRow) []entity.StudentEnrollment {
 	studentEnrollments := make([]entity.StudentEnrollment, 0, len(studentEnrollmentRows))
 	for _, studentEnrollmentRow := range studentEnrollmentRows {
+		var classTeacherInfo *entity.TeacherInfo_Minimal
+		teacherId := entity.TeacherID(studentEnrollmentRow.ClassTeacherID.Int64)
+		if studentEnrollmentRow.ClassTeacherID.Valid && teacherId != entity.TeacherID_None {
+			classTeacherInfo = &entity.TeacherInfo_Minimal{
+				TeacherID: teacherId,
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   studentEnrollmentRow.ClassTeacherUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(studentEnrollmentRow.ClassTeacherDetail, mainLog),
+				},
+			}
+		}
+
 		studentEnrollments = append(studentEnrollments, entity.StudentEnrollment{
 			StudentEnrollmentID: entity.StudentEnrollmentID(studentEnrollmentRow.StudentEnrollmentID),
 			StudentInfo: entity.StudentInfo_Minimal{
@@ -166,7 +178,8 @@ func NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows []m
 				},
 			},
 			ClassInfo: entity.ClassInfo_Minimal{
-				ClassID: entity.ClassID(studentEnrollmentRow.Class.ID),
+				ClassID:             entity.ClassID(studentEnrollmentRow.Class.ID),
+				TeacherInfo_Minimal: classTeacherInfo,
 				Course: entity.Course{
 					CourseID:              entity.CourseID(studentEnrollmentRow.Course.ID),
 					Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{studentEnrollmentRow.Instrument})[0],
@@ -212,6 +225,18 @@ func NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows []m
 func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []mysql.GetEnrollmentPaymentsRow) []entity.EnrollmentPayment {
 	enrollmentPayments := make([]entity.EnrollmentPayment, 0, len(enrollmentPaymentRows))
 	for _, enrollmentPaymentRow := range enrollmentPaymentRows {
+		var classTeacherInfo *entity.TeacherInfo_Minimal
+		teacherId := entity.TeacherID(enrollmentPaymentRow.ClassTeacherID.Int64)
+		if enrollmentPaymentRow.ClassTeacherID.Valid && teacherId != entity.TeacherID_None {
+			classTeacherInfo = &entity.TeacherInfo_Minimal{
+				TeacherID: teacherId,
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   enrollmentPaymentRow.ClassTeacherUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(enrollmentPaymentRow.ClassTeacherDetail, mainLog),
+				},
+			}
+		}
+
 		enrollmentPayments = append(enrollmentPayments, entity.EnrollmentPayment{
 			EnrollmentPaymentID: entity.EnrollmentPaymentID(enrollmentPaymentRow.EnrollmentPaymentID),
 			StudentEnrollmentInfo: entity.StudentEnrollment{
@@ -224,7 +249,8 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 					},
 				},
 				ClassInfo: entity.ClassInfo_Minimal{
-					ClassID: entity.ClassID(enrollmentPaymentRow.Class.ID),
+					ClassID:             entity.ClassID(enrollmentPaymentRow.Class.ID),
+					TeacherInfo_Minimal: classTeacherInfo,
 					Course: entity.Course{
 						CourseID:              entity.CourseID(enrollmentPaymentRow.Course.ID),
 						Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{enrollmentPaymentRow.Instrument})[0],
@@ -250,6 +276,18 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningTokenRows []mysql.GetStudentLearningTokensRow) []entity.StudentLearningToken {
 	studentLearningTokens := make([]entity.StudentLearningToken, 0, len(studentLearningTokenRows))
 	for _, sltRow := range studentLearningTokenRows {
+		var classTeacherInfo *entity.TeacherInfo_Minimal
+		teacherId := entity.TeacherID(sltRow.ClassTeacherID.Int64)
+		if sltRow.ClassTeacherID.Valid && teacherId != entity.TeacherID_None {
+			classTeacherInfo = &entity.TeacherInfo_Minimal{
+				TeacherID: teacherId,
+				UserInfo_Minimal: identity.UserInfo_Minimal{
+					Username:   sltRow.ClassTeacherUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(sltRow.ClassTeacherDetail, mainLog),
+				},
+			}
+		}
+
 		studentLearningTokens = append(studentLearningTokens, entity.StudentLearningToken{
 			StudentLearningTokenID: entity.StudentLearningTokenID(sltRow.StudentLearningTokenID),
 			StudentEnrollmentInfo: entity.StudentEnrollment{
@@ -262,7 +300,8 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 					},
 				},
 				ClassInfo: entity.ClassInfo_Minimal{
-					ClassID: entity.ClassID(sltRow.Class.ID),
+					ClassID:             entity.ClassID(sltRow.Class.ID),
+					TeacherInfo_Minimal: classTeacherInfo,
 					Course: entity.Course{
 						CourseID:              entity.CourseID(sltRow.Course.ID),
 						Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{sltRow.Instrument})[0],
@@ -290,8 +329,22 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 		var classInfo *entity.ClassInfo_Minimal
 		classId := entity.ClassID(presenceRow.Class.ID)
 		if classId != entity.ClassID(entity.ClassID_None) {
+			// presence.teacher & presence.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
+			var classTeacherInfo *entity.TeacherInfo_Minimal
+			teacherId := entity.TeacherID(presenceRow.ClassTeacherID.Int64)
+			if presenceRow.ClassTeacherID.Valid && teacherId != entity.TeacherID_None {
+				classTeacherInfo = &entity.TeacherInfo_Minimal{
+					TeacherID: teacherId,
+					UserInfo_Minimal: identity.UserInfo_Minimal{
+						Username:   presenceRow.ClassTeacherUsername.String,
+						UserDetail: identity.UnmarshalUserDetail(presenceRow.ClassTeacherDetail, mainLog),
+					},
+				}
+			}
+
 			classInfo = &entity.ClassInfo_Minimal{
-				ClassID: entity.ClassID(presenceRow.Class.ID),
+				ClassID:             entity.ClassID(presenceRow.Class.ID),
+				TeacherInfo_Minimal: classTeacherInfo,
 				Course: entity.Course{
 					CourseID:              entity.CourseID(presenceRow.Course.ID),
 					Instrument:            NewInstrumentsFromMySQLInstruments([]mysql.Instrument{presenceRow.Instrument})[0],
@@ -304,6 +357,7 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 			}
 		}
 
+		// presence.teacher & presence.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
 		var teacherInfo *entity.TeacherInfo_Minimal
 		teacherId := entity.TeacherID(presenceRow.TeacherID.Int64)
 		if presenceRow.TeacherID.Valid && teacherId != entity.TeacherID_None {

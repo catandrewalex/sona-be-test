@@ -59,10 +59,11 @@ type Class struct {
 
 // ClassInfo_Minimal is a subset of struct Class that must have the same schema.
 type ClassInfo_Minimal struct {
-	ClassID       ClassID `json:"classId"`
-	Course        Course  `json:"course"`
-	TransportFee  int32   `json:"transportFee"`
-	IsDeactivated bool    `json:"isDeactivated"`
+	ClassID             ClassID              `json:"classId"`
+	TeacherInfo_Minimal *TeacherInfo_Minimal `json:"teacher,omitempty"` // class without teacher is a valid class
+	Course              Course               `json:"course"`
+	TransportFee        int32                `json:"transportFee"`
+	IsDeactivated       bool                 `json:"isDeactivated"`
 }
 
 type StudentEnrollment struct {

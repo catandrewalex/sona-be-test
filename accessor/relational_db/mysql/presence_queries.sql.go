@@ -140,6 +140,7 @@ SELECT presence.id AS presence_id, date, used_student_token_quota, duration,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.last_updated_at, slt.enrollment_id
 FROM presence
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -150,6 +151,9 @@ FROM presence
     LEFT JOIN course ON course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 
     JOIN student_learning_token as slt ON presence.token_id = slt.id
 WHERE presence.id = ? LIMIT 1
@@ -170,6 +174,9 @@ type GetPresenceByIdRow struct {
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
 	StudentLearningToken  StudentLearningToken
 }
 
@@ -202,6 +209,9 @@ func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByI
 		&i.StudentID,
 		&i.StudentUsername,
 		&i.StudentDetail,
+		&i.ClassTeacherID,
+		&i.ClassTeacherUsername,
+		&i.ClassTeacherDetail,
 		&i.StudentLearningToken.ID,
 		&i.StudentLearningToken.Quota,
 		&i.StudentLearningToken.CourseFeeValue,
@@ -217,6 +227,7 @@ SELECT presence.id AS presence_id, date, used_student_token_quota, duration,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.last_updated_at, slt.enrollment_id
 FROM presence
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -227,6 +238,9 @@ FROM presence
     LEFT JOIN course ON course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 
     JOIN student_learning_token as slt ON presence.token_id = slt.id
 WHERE presence.date >= ? AND presence.date <= ?
@@ -256,6 +270,9 @@ type GetPresencesRow struct {
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
 	StudentLearningToken  StudentLearningToken
 }
 
@@ -298,6 +315,9 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
 			&i.StudentLearningToken.CourseFeeValue,
@@ -328,6 +348,7 @@ SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, dur
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence_paginated.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence_paginated.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.last_updated_at, slt.enrollment_id
 FROM presence_paginated
     LEFT JOIN teacher ON presence_paginated.teacher_id = teacher.id
@@ -338,6 +359,9 @@ FROM presence_paginated
     LEFT JOIN course ON course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 
     JOIN student_learning_token as slt ON presence_paginated.token_id = slt.id
 WHERE presence.date >= ? AND presence.date <= ?
@@ -367,6 +391,9 @@ type GetPresencesByClassIdRow struct {
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
 	StudentLearningToken  StudentLearningToken
 }
 
@@ -410,6 +437,9 @@ func (q *Queries) GetPresencesByClassId(ctx context.Context, arg GetPresencesByC
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
 			&i.StudentLearningToken.CourseFeeValue,
@@ -435,6 +465,7 @@ SELECT presence.id AS presence_id, date, used_student_token_quota, duration,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.last_updated_at, slt.enrollment_id
 FROM presence
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -445,6 +476,9 @@ FROM presence
     LEFT JOIN course ON course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 
     JOIN student_learning_token as slt ON presence.token_id = slt.id
 WHERE presence.id IN (/*SLICE:ids*/?)
@@ -465,6 +499,9 @@ type GetPresencesByIdsRow struct {
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
 	StudentLearningToken  StudentLearningToken
 }
 
@@ -512,6 +549,9 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
 			&i.StudentLearningToken.CourseFeeValue,
@@ -542,6 +582,7 @@ SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, dur
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence_paginated.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence_paginated.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.last_updated_at, slt.enrollment_id
 FROM presence_paginated
     LEFT JOIN teacher ON presence_paginated.teacher_id = teacher.id
@@ -552,6 +593,9 @@ FROM presence_paginated
     LEFT JOIN course ON course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 
     JOIN student_learning_token as slt ON presence_paginated.token_id = slt.id
 WHERE presence.date >= ? AND presence.date <= ?
@@ -581,6 +625,9 @@ type GetPresencesByStudentIdRow struct {
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
 	StudentLearningToken  StudentLearningToken
 }
 
@@ -624,6 +671,9 @@ func (q *Queries) GetPresencesByStudentId(ctx context.Context, arg GetPresencesB
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
 			&i.StudentLearningToken.CourseFeeValue,
@@ -654,6 +704,7 @@ SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, dur
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence_paginated.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence_paginated.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.last_updated_at, slt.enrollment_id
 FROM presence_paginated
     LEFT JOIN teacher ON presence_paginated.teacher_id = teacher.id
@@ -664,6 +715,9 @@ FROM presence_paginated
     LEFT JOIN course ON course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 
     JOIN student_learning_token as slt ON presence_paginated.token_id = slt.id
 WHERE presence.date >= ? AND presence.date <= ?
@@ -693,6 +747,9 @@ type GetPresencesByTeacherIdRow struct {
 	StudentID             sql.NullInt64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
 	StudentLearningToken  StudentLearningToken
 }
 
@@ -736,6 +793,9 @@ func (q *Queries) GetPresencesByTeacherId(ctx context.Context, arg GetPresencesB
 			&i.StudentID,
 			&i.StudentUsername,
 			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
 			&i.StudentLearningToken.CourseFeeValue,

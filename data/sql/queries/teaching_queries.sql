@@ -370,7 +370,8 @@ WHERE id IN (sqlc.slice('ids'));
 -- name: GetStudentEnrollmentById :one
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -378,12 +379,16 @@ FROM student_enrollment AS se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 WHERE se.is_deleted = 0 AND se.id = ?;
 
 -- name: GetStudentEnrollmentsByIds :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -391,12 +396,16 @@ FROM student_enrollment AS se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 WHERE se.is_deleted = 0 AND se.id IN (sqlc.slice('ids'));
 
 -- name: GetStudentEnrollmentsByStudentId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -404,12 +413,16 @@ FROM student_enrollment AS se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 WHERE se.is_deleted = 0 AND student_id = ?;
 
 -- name: GetStudentEnrollmentsByClassId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -417,12 +430,16 @@ FROM student_enrollment AS se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 WHERE se.is_deleted = 0 AND class_id = ?;
 
 -- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade)
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
     
@@ -430,6 +447,9 @@ FROM student_enrollment AS se
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
     JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
 WHERE se.is_deleted = 0
 ORDER BY se.id
 LIMIT ? OFFSET ?;
