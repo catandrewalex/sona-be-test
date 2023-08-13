@@ -73,7 +73,7 @@ func main() {
 	baseRouter.Post("/reset-password", jsonSerdeWrapper.WrapFunc(backendService.ResetPasswordHandler))
 
 	// Router group for admin-only endpoints
-	baseRouter.Group(func(authRouter chi.Router) {
+	baseRouter.Route("/admin", func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Admin))
 
@@ -146,16 +146,16 @@ func main() {
 		authRouter.Delete("/presences", jsonSerdeWrapper.WrapFunc(backendService.DeletePresencesHandler))
 	})
 
-	// Router group for member-only (and above) endpoints
+	// Router group for staff-only (and above) endpoints
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
-		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
 
-		authRouter.Get("/searchEnrollmentPayments", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayments))
-		authRouter.Get("/enrollmentPaymentInvoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
-		authRouter.Post("/submitEnrollmentPayment", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
-		authRouter.Post("/editEnrollmentPaymentBalance", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentBalance))
-		authRouter.Post("/removeEnrollmentPayment", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
+		authRouter.Get("/enrollmentPayments/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayments))
+		authRouter.Get("/enrollmentPayments/invoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
+		authRouter.Post("/enrollmentPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
+		authRouter.Post("/enrollmentPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentBalance))
+		authRouter.Post("/enrollmentPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)
