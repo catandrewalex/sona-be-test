@@ -1697,16 +1697,22 @@ func (s *BackendService) EditEnrollmentPaymentBalance(ctx context.Context, req *
 		return nil, errV
 	}
 
-	err := s.teachingService.EditEnrollmentPaymentBalance(ctx, teaching.EditStudentEnrollmentPaymentBalanceSpec{
+	enrollmentPaymentID, err := s.teachingService.EditEnrollmentPaymentBalance(ctx, teaching.EditStudentEnrollmentPaymentBalanceSpec{
 		EnrollmentPaymentID: req.EnrollmentPaymentID,
 		PaymentDate:         req.PaymentDate,
 		BalanceTopUp:        req.BalanceTopUp,
 	})
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.EditStudentEnrollmentBalancePayment()", "enrollmentPayment")
+		return nil, handleReadUpsertError(err, "teachingService.EditStudentEnrollmentBalancePayment()", "enrollmentPayment")
+	}
+
+	enrollmentPayment, err := s.entityService.GetEnrollmentPaymentById(ctx, enrollmentPaymentID)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPaymentsByIds: %v", err), nil, "")
 	}
 
 	return &output.EditEnrollmentPaymentBalanceResponse{
+		Data:    enrollmentPayment,
 		Message: "Successfully editted enrollmentPayment balance",
 	}, nil
 }
@@ -1718,12 +1724,28 @@ func (s *BackendService) RemoveEnrollmentPayment(ctx context.Context, req *outpu
 
 	err := s.teachingService.RemoveEnrollmentPayment(ctx, req.EnrollmentPaymentID)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.RemoveStudentEnrollmentPayment()", "enrollmentPayment")
+		return nil, handleDeletionError(err, "teachingService.RemoveStudentEnrollmentPayment()", "enrollmentPayment")
 	}
 
 	return &output.RemoveEnrollmentPaymentResponse{
 		Message: "Successfully removed enrollmentPayment",
 	}, nil
+}
+
+// handleReadUpsertError combines handleReadError & handleUpsertError.
+func handleReadUpsertError(err error, methodName, entityName string) errs.HTTPError {
+	if err == nil {
+		return nil
+	}
+
+	var validationErr errs.ValidationError
+	wrappedErr := fmt.Errorf("%s: %w", methodName, err)
+	if errors.Is(err, sql.ErrNoRows) {
+		return errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, fmt.Sprintf("%s is not found", strings.Title(entityName)))
+	} else if errors.As(err, &validationErr) {
+		return errs.NewHTTPError(http.StatusConflict, wrappedErr, validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
+	}
+	return errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, fmt.Sprintf("Failed to get %s", entityName))
 }
 
 // handleReadError detects non-existing result error (e.g. sql.ErrNoRows) and returns HTTP 404-NotFound. Else, returns HTTP 500.

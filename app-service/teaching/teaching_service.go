@@ -25,7 +25,7 @@ type TeachingService interface {
 	SearchEnrollmentPayments(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
 	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
-	EditEnrollmentPaymentBalance(ctx context.Context, spec EditStudentEnrollmentPaymentBalanceSpec) error
+	EditEnrollmentPaymentBalance(ctx context.Context, spec EditStudentEnrollmentPaymentBalanceSpec) (entity.EnrollmentPaymentID, error)
 	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
 
 	AddPresence(ctx context.Context, spec AddPresenceSpec) error

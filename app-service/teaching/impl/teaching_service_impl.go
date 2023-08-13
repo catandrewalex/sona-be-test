@@ -70,7 +70,7 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 			TeacherID: teacherID.Int64,
 			CourseID:  int64(studentEnrollment.ClassInfo.Course.CourseID),
 		})
-		if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore 404 NotFound error
+		if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore not found error, and use the default course value
 			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(): %w", err)
 		}
 		if teacherSpecialFee.ID > 0 {
@@ -161,7 +161,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 	return nil
 }
 
-func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentBalanceSpec) error {
+func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentBalanceSpec) (entity.EnrollmentPaymentID, error) {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(spec.EnrollmentPaymentID))
 		if err != nil {
@@ -173,17 +173,24 @@ func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, s
 			CourseFeeValue:    prevEP.CourseFeeValue,
 			TransportFeeValue: prevEP.TransportFeeValue,
 		})
+		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
+		if skipSLTUpdate {
+			mainLog.Warn("EnrollmentPayment with ID = %q doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.")
+			err = nil
+		}
 		if err != nil {
 			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
 		}
 
-		quotaChange := spec.BalanceTopUp - prevEP.BalanceTopUp
-		err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-			Quota: quotaChange,
-			ID:    updatedSLT.ID,
-		})
-		if err != nil {
-			return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+		if skipSLTUpdate {
+			quotaChange := spec.BalanceTopUp - prevEP.BalanceTopUp
+			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+				Quota: quotaChange,
+				ID:    updatedSLT.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+			}
 		}
 
 		err = qtx.UpdateEnrollmentPaymentBalance(newCtx, mysql.UpdateEnrollmentPaymentBalanceParams{
@@ -197,16 +204,20 @@ func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, s
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+		return spec.EnrollmentPaymentID, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	return nil
+	return spec.EnrollmentPaymentID, nil
 }
 
 func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(enrollmentPaymentID))
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				// we don't return not found error as this is a deletion method --> missing entity which has the requested ID is ok.
+				return nil
+			}
 			return fmt.Errorf("qtx.GetEnrollmentPaymentById(): %w", err)
 		}
 
@@ -215,17 +226,24 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 			CourseFeeValue:    prevEP.CourseFeeValue,
 			TransportFeeValue: prevEP.TransportFeeValue,
 		})
+		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
+		if skipSLTUpdate {
+			mainLog.Warn("EnrollmentPayment with ID = %q doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.")
+			err = nil
+		}
 		if err != nil {
 			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
 		}
 
-		quotaChange := -1 * prevEP.BalanceTopUp
-		err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-			Quota: quotaChange,
-			ID:    updatedSLT.ID,
-		})
-		if err != nil {
-			return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+		if skipSLTUpdate {
+			quotaChange := -1 * prevEP.BalanceTopUp
+			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+				Quota: quotaChange,
+				ID:    updatedSLT.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+			}
 		}
 
 		err = s.entityService.DeleteEnrollmentPayments(newCtx, []entity.EnrollmentPaymentID{

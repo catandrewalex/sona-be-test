@@ -88,7 +88,8 @@ type EditEnrollmentPaymentBalanceRequest struct {
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 }
 type EditEnrollmentPaymentBalanceResponse struct {
-	Message string `json:"message,omitempty"`
+	Data    entity.EnrollmentPayment `json:"data"`
+	Message string                   `json:"message,omitempty"`
 }
 
 func (r EditEnrollmentPaymentBalanceRequest) Validate() errs.ValidationError {
