@@ -230,7 +230,11 @@ func convertURLQueryToJSONString(encodedURLQuery string) []byte {
 }
 
 func (wrapper JSONSerdeWrapper) handleError(r *http.Request, w http.ResponseWriter, httpErr errs.HTTPError) {
-	logging.HTTPServerLogger.Error("Error: %v", httpErr)
+	if httpErr.GetHTTPErrorCode()/100 == 5 {
+		logging.HTTPServerLogger.Error("5xx error: %v", httpErr)
+	} else {
+		logging.HTTPServerLogger.Warn("non-5xx error: %v", httpErr)
+	}
 
 	errResponse := output.ErrorResponse{
 		Errors:  httpErr.GetProcessableErrors(),
