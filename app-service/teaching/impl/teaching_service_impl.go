@@ -175,7 +175,7 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 		})
 		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
 		if skipSLTUpdate {
-			mainLog.Warn("EnrollmentPayment with ID = %q doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.", prevEP.EnrollmentPaymentID)
+			mainLog.Warn("EnrollmentPayment with ID='%d' doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.", prevEP.EnrollmentPaymentID)
 			err = nil
 		}
 		if err != nil {
@@ -229,7 +229,7 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 		})
 		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
 		if skipSLTUpdate {
-			mainLog.Warn("EnrollmentPayment with ID = %q doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.")
+			mainLog.Warn("EnrollmentPayment with ID='%d' doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.", prevEP.EnrollmentPaymentID)
 			err = nil
 		}
 		if err != nil {
