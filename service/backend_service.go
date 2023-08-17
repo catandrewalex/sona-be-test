@@ -1692,18 +1692,18 @@ func (s *BackendService) SubmitEnrollmentPayment(ctx context.Context, req *outpu
 	}, nil
 }
 
-func (s *BackendService) EditEnrollmentPaymentBalance(ctx context.Context, req *output.EditEnrollmentPaymentBalanceRequest) (*output.EditEnrollmentPaymentBalanceResponse, errs.HTTPError) {
+func (s *BackendService) EditEnrollmentPayment(ctx context.Context, req *output.EditEnrollmentPaymentRequest) (*output.EditEnrollmentPaymentResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
 
-	enrollmentPaymentID, err := s.teachingService.EditEnrollmentPaymentBalance(ctx, teaching.EditStudentEnrollmentPaymentBalanceSpec{
+	enrollmentPaymentID, err := s.teachingService.EditEnrollmentPayment(ctx, teaching.EditStudentEnrollmentPaymentSpec{
 		EnrollmentPaymentID: req.EnrollmentPaymentID,
 		PaymentDate:         req.PaymentDate,
 		BalanceTopUp:        req.BalanceTopUp,
 	})
 	if err != nil {
-		return nil, handleReadUpsertError(err, "teachingService.EditStudentEnrollmentBalancePayment()", "enrollmentPayment")
+		return nil, handleReadUpsertError(err, "teachingService.EditEnrollmentPayment()", "enrollmentPayment")
 	}
 
 	enrollmentPayment, err := s.entityService.GetEnrollmentPaymentById(ctx, enrollmentPaymentID)
@@ -1711,9 +1711,9 @@ func (s *BackendService) EditEnrollmentPaymentBalance(ctx context.Context, req *
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPaymentsByIds: %v", err), nil, "")
 	}
 
-	return &output.EditEnrollmentPaymentBalanceResponse{
+	return &output.EditEnrollmentPaymentResponse{
 		Data:    enrollmentPayment,
-		Message: "Successfully editted enrollmentPayment balance",
+		Message: "Successfully edited enrollmentPayment",
 	}, nil
 }
 

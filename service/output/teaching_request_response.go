@@ -82,17 +82,17 @@ func (r SubmitEnrollmentPaymentRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type EditEnrollmentPaymentBalanceRequest struct {
+type EditEnrollmentPaymentRequest struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"`
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 }
-type EditEnrollmentPaymentBalanceResponse struct {
+type EditEnrollmentPaymentResponse struct {
 	Data    entity.EnrollmentPayment `json:"data"`
 	Message string                   `json:"message,omitempty"`
 }
 
-func (r EditEnrollmentPaymentBalanceRequest) Validate() errs.ValidationError {
+func (r EditEnrollmentPaymentRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if r.BalanceTopUp < 0 {

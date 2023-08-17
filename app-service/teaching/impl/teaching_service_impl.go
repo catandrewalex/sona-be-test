@@ -161,7 +161,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 	return nil
 }
 
-func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentBalanceSpec) (entity.EnrollmentPaymentID, error) {
+func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec teaching.EditStudentEnrollmentPaymentSpec) (entity.EnrollmentPaymentID, error) {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(spec.EnrollmentPaymentID))
 		if err != nil {
@@ -175,7 +175,7 @@ func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, s
 		})
 		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
 		if skipSLTUpdate {
-			mainLog.Warn("EnrollmentPayment with ID = %q doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.")
+			mainLog.Warn("EnrollmentPayment with ID = %q doesn't have studentLearningToken, check for bad data possibility. Skipping to update studentLearningToken.", prevEP.EnrollmentPaymentID)
 			err = nil
 		}
 		if err != nil {
@@ -193,12 +193,13 @@ func (s teachingServiceImpl) EditEnrollmentPaymentBalance(ctx context.Context, s
 			}
 		}
 
-		err = qtx.UpdateEnrollmentPaymentBalance(newCtx, mysql.UpdateEnrollmentPaymentBalanceParams{
+		err = qtx.UpdateEnrollmentPaymentDateAndBalance(newCtx, mysql.UpdateEnrollmentPaymentDateAndBalanceParams{
+			PaymentDate:  spec.PaymentDate,
 			BalanceTopUp: spec.BalanceTopUp,
 			ID:           int64(spec.EnrollmentPaymentID),
 		})
 		if err != nil {
-			return fmt.Errorf("entityService.UpdateEnrollmentPayments(): %w", err)
+			return fmt.Errorf("entityService.UpdateEnrollmentPayment(): %w", err)
 		}
 
 		return nil

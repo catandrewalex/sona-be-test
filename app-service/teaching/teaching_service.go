@@ -25,7 +25,7 @@ type TeachingService interface {
 	SearchEnrollmentPayments(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
 	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
-	EditEnrollmentPaymentBalance(ctx context.Context, spec EditStudentEnrollmentPaymentBalanceSpec) (entity.EnrollmentPaymentID, error)
+	EditEnrollmentPayment(ctx context.Context, spec EditStudentEnrollmentPaymentSpec) (entity.EnrollmentPaymentID, error)
 	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
 
 	AddPresence(ctx context.Context, spec AddPresenceSpec) error
@@ -40,7 +40,7 @@ type SubmitStudentEnrollmentPaymentSpec struct {
 	CourseFeeValue    int32
 	TransportFeeValue int32
 }
-type EditStudentEnrollmentPaymentBalanceSpec struct {
+type EditStudentEnrollmentPaymentSpec struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID
 	PaymentDate         time.Time
 	BalanceTopUp        int32

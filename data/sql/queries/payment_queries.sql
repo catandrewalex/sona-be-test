@@ -99,8 +99,8 @@ INSERT INTO enrollment_payment (
 UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, course_fee_value = ?, transport_fee_value = ?, value_penalty = ?
 WHERE id = ?;
 
--- name: UpdateEnrollmentPaymentBalance :exec
-UPDATE enrollment_payment SET balance_top_up = ?
+-- name: UpdateEnrollmentPaymentDateAndBalance :exec
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?
 WHERE id = ?;
 
 -- name: DeleteEnrollmentPaymentById :exec

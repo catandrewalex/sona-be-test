@@ -1196,18 +1196,19 @@ func (q *Queries) UpdateEnrollmentPayment(ctx context.Context, arg UpdateEnrollm
 	return err
 }
 
-const updateEnrollmentPaymentBalance = `-- name: UpdateEnrollmentPaymentBalance :exec
-UPDATE enrollment_payment SET balance_top_up = ?
+const updateEnrollmentPaymentDateAndBalance = `-- name: UpdateEnrollmentPaymentDateAndBalance :exec
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?
 WHERE id = ?
 `
 
-type UpdateEnrollmentPaymentBalanceParams struct {
+type UpdateEnrollmentPaymentDateAndBalanceParams struct {
+	PaymentDate  time.Time
 	BalanceTopUp int32
 	ID           int64
 }
 
-func (q *Queries) UpdateEnrollmentPaymentBalance(ctx context.Context, arg UpdateEnrollmentPaymentBalanceParams) error {
-	_, err := q.db.ExecContext(ctx, updateEnrollmentPaymentBalance, arg.BalanceTopUp, arg.ID)
+func (q *Queries) UpdateEnrollmentPaymentDateAndBalance(ctx context.Context, arg UpdateEnrollmentPaymentDateAndBalanceParams) error {
+	_, err := q.db.ExecContext(ctx, updateEnrollmentPaymentDateAndBalance, arg.PaymentDate, arg.BalanceTopUp, arg.ID)
 	return err
 }
 
