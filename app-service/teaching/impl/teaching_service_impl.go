@@ -216,6 +216,7 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 		prevEP, err := qtx.GetEnrollmentPaymentById(newCtx, int64(enrollmentPaymentID))
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
+				mainLog.Warn("EnrollmentPayment with ID='%d' doesn't exist. Skipping to delete the entity.", prevEP.EnrollmentPaymentID)
 				// we don't return not found error as this is a deletion method --> missing entity which has the requested ID is ok.
 				return nil
 			}
@@ -248,7 +249,7 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 		}
 
 		err = s.entityService.DeleteEnrollmentPayments(newCtx, []entity.EnrollmentPaymentID{
-			entity.EnrollmentPaymentID(prevEP.StudentEnrollmentID),
+			entity.EnrollmentPaymentID(prevEP.EnrollmentPaymentID),
 		})
 		if err != nil {
 			return fmt.Errorf("entityService.DeleteEnrollmentPayments(): %w", err)
