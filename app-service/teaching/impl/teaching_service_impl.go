@@ -109,7 +109,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 				BalanceTopUp:        spec.BalanceTopUp,
 				CourseFeeValue:      spec.CourseFeeValue,
 				TransportFeeValue:   spec.TransportFeeValue,
-				ValuePenalty:        spec.PenaltyFeeValue,
+				PenaltyFeeValue:     spec.PenaltyFeeValue,
 			},
 		})
 		if err != nil {

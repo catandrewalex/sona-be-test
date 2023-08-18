@@ -69,7 +69,7 @@ CREATE TABLE enrollment_payment
   balance_top_up INT NOT NULL,
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
-  value_penalty INT NOT NULL,
+  penalty_fee_value INT NOT NULL,
   enrollment_id BIGINT unsigned,
   -- `enrollment_payment` stores historical records, and must not be deleted by CASCADE, but allow deletion of the parent entity
   FOREIGN KEY (enrollment_id) REFERENCES student_enrollment(id) ON UPDATE CASCADE ON DELETE SET NULL

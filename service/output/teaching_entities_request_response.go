@@ -565,7 +565,7 @@ type InsertEnrollmentPaymentsRequestParam struct {
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
-	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
+	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
 }
 type InsertEnrollmentPaymentsResponse struct {
 	Data    UpsertEnrollmentPaymentResult `json:"data"`
@@ -585,8 +585,8 @@ func (r InsertEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 		if datum.TransportFeeValue < 0 {
 			errorDetail[fmt.Sprintf("data.%d.transportFeeValue", i)] = "transportFeeValue must be >= 0"
 		}
-		if datum.ValuePenalty < 0 {
-			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = "valuePenalty must be >= 0"
+		if datum.PenaltyFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.penaltyFeeValue", i)] = "penaltyFeeValue must be >= 0"
 		}
 	}
 
@@ -605,7 +605,7 @@ type UpdateEnrollmentPaymentsRequestParam struct {
 	BalanceTopUp        int32                      `json:"balanceTopUp,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
-	ValuePenalty        int32                      `json:"valuePenalty,omitempty"`
+	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
 }
 type UpdateEnrollmentPaymentsResponse struct {
 	Data    UpsertEnrollmentPaymentResult `json:"data"`
@@ -625,8 +625,8 @@ func (r UpdateEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 		if datum.TransportFeeValue < 0 {
 			errorDetail[fmt.Sprintf("data.%d.transportFeeValue", i)] = "transportFeeValue must be >= 0"
 		}
-		if datum.ValuePenalty < 0 {
-			errorDetail[fmt.Sprintf("data.%d.valuePenalty", i)] = "valuePenalty must be >= 0"
+		if datum.PenaltyFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.penaltyFeeValue", i)] = "penaltyFeeValue must be >= 0"
 		}
 	}
 

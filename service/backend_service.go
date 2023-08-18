@@ -1291,7 +1291,7 @@ func (s *BackendService) InsertEnrollmentPaymentsHandler(ctx context.Context, re
 			BalanceTopUp:        param.BalanceTopUp,
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
-			ValuePenalty:        param.ValuePenalty,
+			PenaltyFeeValue:     param.PenaltyFeeValue,
 		})
 	}
 
@@ -1327,7 +1327,7 @@ func (s *BackendService) UpdateEnrollmentPaymentsHandler(ctx context.Context, re
 			BalanceTopUp:        param.BalanceTopUp,
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
-			ValuePenalty:        param.ValuePenalty,
+			PenaltyFeeValue:     param.PenaltyFeeValue,
 		})
 	}
 

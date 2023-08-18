@@ -86,7 +86,7 @@ type EnrollmentPayment struct {
 	BalanceTopUp          int32               `json:"balanceTopUp"`
 	CourseFeeValue        int32               `json:"courseFeeValue"`
 	TransportFeeValue     int32               `json:"transportFeeValue"`
-	ValuePenalty          int32               `json:"valuePenalty"`
+	PenaltyFeeValue       int32               `json:"penaltyFeeValue"`
 }
 
 type StudentLearningToken struct {
@@ -364,7 +364,7 @@ type InsertEnrollmentPaymentSpec struct {
 	BalanceTopUp        int32
 	CourseFeeValue      int32
 	TransportFeeValue   int32
-	ValuePenalty        int32
+	PenaltyFeeValue     int32
 }
 
 type UpdateEnrollmentPaymentSpec struct {
@@ -373,7 +373,7 @@ type UpdateEnrollmentPaymentSpec struct {
 	BalanceTopUp        int32
 	CourseFeeValue      int32
 	TransportFeeValue   int32
-	ValuePenalty        int32
+	PenaltyFeeValue     int32
 }
 
 func (s UpdateEnrollmentPaymentSpec) GetInt64ID() int64 {

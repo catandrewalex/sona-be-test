@@ -231,12 +231,12 @@ INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 575000, 
 
 /* ============================== ENROLLMENT_PAYMENT ============================== */
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
 ) VALUES (
     '2023-04-01 07:00:00', 4, 375000, 0, 20000, 1
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
 ) VALUES (
     '2023-04-01 07:00:00', 4, 850000, 0, 0, 2
 );

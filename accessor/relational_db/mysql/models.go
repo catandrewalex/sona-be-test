@@ -32,7 +32,7 @@ type EnrollmentPayment struct {
 	BalanceTopUp      int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
-	ValuePenalty      int32
+	PenaltyFeeValue   int32
 	EnrollmentID      sql.NullInt64
 }
 

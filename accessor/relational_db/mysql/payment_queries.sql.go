@@ -150,7 +150,7 @@ func (q *Queries) DeleteTeacherSalaryById(ctx context.Context, id int64) error {
 }
 
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -175,7 +175,7 @@ type GetEnrollmentPaymentByIdRow struct {
 	BalanceTopUp         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
-	ValuePenalty         int32
+	PenaltyFeeValue      int32
 	StudentEnrollmentID  int64
 	StudentID            int64
 	StudentUsername      string
@@ -199,7 +199,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 		&i.BalanceTopUp,
 		&i.CourseFeeValue,
 		&i.TransportFeeValue,
-		&i.ValuePenalty,
+		&i.PenaltyFeeValue,
 		&i.StudentEnrollmentID,
 		&i.StudentID,
 		&i.StudentUsername,
@@ -226,7 +226,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 }
 
 const getEnrollmentPayments = `-- name: GetEnrollmentPayments :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -261,7 +261,7 @@ type GetEnrollmentPaymentsRow struct {
 	BalanceTopUp         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
-	ValuePenalty         int32
+	PenaltyFeeValue      int32
 	StudentEnrollmentID  int64
 	StudentID            int64
 	StudentUsername      string
@@ -295,7 +295,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 			&i.BalanceTopUp,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
-			&i.ValuePenalty,
+			&i.PenaltyFeeValue,
 			&i.StudentEnrollmentID,
 			&i.StudentID,
 			&i.StudentUsername,
@@ -332,7 +332,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 }
 
 const getEnrollmentPaymentsByIds = `-- name: GetEnrollmentPaymentsByIds :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -357,7 +357,7 @@ type GetEnrollmentPaymentsByIdsRow struct {
 	BalanceTopUp         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
-	ValuePenalty         int32
+	PenaltyFeeValue      int32
 	StudentEnrollmentID  int64
 	StudentID            int64
 	StudentUsername      string
@@ -396,7 +396,7 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 			&i.BalanceTopUp,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
-			&i.ValuePenalty,
+			&i.PenaltyFeeValue,
 			&i.StudentEnrollmentID,
 			&i.StudentID,
 			&i.StudentUsername,
@@ -433,7 +433,7 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 }
 
 const getEnrollmentPaymentsDescendingDate = `-- name: GetEnrollmentPaymentsDescendingDate :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -468,7 +468,7 @@ type GetEnrollmentPaymentsDescendingDateRow struct {
 	BalanceTopUp         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
-	ValuePenalty         int32
+	PenaltyFeeValue      int32
 	StudentEnrollmentID  int64
 	StudentID            int64
 	StudentUsername      string
@@ -502,7 +502,7 @@ func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg G
 			&i.BalanceTopUp,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
-			&i.ValuePenalty,
+			&i.PenaltyFeeValue,
 			&i.StudentEnrollmentID,
 			&i.StudentID,
 			&i.StudentUsername,
@@ -1090,7 +1090,7 @@ func (q *Queries) IncrementSLTQuotaById(ctx context.Context, arg IncrementSLTQuo
 
 const insertEnrollmentPayment = `-- name: InsertEnrollmentPayment :execlastid
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, value_penalty, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
 ) VALUES (
     ?, ?, ?, ?, ?, ?
 )
@@ -1101,7 +1101,7 @@ type InsertEnrollmentPaymentParams struct {
 	BalanceTopUp      int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
-	ValuePenalty      int32
+	PenaltyFeeValue   int32
 	EnrollmentID      sql.NullInt64
 }
 
@@ -1111,7 +1111,7 @@ func (q *Queries) InsertEnrollmentPayment(ctx context.Context, arg InsertEnrollm
 		arg.BalanceTopUp,
 		arg.CourseFeeValue,
 		arg.TransportFeeValue,
-		arg.ValuePenalty,
+		arg.PenaltyFeeValue,
 		arg.EnrollmentID,
 	)
 	if err != nil {
@@ -1171,7 +1171,7 @@ func (q *Queries) InsertTeacherSalary(ctx context.Context, arg InsertTeacherSala
 }
 
 const updateEnrollmentPayment = `-- name: UpdateEnrollmentPayment :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, course_fee_value = ?, transport_fee_value = ?, value_penalty = ?
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, course_fee_value = ?, transport_fee_value = ?, penalty_fee_value = ?
 WHERE id = ?
 `
 
@@ -1180,7 +1180,7 @@ type UpdateEnrollmentPaymentParams struct {
 	BalanceTopUp      int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
-	ValuePenalty      int32
+	PenaltyFeeValue   int32
 	ID                int64
 }
 
@@ -1190,7 +1190,7 @@ func (q *Queries) UpdateEnrollmentPayment(ctx context.Context, arg UpdateEnrollm
 		arg.BalanceTopUp,
 		arg.CourseFeeValue,
 		arg.TransportFeeValue,
-		arg.ValuePenalty,
+		arg.PenaltyFeeValue,
 		arg.ID,
 	)
 	return err
