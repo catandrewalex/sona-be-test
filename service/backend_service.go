@@ -966,10 +966,16 @@ func (s *BackendService) GetClassesHandler(ctx context.Context, req *output.GetC
 		return nil, errV
 	}
 
-	getClassesResult, err := s.entityService.GetClasses(ctx, util.PaginationSpec{
+	paginationSpec := util.PaginationSpec{
 		Page:           req.Page,
 		ResultsPerPage: req.ResultsPerPage,
-	}, req.IncludeDeactivated)
+	}
+
+	getClassesSpec := entity.GetClassesSpec{
+		IncludeDeactivated: req.IncludeDeactivated,
+	}
+
+	getClassesResult, err := s.entityService.GetClasses(ctx, paginationSpec, getClassesSpec)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetClasses(): %w", err), nil, "Failed to get classes")
 	}
@@ -1554,6 +1560,7 @@ func (s *BackendService) InsertPresencesHandler(ctx context.Context, req *output
 			Date:                   param.Date,
 			UsedStudentTokenQuota:  param.UsedStudentTokenQuota,
 			Duration:               param.Duration,
+			Note:                   param.Note,
 		})
 	}
 
@@ -1592,6 +1599,7 @@ func (s *BackendService) UpdatePresencesHandler(ctx context.Context, req *output
 			Date:                   param.Date,
 			UsedStudentTokenQuota:  param.UsedStudentTokenQuota,
 			Duration:               param.Duration,
+			Note:                   param.Note,
 		})
 	}
 
@@ -1634,7 +1642,7 @@ func (s *BackendService) DeletePresencesHandler(ctx context.Context, req *output
 	}, nil
 }
 
-func (s *BackendService) SearchEnrollmentPayments(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
+func (s *BackendService) SearchEnrollmentPayment(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1643,7 +1651,7 @@ func (s *BackendService) SearchEnrollmentPayments(ctx context.Context, req *outp
 		StartDatetime: req.StartDatetime,
 		EndDatetime:   req.EndDatetime,
 	}
-	enrollmentPayments, err := s.teachingService.SearchEnrollmentPayments(ctx, timeFilter)
+	enrollmentPayments, err := s.teachingService.SearchEnrollmentPayment(ctx, timeFilter)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.SearchEnrollmentPayments(): %w", err), nil, "Failed to get courses")
 	}
@@ -1729,6 +1737,28 @@ func (s *BackendService) RemoveEnrollmentPayment(ctx context.Context, req *outpu
 
 	return &output.RemoveEnrollmentPaymentResponse{
 		Message: "Successfully removed enrollmentPayment",
+	}, nil
+}
+
+func (s *BackendService) SearchClass(ctx context.Context, req *output.SearchClassRequest) (*output.SearchClassResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	spec := teaching.SearchClassSpec{
+		TeacherID: req.TeacherID,
+		StudentID: req.StudentID,
+		CourseID:  req.CourseID,
+	}
+	classes, err := s.teachingService.SearchClass(ctx, spec)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.SearchClass(): %w", err), nil, "Failed to get courses")
+	}
+
+	return &output.SearchClassResponse{
+		Data: output.SearchClassResult{
+			Results: classes,
+		},
 	}, nil
 }
 

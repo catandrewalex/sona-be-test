@@ -615,18 +615,32 @@ func (s entityServiceImpl) DeleteCourses(ctx context.Context, ids []entity.Cours
 	return nil
 }
 
-func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (entity.GetClassesResult, error) {
+func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.PaginationSpec, spec entity.GetClassesSpec) (entity.GetClassesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 	isDeactivatedFilters := []int32{0}
-	if includeDeactivated {
+	if spec.IncludeDeactivated {
 		isDeactivatedFilters = append(isDeactivatedFilters, 1)
 	}
 
+	teacherID := sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true}
+	studentID := sql.NullInt64{Int64: int64(spec.StudentID), Valid: true}
+	courseID := sql.NullInt64{Int64: int64(spec.CourseID), Valid: true}
+
+	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
+	useStudentFilter := spec.StudentID != entity.StudentID_None
+	useCourseFilter := spec.CourseID != entity.CourseID_None
+
 	classRows, err := s.mySQLQueries.GetClasses(ctx, mysql.GetClassesParams{
-		IsDeactivateds: isDeactivatedFilters,
-		Limit:          int32(limit),
-		Offset:         int32(offset),
+		IsDeactivateds:   isDeactivatedFilters,
+		TeacherID:        teacherID,
+		UseTeacherFilter: useTeacherFilter,
+		StudentID:        studentID,
+		UseStudentFilter: useStudentFilter,
+		CourseID:         courseID,
+		UseCourseFilter:  useCourseFilter,
+		Limit:            int32(limit),
+		Offset:           int32(offset),
 	})
 	if err != nil {
 		return entity.GetClassesResult{}, fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
@@ -634,7 +648,15 @@ func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.Pagin
 
 	classes := NewClassesFromGetClassesRow(classRows)
 
-	totalResults, err := s.mySQLQueries.CountClasses(ctx, isDeactivatedFilters)
+	totalResults, err := s.mySQLQueries.CountClasses(ctx, mysql.CountClassesParams{
+		IsDeactivateds:   isDeactivatedFilters,
+		TeacherID:        teacherID,
+		UseTeacherFilter: useTeacherFilter,
+		StudentID:        studentID,
+		UseStudentFilter: useStudentFilter,
+		CourseID:         courseID,
+		UseCourseFilter:  useCourseFilter,
+	})
 	if err != nil {
 		return entity.GetClassesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
 	}
@@ -1378,6 +1400,7 @@ func (s entityServiceImpl) InsertPresences(ctx context.Context, specs []entity.I
 				Date:                  spec.Date,
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
+				Note:                  spec.Note,
 				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
 				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
 				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
@@ -1410,6 +1433,7 @@ func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.U
 				Date:                  spec.Date,
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
+				Note:                  spec.Note,
 				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
 				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
 				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},

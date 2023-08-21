@@ -389,7 +389,6 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 			StudentInfo: studentInfo,
 			StudentLearningToken: entity.StudentLearningToken_Minimal{
 				StudentLearningTokenID: entity.StudentLearningTokenID(presenceRow.StudentLearningToken.ID),
-				Quota:                  presenceRow.StudentLearningToken.Quota,
 				CourseFeeValue:         presenceRow.StudentLearningToken.CourseFeeValue,
 				TransportFeeValue:      presenceRow.StudentLearningToken.TransportFeeValue,
 				LastUpdatedAt:          presenceRow.StudentLearningToken.LastUpdatedAt,
@@ -397,6 +396,7 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 			Date:                  presenceRow.Date,
 			UsedStudentTokenQuota: presenceRow.UsedStudentTokenQuota,
 			Duration:              presenceRow.Duration,
+			Note:                  presenceRow.Note,
 		})
 	}
 

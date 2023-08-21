@@ -151,11 +151,13 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
 
-		authRouter.Get("/enrollmentPayments/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayments))
-		authRouter.Get("/enrollmentPayments/invoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
-		authRouter.Post("/enrollmentPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
-		authRouter.Post("/enrollmentPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPayment))
-		authRouter.Post("/enrollmentPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
+		authRouter.Get("/enrollmentPayment/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayment))
+		authRouter.Get("/enrollmentPayment/invoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
+		authRouter.Post("/enrollmentPayment/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
+		authRouter.Post("/enrollmentPayment/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPayment))
+		authRouter.Post("/enrollmentPayment/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
+
+		authRouter.Get("/class/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

@@ -136,7 +136,7 @@ func (q *Queries) DeletePresencesByIds(ctx context.Context, ids []int64) error {
 }
 
 const getPresenceById = `-- name: GetPresenceById :one
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -164,6 +164,7 @@ type GetPresenceByIdRow struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -189,6 +190,7 @@ func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByI
 		&i.Date,
 		&i.UsedStudentTokenQuota,
 		&i.Duration,
+		&i.Note,
 		&i.Class.ID,
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
@@ -223,7 +225,7 @@ func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByI
 }
 
 const getPresences = `-- name: GetPresences :many
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -260,6 +262,7 @@ type GetPresencesRow struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -295,6 +298,7 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 			&i.Date,
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
+			&i.Note,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -340,11 +344,11 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 
 const getPresencesByClassId = `-- name: GetPresencesByClassId :many
 WITH presence_paginated AS (
-    SELECT id, date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id FROM presence
+    SELECT id, date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id FROM presence
     WHERE presence.class_id = ?
     LIMIT ? OFFSET ?
 )
-SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, duration,
+SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, duration, note,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence_paginated.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence_paginated.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -381,6 +385,7 @@ type GetPresencesByClassIdRow struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -417,6 +422,7 @@ func (q *Queries) GetPresencesByClassId(ctx context.Context, arg GetPresencesByC
 			&i.Date,
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
+			&i.Note,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -461,7 +467,7 @@ func (q *Queries) GetPresencesByClassId(ctx context.Context, arg GetPresencesByC
 }
 
 const getPresencesByIds = `-- name: GetPresencesByIds :many
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -489,6 +495,7 @@ type GetPresencesByIdsRow struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -529,6 +536,7 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 			&i.Date,
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
+			&i.Note,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -574,11 +582,11 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 
 const getPresencesByStudentId = `-- name: GetPresencesByStudentId :many
 WITH presence_paginated AS (
-    SELECT id, date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id FROM presence
+    SELECT id, date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id FROM presence
     WHERE presence.student_id = ?
     LIMIT ? OFFSET ?
 )
-SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, duration,
+SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, duration, note,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence_paginated.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence_paginated.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -615,6 +623,7 @@ type GetPresencesByStudentIdRow struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -651,6 +660,7 @@ func (q *Queries) GetPresencesByStudentId(ctx context.Context, arg GetPresencesB
 			&i.Date,
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
+			&i.Note,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -696,11 +706,11 @@ func (q *Queries) GetPresencesByStudentId(ctx context.Context, arg GetPresencesB
 
 const getPresencesByTeacherId = `-- name: GetPresencesByTeacherId :many
 WITH presence_paginated AS (
-    SELECT id, date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id FROM presence
+    SELECT id, date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id FROM presence
     WHERE presence.teacher_id = ?
     LIMIT ? OFFSET ?
 )
-SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, duration,
+SELECT presence_paginated.id AS presence_id, date, used_student_token_quota, duration, note,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence_paginated.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence_paginated.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -737,6 +747,7 @@ type GetPresencesByTeacherIdRow struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -773,6 +784,7 @@ func (q *Queries) GetPresencesByTeacherId(ctx context.Context, arg GetPresencesB
 			&i.Date,
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
+			&i.Note,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -818,9 +830,9 @@ func (q *Queries) GetPresencesByTeacherId(ctx context.Context, arg GetPresencesB
 
 const insertPresence = `-- name: InsertPresence :execlastid
 INSERT INTO presence (
-    date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id
+    date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -828,6 +840,7 @@ type InsertPresenceParams struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	ClassID               sql.NullInt64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
@@ -839,6 +852,7 @@ func (q *Queries) InsertPresence(ctx context.Context, arg InsertPresenceParams) 
 		arg.Date,
 		arg.UsedStudentTokenQuota,
 		arg.Duration,
+		arg.Note,
 		arg.ClassID,
 		arg.TeacherID,
 		arg.StudentID,
@@ -852,7 +866,7 @@ func (q *Queries) InsertPresence(ctx context.Context, arg InsertPresenceParams) 
 
 const updatePresence = `-- name: UpdatePresence :exec
 UPDATE presence
-SET date = ?, used_student_token_quota = ?, duration = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
+SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
 WHERE id = ?
 `
 
@@ -860,6 +874,7 @@ type UpdatePresenceParams struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	ClassID               sql.NullInt64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
@@ -872,6 +887,7 @@ func (q *Queries) UpdatePresence(ctx context.Context, arg UpdatePresenceParams) 
 		arg.Date,
 		arg.UsedStudentTokenQuota,
 		arg.Duration,
+		arg.Note,
 		arg.ClassID,
 		arg.TeacherID,
 		arg.StudentID,

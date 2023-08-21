@@ -40,7 +40,7 @@ func NewTeachingServiceImpl(mySQLQueries *relational_db.MySQLQueries, entityServ
 	}
 }
 
-func (s teachingServiceImpl) SearchEnrollmentPayments(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error) {
+func (s teachingServiceImpl) SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error) {
 	paginationSpec := util.PaginationSpec{
 		Page:           pagination_FirstPage,
 		ResultsPerPage: pagination_FetchAll,
@@ -262,6 +262,25 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 	}
 
 	return nil
+}
+
+func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.SearchClassSpec) ([]entity.Class, error) {
+	paginationSpec := util.PaginationSpec{
+		Page:           pagination_FirstPage,
+		ResultsPerPage: pagination_FetchAll,
+	}
+	getClassesSpec := entity.GetClassesSpec{
+		IncludeDeactivated: true,
+		TeacherID:          spec.TeacherID,
+		StudentID:          spec.StudentID,
+		CourseID:           spec.CourseID,
+	}
+	getClassResult, err := s.entityService.GetClasses(ctx, paginationSpec, getClassesSpec)
+	if err != nil {
+		return []entity.Class{}, fmt.Errorf("entityService.GetClasses(): %v", err)
+	}
+
+	return getClassResult.Classes, nil
 }
 
 func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddPresenceSpec) error {

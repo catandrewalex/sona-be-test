@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// ============================== ENROLLMENT_PAYMENT ==============================
+
 type SearchEnrollmentPaymentsRequest struct {
 	TimeFilter
 }
@@ -114,5 +116,34 @@ type RemoveEnrollmentPaymentResponse struct {
 }
 
 func (r RemoveEnrollmentPaymentRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== CLASS ==============================
+
+type SearchClassRequest struct {
+	TeacherID entity.TeacherID `json:"teacherId,omitempty"`
+	StudentID entity.StudentID `json:"studentId,omitempty"`
+	CourseID  entity.CourseID  `json:"courseId,omitempty"`
+}
+type SearchClassResponse struct {
+	Data    SearchClassResult `json:"data"`
+	Message string            `json:"message,omitempty"`
+}
+
+type SearchClassResult struct {
+	Results []entity.Class `json:"results"`
+}
+
+func (r SearchClassRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if r.TeacherID == entity.TeacherID_None && r.StudentID == entity.StudentID_None && r.CourseID == entity.CourseID_None {
+		errorDetail["searchFilter"] = "either teacherId, studentId, courseId filter must be filled"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
 	return nil
 }

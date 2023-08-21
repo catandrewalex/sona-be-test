@@ -221,8 +221,17 @@ LIMIT 1;
 
 -- name: GetClasses :many
 WITH class_paginated AS (
-    SELECT * FROM class
-    WHERE class.is_deactivated IN (sqlc.slice('isDeactivateds'))
+    -- class & student_enrollment has a Many-to-many relationship, therefore:
+    --   1. we need to join them to be able to filter by student_id
+    --   2. we use SELECT DISCTINCT just to be safe
+    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, is_deactivated
+    FROM class
+        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+    WHERE
+        class.is_deactivated IN (sqlc.slice('isDeactivateds'))
+        AND (teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
+        AND (student_enrollment.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
+        AND (course_id = sqlc.narg('course_id') OR sqlc.arg('use_course_filter') = false)
     LIMIT ? OFFSET ?
 )
 SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
@@ -249,8 +258,20 @@ SELECT Count(id) AS total FROM class
 WHERE id IN (sqlc.slice('ids'));
 
 -- name: CountClasses :one
-SELECT Count(id) AS total FROM class
-WHERE is_deactivated IN (sqlc.slice('isDeactivateds'));
+WITH class_filtered AS (
+    -- class & student_enrollment has a Many-to-many relationship, therefore:
+    --   1. we need to join them to be able to filter by student_id
+    --   2. we use SELECT DISCTINCT just to be safe
+    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, is_deactivated
+    FROM class
+        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+    WHERE
+        class.is_deactivated IN (sqlc.slice('isDeactivateds'))
+        AND (teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
+        AND (student_enrollment.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
+        AND (course_id = sqlc.narg('course_id') OR sqlc.arg('use_course_filter') = false)
+)
+SELECT Count(id) AS total FROM class_filtered;
 
 -- name: GetClassesByIds :many
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
@@ -271,44 +292,6 @@ FROM class
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
 WHERE class.id in (sqlc.slice('ids'))
-ORDER BY class.id;
-
--- name: GetClassesByTeacherId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, se.student_id AS student_id,
-    sqlc.embed(instrument), sqlc.embed(grade),
-    user_student.username AS student_username,
-    user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
-FROM class
-    JOIN course ON course_id = course.id
-    JOIN instrument ON course.instrument_id = instrument.id
-    JOIN grade ON course.grade_id = grade.id
-
-    LEFT JOIN teacher ON teacher_id = teacher.id
-    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-
-    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
-    LEFT JOIN user AS user_student ON se.student_id = user_student.id
-WHERE teacher_id = ?
-ORDER BY class.id;
-
--- name: GetClassesByStudentId :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id,
-    user_teacher.username AS teacher_username,
-    user_teacher.user_detail AS teacher_detail,
-    sqlc.embed(instrument), sqlc.embed(grade),
-    course.default_fee, course.default_duration_minute
-FROM class
-    JOIN course ON course_id = course.id
-    JOIN instrument ON course.instrument_id = instrument.id
-    JOIN grade ON course.grade_id = grade.id
-
-    LEFT JOIN teacher ON teacher_id = teacher.id
-    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-
-    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
-    LEFT JOIN user AS user_student ON se.student_id = user_student.id
-WHERE se.student_id = ?
 ORDER BY class.id;
 
 -- name: GetClassById :many

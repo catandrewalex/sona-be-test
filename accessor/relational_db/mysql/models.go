@@ -51,6 +51,7 @@ type Presence struct {
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 	ClassID               sql.NullInt64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64

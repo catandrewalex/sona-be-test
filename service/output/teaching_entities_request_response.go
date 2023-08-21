@@ -802,6 +802,7 @@ type InsertPresencesRequestParam struct {
 	Date                   time.Time                     `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota,omitempty"`
 	Duration               int32                         `json:"duration,omitempty"`
+	Note                   string                        `json:"note,omitempty"`
 }
 type InsertPresencesResponse struct {
 	Data    UpsertPresenceResult `json:"data"`
@@ -838,6 +839,7 @@ type UpdatePresencesRequestParam struct {
 	Date                   time.Time                     `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota"`
 	Duration               int32                         `json:"duration"`
+	Note                   string                        `json:"note,omitempty"`
 }
 type UpdatePresencesResponse struct {
 	Data    UpsertPresenceResult `json:"data"`

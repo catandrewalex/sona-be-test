@@ -101,7 +101,6 @@ type StudentLearningToken struct {
 // StudentLearningToken_Minimal is a subset of struct StudentLearningToken that must have the same schema.
 type StudentLearningToken_Minimal struct {
 	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenId"`
-	Quota                  int32                  `json:"quota"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
@@ -116,6 +115,7 @@ type Presence struct {
 	Date                  time.Time                    `json:"date"`
 	UsedStudentTokenQuota float64                      `json:"usedStudentTokenQuota"`
 	Duration              int32                        `json:"duration"`
+	Note                  string                       `json:"note"`
 }
 
 type TeacherID int64
@@ -180,7 +180,7 @@ type EntityService interface {
 	UpdateCourses(ctx context.Context, specs []UpdateCourseSpec) ([]CourseID, error)
 	DeleteCourses(ctx context.Context, ids []CourseID) error
 
-	GetClasses(ctx context.Context, pagination util.PaginationSpec, includeDeactivated bool) (GetClassesResult, error)
+	GetClasses(ctx context.Context, pagination util.PaginationSpec, spec GetClassesSpec) (GetClassesResult, error)
 	GetClassById(ctx context.Context, id ClassID) (Class, error)
 	GetClassesByIds(ctx context.Context, ids []ClassID) ([]Class, error)
 	InsertClasses(ctx context.Context, specs []InsertClassSpec) ([]ClassID, error)
@@ -296,6 +296,13 @@ func (s UpdateCourseSpec) GetInt64ID() int64 {
 }
 
 // ============================== CLASS ==============================
+
+type GetClassesSpec struct {
+	IncludeDeactivated bool
+	StudentID          StudentID
+	TeacherID          TeacherID
+	CourseID           CourseID
+}
 
 type GetClassesResult struct {
 	Classes          []Class
@@ -420,6 +427,7 @@ type InsertPresenceSpec struct {
 	Date                   time.Time
 	UsedStudentTokenQuota  float64
 	Duration               int32
+	Note                   string
 }
 
 type UpdatePresenceSpec struct {
@@ -431,6 +439,7 @@ type UpdatePresenceSpec struct {
 	Date                   time.Time
 	UsedStudentTokenQuota  float64
 	Duration               int32
+	Note                   string
 }
 
 func (s UpdatePresenceSpec) GetInt64ID() int64 {

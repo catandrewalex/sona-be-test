@@ -22,11 +22,13 @@ type StudentEnrollmentInvoice struct {
 }
 
 type TeachingService interface {
-	SearchEnrollmentPayments(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
+	SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
 	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
 	EditEnrollmentPayment(ctx context.Context, spec EditStudentEnrollmentPaymentSpec) (entity.EnrollmentPaymentID, error)
 	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
+
+	SearchClass(ctx context.Context, spec SearchClassSpec) ([]entity.Class, error)
 
 	AddPresence(ctx context.Context, spec AddPresenceSpec) error
 }
@@ -46,6 +48,17 @@ type EditStudentEnrollmentPaymentSpec struct {
 	BalanceTopUp        int32
 }
 
+type SearchClassSpec struct {
+	TeacherID entity.TeacherID
+	StudentID entity.StudentID
+	CourseID  entity.CourseID
+}
+
 type AddPresenceSpec struct {
-	entity.InsertPresenceSpec
+	ClassID               entity.ClassID
+	TeacherID             entity.TeacherID
+	StudentID             entity.StudentID
+	Date                  time.Time
+	UsedStudentTokenQuota float64
+	Duration              int32
 }

@@ -255,11 +255,11 @@ INSERT INTO student_learning_token (
 );
 
 /* ============================== PRESENCE & STUDENT_ATTEND ============================== */
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-01 09:00:00', 1, 30, 1, 1, 1, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-08 09:10:00', 1, 30, 1, 1, 1, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-15 08:55:00', 1, 30, 1, 1, 1, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-01 09:00:00', 1, 30, '', 1, 1, 1, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-08 09:10:00', 1, 30, '', 1, 1, 1, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-15 08:55:00', 1, 30, '', 1, 1, 1, 1 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-02 10:00:00', 1, 60, 2, 2, 2, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-09 11:10:00', 1, 60, 2, 2, 2, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-16 09:55:00', 1, 60, 2, 2, 2, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-23 09:35:20', 1, 60, 2, 2, 2, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-02 10:00:00', 1, 60, '', 2, 2, 2, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-09 11:10:00', 1, 60, '', 2, 2, 2, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-16 09:55:00', 1, 60, '', 2, 2, 2, 1 );
+INSERT INTO presence ( date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-05-23 09:35:20', 1, 60, '', 2, 2, 2, 1 );

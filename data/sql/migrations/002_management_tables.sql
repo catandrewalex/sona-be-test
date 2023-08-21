@@ -104,6 +104,7 @@ CREATE TABLE presence
   date TIMESTAMP NOT NULL,
   used_student_token_quota FLOAT NOT NULL,
   duration INT NOT NULL,
+  note VARCHAR(255) NOT NULL DEFAULT '',
   class_id BIGINT unsigned,
   teacher_id BIGINT unsigned,
   student_id BIGINT unsigned,
