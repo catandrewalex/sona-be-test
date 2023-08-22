@@ -224,10 +224,7 @@ func (s *BackendService) GetUsersHandler(ctx context.Context, req *output.GetUse
 		return nil, errV
 	}
 
-	getUsersResult, err := s.identityService.GetUsers(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	}, req.Filter, req.IncludeDeactivated)
+	getUsersResult, err := s.identityService.GetUsers(ctx, util.PaginationSpec(req.PaginationRequest), req.Filter, req.IncludeDeactivated)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("identityService.GetUsers(): %w", err), nil, "Failed to get users")
 	}
@@ -351,10 +348,7 @@ func (s *BackendService) GetTeachersHandler(ctx context.Context, req *output.Get
 		return nil, errV
 	}
 
-	getTeachersResult, err := s.entityService.GetTeachers(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getTeachersResult, err := s.entityService.GetTeachers(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeachers(): %w", err), nil, "Failed to get teachers")
 	}
@@ -475,10 +469,7 @@ func (s *BackendService) GetStudentsHandler(ctx context.Context, req *output.Get
 		return nil, errV
 	}
 
-	getStudentsResult, err := s.entityService.GetStudents(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getStudentsResult, err := s.entityService.GetStudents(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudents(): %w", err), nil, "Failed to get students")
 	}
@@ -599,10 +590,7 @@ func (s *BackendService) GetInstrumentsHandler(ctx context.Context, req *output.
 		return nil, errV
 	}
 
-	getInstrumentsResult, err := s.entityService.GetInstruments(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getInstrumentsResult, err := s.entityService.GetInstruments(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetInstruments(): %w", err), nil, "Failed to get instruments")
 	}
@@ -720,10 +708,7 @@ func (s *BackendService) GetGradesHandler(ctx context.Context, req *output.GetGr
 		return nil, errV
 	}
 
-	getGradesResult, err := s.entityService.GetGrades(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getGradesResult, err := s.entityService.GetGrades(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetGrades(): %w", err), nil, "Failed to get grades")
 	}
@@ -841,10 +826,7 @@ func (s *BackendService) GetCoursesHandler(ctx context.Context, req *output.GetC
 		return nil, errV
 	}
 
-	getCoursesResult, err := s.entityService.GetCourses(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getCoursesResult, err := s.entityService.GetCourses(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetCourses(): %w", err), nil, "Failed to get courses")
 	}
@@ -966,11 +948,7 @@ func (s *BackendService) GetClassesHandler(ctx context.Context, req *output.GetC
 		return nil, errV
 	}
 
-	paginationSpec := util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	}
-
+	paginationSpec := util.PaginationSpec(req.PaginationRequest)
 	getClassesSpec := entity.GetClassesSpec{
 		IncludeDeactivated: req.IncludeDeactivated,
 	}
@@ -1100,10 +1078,7 @@ func (s *BackendService) GetStudentEnrollmentsHandler(ctx context.Context, req *
 		return nil, errV
 	}
 
-	getStudentEnrollmentsResult, err := s.entityService.GetStudentEnrollments(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getStudentEnrollmentsResult, err := s.entityService.GetStudentEnrollments(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentEnrollments(): %w", err), nil, "Failed to get StudentEnrollments")
 	}
@@ -1123,10 +1098,7 @@ func (s *BackendService) GetTeacherSpecialFeesHandler(ctx context.Context, req *
 		return nil, errV
 	}
 
-	getTeacherSpecialFeesResult, err := s.entityService.GetTeacherSpecialFees(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getTeacherSpecialFeesResult, err := s.entityService.GetTeacherSpecialFees(ctx, util.PaginationSpec((req.PaginationRequest)))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSpecialFees(): %w", err), nil, "Failed to get teacherSpecialFees")
 	}
@@ -1246,14 +1218,8 @@ func (s *BackendService) GetEnrollmentPaymentsHandler(ctx context.Context, req *
 		return nil, errV
 	}
 
-	paginationSpec := util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	}
-	timeFilter := util.TimeSpec{
-		StartDatetime: req.StartDatetime,
-		EndDatetime:   req.EndDatetime,
-	}
+	paginationSpec := util.PaginationSpec(req.PaginationRequest)
+	timeFilter := util.TimeSpec(req.TimeFilter)
 	getEnrollmentPaymentsResult, err := s.entityService.GetEnrollmentPayments(ctx, paginationSpec, timeFilter, false)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetEnrollmentPayments(): %w", err), nil, "Failed to get courses")
@@ -1381,10 +1347,7 @@ func (s *BackendService) GetStudentLearningTokensHandler(ctx context.Context, re
 		return nil, errV
 	}
 
-	getStudentLearningTokensResult, err := s.entityService.GetStudentLearningTokens(ctx, util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
-	})
+	getStudentLearningTokensResult, err := s.entityService.GetStudentLearningTokens(ctx, util.PaginationSpec(req.PaginationRequest))
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetStudentLearningTokens(): %w", err), nil, "Failed to get courses")
 	}
@@ -1507,15 +1470,11 @@ func (s *BackendService) GetPresencesHandler(ctx context.Context, req *output.Ge
 		return nil, errV
 	}
 
-	paginationSpec := util.PaginationSpec{
-		Page:           req.Page,
-		ResultsPerPage: req.ResultsPerPage,
+	paginationSpec := util.PaginationSpec(req.PaginationRequest)
+	getPresencesSpec := entity.GetPresencesSpec{
+		TimeSpec: util.TimeSpec(req.TimeFilter),
 	}
-	timeFilter := util.TimeSpec{
-		StartDatetime: req.StartDatetime,
-		EndDatetime:   req.EndDatetime,
-	}
-	getPresencesResult, err := s.entityService.GetPresences(ctx, paginationSpec, timeFilter)
+	getPresencesResult, err := s.entityService.GetPresences(ctx, paginationSpec, getPresencesSpec)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetPresences(): %w", err), nil, "Failed to get courses")
 	}
@@ -1647,10 +1606,7 @@ func (s *BackendService) SearchEnrollmentPayment(ctx context.Context, req *outpu
 		return nil, errV
 	}
 
-	timeFilter := util.TimeSpec{
-		StartDatetime: req.StartDatetime,
-		EndDatetime:   req.EndDatetime,
-	}
+	timeFilter := util.TimeSpec(req.TimeFilter)
 	enrollmentPayments, err := s.teachingService.SearchEnrollmentPayment(ctx, timeFilter)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.SearchEnrollmentPayments(): %w", err), nil, "Failed to get courses")
@@ -1758,6 +1714,33 @@ func (s *BackendService) SearchClass(ctx context.Context, req *output.SearchClas
 	return &output.SearchClassResponse{
 		Data: output.SearchClassResult{
 			Results: classes,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetPresencesByClassID(ctx context.Context, req *output.GetPresencesByClassIDRequest) (*output.GetPresencesByClassIDResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	spec := teaching.GetPresencesByClassIDSpec{
+		ClassID:        req.ClassID,
+		PaginationSpec: util.PaginationSpec(req.PaginationRequest),
+		TimeSpec:       util.TimeSpec(req.TimeFilter),
+	}
+	getPresencesResult, err := s.teachingService.GetPresencesByClassID(ctx, spec)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetPresencesByClassID(): %w", err), nil, "Failed to get courses")
+	}
+
+	return &output.GetPresencesByClassIDResponse{
+		Data: output.GetPresencesByClassIDResult{
+			Results: getPresencesResult.Presences,
+			PaginationResponse: output.PaginationResponse{
+				TotalPages:   getPresencesResult.PaginationResult.TotalPages,
+				TotalResults: getPresencesResult.PaginationResult.TotalResults,
+				CurrentPage:  getPresencesResult.PaginationResult.CurrentPage,
+			},
 		},
 	}, nil
 }

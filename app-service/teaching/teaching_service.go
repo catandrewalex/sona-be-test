@@ -30,6 +30,7 @@ type TeachingService interface {
 
 	SearchClass(ctx context.Context, spec SearchClassSpec) ([]entity.Class, error)
 
+	GetPresencesByClassID(ctx context.Context, spec GetPresencesByClassIDSpec) (GetPresencesByClassIDResult, error)
 	AddPresence(ctx context.Context, spec AddPresenceSpec) error
 }
 
@@ -52,6 +53,17 @@ type SearchClassSpec struct {
 	TeacherID entity.TeacherID
 	StudentID entity.StudentID
 	CourseID  entity.CourseID
+}
+
+type GetPresencesByClassIDSpec struct {
+	ClassID entity.ClassID
+	util.PaginationSpec
+	util.TimeSpec
+}
+
+type GetPresencesByClassIDResult struct {
+	Presences        []entity.Presence
+	PaginationResult util.PaginationResult
 }
 
 type AddPresenceSpec struct {

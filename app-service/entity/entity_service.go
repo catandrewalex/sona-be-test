@@ -211,7 +211,7 @@ type EntityService interface {
 	UpdateStudentLearningTokens(ctx context.Context, specs []UpdateStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 
-	GetPresences(ctx context.Context, pagination util.PaginationSpec, timeFilter util.TimeSpec) (GetPresencesResult, error)
+	GetPresences(ctx context.Context, pagination util.PaginationSpec, spec GetPresencesSpec) (GetPresencesResult, error)
 	GetPresenceById(ctx context.Context, id PresenceID) (Presence, error)
 	GetPresencesByIds(ctx context.Context, ids []PresenceID) ([]Presence, error)
 	InsertPresences(ctx context.Context, specs []InsertPresenceSpec) ([]PresenceID, error)
@@ -413,6 +413,11 @@ func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {
 }
 
 // ============================== PRESENCE ==============================
+
+type GetPresencesSpec struct {
+	ClassID ClassID
+	util.TimeSpec
+}
 
 type GetPresencesResult struct {
 	Presences        []Presence

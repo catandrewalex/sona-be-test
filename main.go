@@ -151,6 +151,11 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
 
+		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
+		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
+		authRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
+
 		authRouter.Get("/enrollmentPayment/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayment))
 		authRouter.Get("/enrollmentPayment/invoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
 		authRouter.Post("/enrollmentPayment/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
@@ -158,6 +163,7 @@ func main() {
 		authRouter.Post("/enrollmentPayment/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
 
 		authRouter.Get("/class/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
+		authRouter.Get("/presences/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesByClassID, "ClassID"))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

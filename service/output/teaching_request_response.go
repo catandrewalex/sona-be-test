@@ -119,7 +119,7 @@ func (r RemoveEnrollmentPaymentRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-// ============================== CLASS ==============================
+// ============================== CLASS & PRESENCE ==============================
 
 type SearchClassRequest struct {
 	TeacherID entity.TeacherID `json:"teacherId,omitempty"`
@@ -140,6 +140,36 @@ func (r SearchClassRequest) Validate() errs.ValidationError {
 
 	if r.TeacherID == entity.TeacherID_None && r.StudentID == entity.StudentID_None && r.CourseID == entity.CourseID_None {
 		errorDetail["searchFilter"] = "either teacherId, studentId, courseId filter must be filled"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type GetPresencesByClassIDRequest struct {
+	ClassID entity.ClassID `json:"classId"`
+	PaginationRequest
+	TimeFilter
+}
+type GetPresencesByClassIDResponse struct {
+	Data    GetPresencesByClassIDResult `json:"data"`
+	Message string                      `json:"message,omitempty"`
+}
+
+type GetPresencesByClassIDResult struct {
+	Results []entity.Presence `json:"results"`
+	PaginationResponse
+}
+
+func (r GetPresencesByClassIDRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
 	}
 
 	if len(errorDetail) > 0 {

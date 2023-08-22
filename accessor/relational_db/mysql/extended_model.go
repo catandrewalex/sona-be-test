@@ -81,12 +81,3 @@ func (r GetPresenceByIdRow) ToGetPresencesRow() GetPresencesRow {
 func (r GetPresencesByIdsRow) ToGetPresencesRow() GetPresencesRow {
 	return GetPresencesRow(r)
 }
-func (r GetPresencesByClassIdRow) ToGetPresencesRow() GetPresencesRow {
-	return GetPresencesRow(r)
-}
-func (r GetPresencesByTeacherIdRow) ToGetPresencesRow() GetPresencesRow {
-	return GetPresencesRow(r)
-}
-func (r GetPresencesByStudentIdRow) ToGetPresencesRow() GetPresencesRow {
-	return GetPresencesRow(r)
-}

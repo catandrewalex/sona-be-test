@@ -283,6 +283,22 @@ func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.Sear
 	return getClassResult.Classes, nil
 }
 
+func (s teachingServiceImpl) GetPresencesByClassID(ctx context.Context, spec teaching.GetPresencesByClassIDSpec) (teaching.GetPresencesByClassIDResult, error) {
+	getPresencesSpec := entity.GetPresencesSpec{
+		ClassID:  spec.ClassID,
+		TimeSpec: spec.TimeSpec,
+	}
+	getPresencesResult, err := s.entityService.GetPresences(ctx, spec.PaginationSpec, getPresencesSpec)
+	if err != nil {
+		return teaching.GetPresencesByClassIDResult{}, fmt.Errorf("entityService.GetPresences(): %v", err)
+	}
+
+	return teaching.GetPresencesByClassIDResult{
+		Presences:        getPresencesResult.Presences,
+		PaginationResult: getPresencesResult.PaginationResult,
+	}, nil
+}
+
 func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddPresenceSpec) error {
 	return nil
 }
