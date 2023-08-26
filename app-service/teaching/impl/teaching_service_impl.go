@@ -182,7 +182,7 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
 		}
 
-		if skipSLTUpdate {
+		if !skipSLTUpdate {
 			quotaChange := spec.BalanceTopUp - prevEP.BalanceTopUp
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
 				Quota: quotaChange,
@@ -237,7 +237,7 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
 		}
 
-		if skipSLTUpdate {
+		if !skipSLTUpdate {
 			quotaChange := -1 * prevEP.BalanceTopUp
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
 				Quota: quotaChange,
