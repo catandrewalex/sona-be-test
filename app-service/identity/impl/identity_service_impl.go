@@ -360,7 +360,7 @@ func (s identityServiceImpl) ForgotPassword(ctx context.Context, spec identity.F
 
 	mainLog.Info("%s", tokenString)
 
-	resetPasswordTemplate := email_composer.NewPasswordReset(recipientName, fmt.Sprintf("%s?token=%s", "http://localhost:3000/reset-password", tokenString))
+	resetPasswordTemplate := email_composer.NewPasswordReset(recipientName, fmt.Sprintf("%s%s?token=%s", configObject.Email_BaseAppURL, "/reset-password", tokenString))
 	body, err := s.emailComposer.GenerateHTML(resetPasswordTemplate.Email())
 	if err != nil {
 		return fmt.Errorf("emailComposer.GenerateHTML(): %w", err)
