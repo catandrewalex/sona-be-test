@@ -92,11 +92,21 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 		penaltyFeeValue = ((unpaidQuota-1)/teaching.Default_OneCourseCycle + 1) * teaching.Default_PenaltyFeeValue // penaly = penaltyValue (in Rupiah) per 1 course cycle
 	}
 
+	// calculate transport fee (splitted unionly across all class students)
+	splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
+	classIdToTotalStudents, err := s.mySQLQueries.GetClassesTotalStudentsByClassIds(ctx, []int64{int64(studentEnrollment.ClassInfo.ClassID)})
+	if err != nil {
+		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetClassesTotalStudentsByClassIds(): %w", err)
+	}
+	if len(classIdToTotalStudents) > 0 && classIdToTotalStudents[0].TotalStudents > 1 {
+		splittedTransportFee /= int32(classIdToTotalStudents[0].TotalStudents)
+	}
+
 	return teaching.StudentEnrollmentInvoice{
 		BalanceTopUp:      teaching.Default_BalanceTopUp,
 		PenaltyFeeValue:   penaltyFeeValue,
 		CourseFeeValue:    courseFeeValue,
-		TransportFeeValue: studentEnrollment.ClassInfo.TransportFee,
+		TransportFeeValue: splittedTransportFee,
 	}, nil
 }
 

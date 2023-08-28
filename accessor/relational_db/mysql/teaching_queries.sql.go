@@ -887,6 +887,52 @@ func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClasse
 	return items, nil
 }
 
+const getClassesTotalStudentsByClassIds = `-- name: GetClassesTotalStudentsByClassIds :many
+SELECT class.id AS class_id, Count(student_enrollment.id) AS total_students
+    FROM class
+        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+    WHERE class.id IN (/*SLICE:ids*/?)
+    GROUP BY class.id
+`
+
+type GetClassesTotalStudentsByClassIdsRow struct {
+	ClassID       int64
+	TotalStudents int64
+}
+
+func (q *Queries) GetClassesTotalStudentsByClassIds(ctx context.Context, ids []int64) ([]GetClassesTotalStudentsByClassIdsRow, error) {
+	sql := getClassesTotalStudentsByClassIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetClassesTotalStudentsByClassIdsRow
+	for rows.Next() {
+		var i GetClassesTotalStudentsByClassIdsRow
+		if err := rows.Scan(&i.ClassID, &i.TotalStudents); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCourseById = `-- name: GetCourseById :one
 SELECT course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee, default_duration_minute
 FROM course

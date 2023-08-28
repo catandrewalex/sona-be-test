@@ -273,6 +273,13 @@ WITH class_filtered AS (
 )
 SELECT Count(id) AS total FROM class_filtered;
 
+-- name: GetClassesTotalStudentsByClassIds :many
+SELECT class.id AS class_id, Count(student_enrollment.id) AS total_students
+    FROM class
+        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+    WHERE class.id IN (sqlc.slice('ids'))
+    GROUP BY class.id;
+
 -- name: GetClassesByIds :many
 SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
