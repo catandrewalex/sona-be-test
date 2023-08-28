@@ -56,7 +56,8 @@ type SearchClassSpec struct {
 }
 
 type GetPresencesByClassIDSpec struct {
-	ClassID entity.ClassID
+	ClassID   entity.ClassID
+	StudentID entity.StudentID
 	util.PaginationSpec
 	util.TimeSpec
 }

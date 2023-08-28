@@ -69,6 +69,7 @@ FROM presence
 WHERE
     (presence.date >= sqlc.arg('startDate') AND presence.date <= sqlc.arg('endDate'))
     AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false)
+    AND (student_id = sqlc.arg('student_id') OR sqlc.arg('use_student_filter') = false)
 ORDER BY class.id
 LIMIT ? OFFSET ?;
 
@@ -76,7 +77,8 @@ LIMIT ? OFFSET ?;
 SELECT Count(id) AS total FROM presence
 WHERE
     (date >= sqlc.arg('startDate') AND date <= sqlc.arg('endDate'))
-    AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false);
+    AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false)
+    AND (student_id = sqlc.arg('student_id') OR sqlc.arg('use_student_filter') = false);
 
 -- name: CountPresencesByIds :one
 SELECT Count(id) AS total FROM presence

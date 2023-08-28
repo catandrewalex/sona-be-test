@@ -285,8 +285,9 @@ func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.Sear
 
 func (s teachingServiceImpl) GetPresencesByClassID(ctx context.Context, spec teaching.GetPresencesByClassIDSpec) (teaching.GetPresencesByClassIDResult, error) {
 	getPresencesSpec := entity.GetPresencesSpec{
-		ClassID:  spec.ClassID,
-		TimeSpec: spec.TimeSpec,
+		ClassID:   spec.ClassID,
+		StudentID: spec.StudentID,
+		TimeSpec:  spec.TimeSpec,
 	}
 	getPresencesResult, err := s.entityService.GetPresences(ctx, spec.PaginationSpec, getPresencesSpec)
 	if err != nil {

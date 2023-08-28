@@ -1338,13 +1338,18 @@ func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.Pag
 	classID := sql.NullInt64{Int64: int64(spec.ClassID), Valid: true}
 	useClassFilter := spec.ClassID != entity.ClassID_None
 
+	studentID := sql.NullInt64{Int64: int64(spec.StudentID), Valid: true}
+	useStudentFilter := spec.StudentID != entity.StudentID_None
+
 	presenceRows, err := s.mySQLQueries.GetPresences(ctx, mysql.GetPresencesParams{
-		StartDate:      timeFilter.StartDatetime,
-		EndDate:        timeFilter.EndDatetime,
-		ClassID:        classID,
-		UseClassFilter: useClassFilter,
-		Limit:          int32(limit),
-		Offset:         int32(offset),
+		StartDate:        timeFilter.StartDatetime,
+		EndDate:          timeFilter.EndDatetime,
+		ClassID:          classID,
+		UseClassFilter:   useClassFilter,
+		StudentID:        studentID,
+		UseStudentFilter: useStudentFilter,
+		Limit:            int32(limit),
+		Offset:           int32(offset),
 	})
 	if err != nil {
 		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.GetPresences(): %w", err)
@@ -1353,10 +1358,12 @@ func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.Pag
 	presences := NewPresencesFromGetPresencesRow(presenceRows)
 
 	totalResults, err := s.mySQLQueries.CountPresences(ctx, mysql.CountPresencesParams{
-		StartDate:      timeFilter.StartDatetime,
-		EndDate:        timeFilter.EndDatetime,
-		ClassID:        classID,
-		UseClassFilter: useClassFilter,
+		StartDate:        timeFilter.StartDatetime,
+		EndDate:          timeFilter.EndDatetime,
+		ClassID:          classID,
+		UseClassFilter:   useClassFilter,
+		StudentID:        studentID,
+		UseStudentFilter: useStudentFilter,
 	})
 	if err != nil {
 		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)

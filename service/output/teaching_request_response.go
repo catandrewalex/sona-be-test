@@ -149,7 +149,8 @@ func (r SearchClassRequest) Validate() errs.ValidationError {
 }
 
 type GetPresencesByClassIDRequest struct {
-	ClassID entity.ClassID `json:"classId"`
+	ClassID   entity.ClassID   `json:"classId"`
+	StudentID entity.StudentID `json:"studentId,omitempty"`
 	PaginationRequest
 	TimeFilter
 }

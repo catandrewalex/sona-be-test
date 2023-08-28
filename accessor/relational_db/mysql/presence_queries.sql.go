@@ -17,13 +17,16 @@ SELECT Count(id) AS total FROM presence
 WHERE
     (date >= ? AND date <= ?)
     AND (class_id = ? OR ? = false)
+    AND (student_id = ? OR ? = false)
 `
 
 type CountPresencesParams struct {
-	StartDate      time.Time
-	EndDate        time.Time
-	ClassID        sql.NullInt64
-	UseClassFilter interface{}
+	StartDate        time.Time
+	EndDate          time.Time
+	ClassID          sql.NullInt64
+	UseClassFilter   interface{}
+	StudentID        sql.NullInt64
+	UseStudentFilter interface{}
 }
 
 func (q *Queries) CountPresences(ctx context.Context, arg CountPresencesParams) (int64, error) {
@@ -32,6 +35,8 @@ func (q *Queries) CountPresences(ctx context.Context, arg CountPresencesParams) 
 		arg.EndDate,
 		arg.ClassID,
 		arg.UseClassFilter,
+		arg.StudentID,
+		arg.UseStudentFilter,
 	)
 	var total int64
 	err := row.Scan(&total)
@@ -203,17 +208,20 @@ FROM presence
 WHERE
     (presence.date >= ? AND presence.date <= ?)
     AND (class_id = ? OR ? = false)
+    AND (student_id = ? OR ? = false)
 ORDER BY class.id
 LIMIT ? OFFSET ?
 `
 
 type GetPresencesParams struct {
-	StartDate      time.Time
-	EndDate        time.Time
-	ClassID        sql.NullInt64
-	UseClassFilter interface{}
-	Limit          int32
-	Offset         int32
+	StartDate        time.Time
+	EndDate          time.Time
+	ClassID          sql.NullInt64
+	UseClassFilter   interface{}
+	StudentID        sql.NullInt64
+	UseStudentFilter interface{}
+	Limit            int32
+	Offset           int32
 }
 
 type GetPresencesRow struct {
@@ -244,6 +252,8 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 		arg.EndDate,
 		arg.ClassID,
 		arg.UseClassFilter,
+		arg.StudentID,
+		arg.UseStudentFilter,
 		arg.Limit,
 		arg.Offset,
 	)

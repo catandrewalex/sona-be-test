@@ -1725,6 +1725,7 @@ func (s *BackendService) GetPresencesByClassID(ctx context.Context, req *output.
 
 	spec := teaching.GetPresencesByClassIDSpec{
 		ClassID:        req.ClassID,
+		StudentID:      req.StudentID,
 		PaginationSpec: util.PaginationSpec(req.PaginationRequest),
 		TimeSpec:       util.TimeSpec(req.TimeFilter),
 	}

@@ -415,7 +415,8 @@ func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {
 // ============================== PRESENCE ==============================
 
 type GetPresencesSpec struct {
-	ClassID ClassID
+	ClassID   ClassID
+	StudentID StudentID
 	util.TimeSpec
 }
 
