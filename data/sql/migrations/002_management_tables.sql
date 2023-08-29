@@ -78,9 +78,10 @@ CREATE TABLE enrollment_payment
 CREATE TABLE student_learning_token
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  quota INT NOT NULL DEFAULT 4,
+  quota FLOAT NOT NULL DEFAULT 4,
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   enrollment_id BIGINT unsigned NOT NULL,
   -- `student_learning_token` has quota, whose value must be transferrable to another `enrollment` before a student `enrollment` is deleted

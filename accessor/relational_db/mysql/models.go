@@ -72,9 +72,10 @@ type StudentEnrollment struct {
 
 type StudentLearningToken struct {
 	ID                int64
-	Quota             int32
+	Quota             float64
 	CourseFeeValue    int32
 	TransportFeeValue int32
+	CreatedAt         time.Time
 	LastUpdatedAt     time.Time
 	EnrollmentID      int64
 }

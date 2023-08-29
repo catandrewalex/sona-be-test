@@ -1601,7 +1601,7 @@ func (s *BackendService) DeletePresencesHandler(ctx context.Context, req *output
 	}, nil
 }
 
-func (s *BackendService) SearchEnrollmentPayment(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
+func (s *BackendService) SearchEnrollmentPaymentHandler(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1619,7 +1619,7 @@ func (s *BackendService) SearchEnrollmentPayment(ctx context.Context, req *outpu
 	}, nil
 }
 
-func (s *BackendService) GetEnrollmentPaymentInvoice(ctx context.Context, req *output.GetEnrollmentPaymentInvoiceRequest) (*output.GetEnrollmentPaymentInvoiceResponse, errs.HTTPError) {
+func (s *BackendService) GetEnrollmentPaymentInvoiceHandler(ctx context.Context, req *output.GetEnrollmentPaymentInvoiceRequest) (*output.GetEnrollmentPaymentInvoiceResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1634,7 +1634,7 @@ func (s *BackendService) GetEnrollmentPaymentInvoice(ctx context.Context, req *o
 	}, nil
 }
 
-func (s *BackendService) SubmitEnrollmentPayment(ctx context.Context, req *output.SubmitEnrollmentPaymentRequest) (*output.SubmitEnrollmentPaymentResponse, errs.HTTPError) {
+func (s *BackendService) SubmitEnrollmentPaymentHandler(ctx context.Context, req *output.SubmitEnrollmentPaymentRequest) (*output.SubmitEnrollmentPaymentResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1656,7 +1656,7 @@ func (s *BackendService) SubmitEnrollmentPayment(ctx context.Context, req *outpu
 	}, nil
 }
 
-func (s *BackendService) EditEnrollmentPayment(ctx context.Context, req *output.EditEnrollmentPaymentRequest) (*output.EditEnrollmentPaymentResponse, errs.HTTPError) {
+func (s *BackendService) EditEnrollmentPaymentHandler(ctx context.Context, req *output.EditEnrollmentPaymentRequest) (*output.EditEnrollmentPaymentResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1681,7 +1681,7 @@ func (s *BackendService) EditEnrollmentPayment(ctx context.Context, req *output.
 	}, nil
 }
 
-func (s *BackendService) RemoveEnrollmentPayment(ctx context.Context, req *output.RemoveEnrollmentPaymentRequest) (*output.RemoveEnrollmentPaymentResponse, errs.HTTPError) {
+func (s *BackendService) RemoveEnrollmentPaymentHandler(ctx context.Context, req *output.RemoveEnrollmentPaymentRequest) (*output.RemoveEnrollmentPaymentResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1718,7 +1718,7 @@ func (s *BackendService) SearchClass(ctx context.Context, req *output.SearchClas
 	}, nil
 }
 
-func (s *BackendService) GetPresencesByClassID(ctx context.Context, req *output.GetPresencesByClassIDRequest) (*output.GetPresencesByClassIDResponse, errs.HTTPError) {
+func (s *BackendService) GetPresencesByClassIDHandler(ctx context.Context, req *output.GetPresencesByClassIDRequest) (*output.GetPresencesByClassIDResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
@@ -1743,6 +1743,37 @@ func (s *BackendService) GetPresencesByClassID(ctx context.Context, req *output.
 				CurrentPage:  getPresencesResult.PaginationResult.CurrentPage,
 			},
 		},
+	}, nil
+}
+
+func (s *BackendService) AddPresenceHandler(ctx context.Context, req *output.AddPresenceRequest) (*output.AddPresenceResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	presenceIDs, err := s.teachingService.AddPresence(ctx, teaching.AddPresenceSpec{
+		ClassID:               req.ClassID,
+		TeacherID:             req.TeacherID,
+		Date:                  req.Date,
+		UsedStudentTokenQuota: req.UsedStudentTokenQuota,
+		Duration:              req.Duration,
+		Note:                  req.Note,
+	})
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.AddPresence()", "presence")
+	}
+	mainLog.Info("Presences added: presenceIDs='%v'", presenceIDs)
+
+	presences, err := s.entityService.GetPresencesByIds(ctx, presenceIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetPresencesByIds: %v", err), nil, "")
+	}
+
+	return &output.AddPresenceResponse{
+		Data: output.UpsertPresenceResult{
+			Results: presences,
+		},
+		Message: "Successfully added presences",
 	}, nil
 }
 

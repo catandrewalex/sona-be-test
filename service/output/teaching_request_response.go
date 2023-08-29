@@ -178,3 +178,32 @@ func (r GetPresencesByClassIDRequest) Validate() errs.ValidationError {
 	}
 	return nil
 }
+
+type AddPresenceRequest struct {
+	ClassID               entity.ClassID   `json:"classId"`
+	TeacherID             entity.TeacherID `json:"teacherId"`
+	Date                  time.Time        `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
+	UsedStudentTokenQuota float64          `json:"usedStudentTokenQuota,omitempty"`
+	Duration              int32            `json:"duration,omitempty"`
+	Note                  string           `json:"note,omitempty"`
+}
+type AddPresenceResponse struct {
+	Data    UpsertPresenceResult `json:"data"`
+	Message string               `json:"message,omitempty"`
+}
+
+func (r AddPresenceRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if r.UsedStudentTokenQuota < 0 {
+		errorDetail["usedStudentTokenQuota"] = "usedStudentTokenQuota must be >= 0"
+	}
+	if r.Duration < 0 {
+		errorDetail["duration"] = "duration must be >= 0"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}

@@ -91,9 +91,10 @@ type EnrollmentPayment struct {
 
 type StudentLearningToken struct {
 	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenId"`
-	Quota                  int32                  `json:"quota"`
+	Quota                  float64                `json:"quota"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
+	CreatedAt              time.Time              `json:"createdAt"`
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
 	StudentEnrollmentInfo  StudentEnrollment      `json:"studentEnrollment"`
 }
@@ -396,14 +397,14 @@ type GetStudentLearningTokensResult struct {
 
 type InsertStudentLearningTokenSpec struct {
 	StudentEnrollmentID StudentEnrollmentID
-	Quota               int32
+	Quota               float64
 	CourseFeeValue      int32
 	TransportFeeValue   int32
 }
 
 type UpdateStudentLearningTokenSpec struct {
 	StudentLearningTokenID StudentLearningTokenID
-	Quota                  int32
+	Quota                  float64
 	CourseFeeValue         int32
 	TransportFeeValue      int32
 }

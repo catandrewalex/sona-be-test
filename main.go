@@ -156,14 +156,15 @@ func main() {
 		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
 		authRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
 
-		authRouter.Get("/enrollmentPayment/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPayment))
-		authRouter.Get("/enrollmentPayment/invoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoice, "StudentEnrollmentID"))
-		authRouter.Post("/enrollmentPayment/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPayment))
-		authRouter.Post("/enrollmentPayment/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPayment))
-		authRouter.Post("/enrollmentPayment/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPayment))
+		authRouter.Get("/enrollmentPayment/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPaymentHandler))
+		authRouter.Get("/enrollmentPayment/invoice/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoiceHandler, "StudentEnrollmentID"))
+		authRouter.Post("/enrollmentPayment/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPaymentHandler))
+		authRouter.Post("/enrollmentPayment/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentHandler))
+		authRouter.Post("/enrollmentPayment/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPaymentHandler))
 
 		authRouter.Get("/class/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
-		authRouter.Get("/presences/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesByClassID, "ClassID"))
+		authRouter.Get("/presences/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesByClassIDHandler, "ClassID"))
+		authRouter.Post("/presences/{ClassID}/add", jsonSerdeWrapper.WrapFunc(backendService.AddPresenceHandler, "ClassID"))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

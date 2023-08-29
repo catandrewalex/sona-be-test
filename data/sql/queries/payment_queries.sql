@@ -120,18 +120,42 @@ WHERE enrollment_id = ? AND quota < 0;
 SELECT * FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?;
 
+-- name: GetEarliestAvailableSLTsByStudentEnrollmentIds :many
+WITH slt_min_max AS (
+    -- fetch earliest SLT with quota > 0
+    SELECT enrollment_id, MIN(created_at) AS createDateWithNonZeroQuota_or_maxCreateDate
+    FROM student_learning_token
+    WHERE quota > 0
+    GROUP BY enrollment_id
+    UNION
+    -- combined with latest SLT, to cover case when all SLT has <= 0 quota
+    SELECT enrollment_id, MAX(created_at) AS createDateWithNonZeroQuota_or_maxCreateDate
+    FROM student_learning_token
+    GROUP BY enrollment_id
+    -- each record will be unique if all non-latest SLTs has 0 quota; OR duplicated (2 records) if there exists non-latest SLT with quota > 0
+)
+SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
+    -- we have 2 SLT option, pick the earliest
+    MIN(createDateWithNonZeroQuota_or_maxCreateDate)
+FROM student_learning_token AS slt
+    JOIN slt_min_max ON (
+        slt.enrollment_id = slt_min_max.enrollment_id
+        AND created_at = createDateWithNonZeroQuota_or_maxCreateDate
+    )
+WHERE slt.enrollment_id IN (sqlc.slice('student_enrollment_ids'))
+GROUP BY slt.enrollment_id;
+
 -- name: IncrementSLTQuotaById :exec
 UPDATE student_learning_token SET quota = quota + ?
 WHERE id = ?;
 
 -- name: GetStudentLearningTokenById :one
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-
     JOIN user AS user_student ON se.student_id = user_student.id
     
     JOIN class on se.class_id = class.id
@@ -144,13 +168,12 @@ FROM student_learning_token AS slt
 WHERE slt.id = ? LIMIT 1;
 
 -- name: GetStudentLearningTokensByIds :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-
     JOIN user AS user_student ON se.student_id = user_student.id
     
     JOIN class on se.class_id = class.id
@@ -163,13 +186,12 @@ FROM student_learning_token AS slt
 WHERE slt.id IN (sqlc.slice('ids'));
 
 -- name: GetStudentLearningTokensByEnrollmentId :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-
     JOIN user AS user_student ON se.student_id = user_student.id
     
     JOIN class on se.class_id = class.id
@@ -182,13 +204,12 @@ FROM student_learning_token AS slt
 WHERE slt.enrollment_id = ?;
 
 -- name: GetStudentLearningTokens :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-
     JOIN user AS user_student ON se.student_id = user_student.id
     
     JOIN class on se.class_id = class.id

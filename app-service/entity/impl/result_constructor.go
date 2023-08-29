@@ -316,6 +316,7 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 			Quota:             sltRow.Quota,
 			CourseFeeValue:    sltRow.CourseFeeValue,
 			TransportFeeValue: sltRow.TransportFeeValue,
+			CreatedAt:         sltRow.CreatedAt,
 			LastUpdatedAt:     sltRow.LastUpdatedAt,
 		})
 	}

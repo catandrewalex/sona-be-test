@@ -23,7 +23,11 @@ type StudentEnrollmentInvoice struct {
 
 type TeachingService interface {
 	SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
+	// CalculateStudentEnrollmentInvoice returns values for used by SubmitEnrollmentPayment.
+	//  This includes calculating teacherSpecialFee, and penaltyFee.
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
+	// SubmitEnrollmentPayment adds new enrollmentPayment, then upsert StudentLearningToken (insert new, or update quota).
+	// TODO: The SLT update will prioritize on neutralizing negative (penalized) quota first.
 	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
 	EditEnrollmentPayment(ctx context.Context, spec EditStudentEnrollmentPaymentSpec) (entity.EnrollmentPaymentID, error)
 	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
@@ -31,7 +35,7 @@ type TeachingService interface {
 	SearchClass(ctx context.Context, spec SearchClassSpec) ([]entity.Class, error)
 
 	GetPresencesByClassID(ctx context.Context, spec GetPresencesByClassIDSpec) (GetPresencesByClassIDResult, error)
-	AddPresence(ctx context.Context, spec AddPresenceSpec) error
+	AddPresence(ctx context.Context, spec AddPresenceSpec) ([]entity.PresenceID, error)
 }
 
 type SubmitStudentEnrollmentPaymentSpec struct {
@@ -70,8 +74,8 @@ type GetPresencesByClassIDResult struct {
 type AddPresenceSpec struct {
 	ClassID               entity.ClassID
 	TeacherID             entity.TeacherID
-	StudentID             entity.StudentID
 	Date                  time.Time
 	UsedStudentTokenQuota float64
 	Duration              int32
+	Note                  string
 }
