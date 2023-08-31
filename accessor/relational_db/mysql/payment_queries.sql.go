@@ -163,27 +163,30 @@ WITH slt_min_max AS (
     GROUP BY enrollment_id
     -- each record will be unique if all non-latest SLTs has 0 quota; OR duplicated (2 records) if there exists non-latest SLT with quota > 0
 )
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
     -- we have 2 SLT option, pick the earliest
-    MIN(createDateWithNonZeroQuota_or_maxCreateDate)
+    se.student_id AS student_id, MIN(createDateWithNonZeroQuota_or_maxCreateDate)
 FROM student_learning_token AS slt
     JOIN slt_min_max ON (
         slt.enrollment_id = slt_min_max.enrollment_id
         AND created_at = createDateWithNonZeroQuota_or_maxCreateDate
     )
+
+    JOIN student_enrollment AS se ON slt.enrollment_id = se.id
 WHERE slt.enrollment_id IN (/*SLICE:student_enrollment_ids*/?)
 GROUP BY slt.enrollment_id
 `
 
 type GetEarliestAvailableSLTsByStudentEnrollmentIdsRow struct {
-	ID                int64
-	Quota             float64
-	CourseFeeValue    int32
-	TransportFeeValue int32
-	CreatedAt         time.Time
-	LastUpdatedAt     time.Time
-	EnrollmentID      int64
-	Min               interface{}
+	StudentLearningTokenID int64
+	Quota                  float64
+	CourseFeeValue         int32
+	TransportFeeValue      int32
+	CreatedAt              time.Time
+	LastUpdatedAt          time.Time
+	EnrollmentID           int64
+	StudentID              int64
+	Min                    interface{}
 }
 
 func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Context, studentEnrollmentIds []int64) ([]GetEarliestAvailableSLTsByStudentEnrollmentIdsRow, error) {
@@ -206,13 +209,14 @@ func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Con
 	for rows.Next() {
 		var i GetEarliestAvailableSLTsByStudentEnrollmentIdsRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.StudentLearningTokenID,
 			&i.Quota,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.EnrollmentID,
+			&i.StudentID,
 			&i.Min,
 		); err != nil {
 			return nil, err
@@ -1253,6 +1257,26 @@ func (q *Queries) InsertTeacherSalary(ctx context.Context, arg InsertTeacherSala
 		return 0, err
 	}
 	return result.LastInsertId()
+}
+
+const resetStudentLearningTokenQuotaByIds = `-- name: ResetStudentLearningTokenQuotaByIds :exec
+UPDATE student_learning_token SET quota = 0
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) ResetStudentLearningTokenQuotaByIds(ctx context.Context, ids []int64) error {
+	sql := resetStudentLearningTokenQuotaByIds
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
+	return err
 }
 
 const updateEnrollmentPayment = `-- name: UpdateEnrollmentPayment :exec

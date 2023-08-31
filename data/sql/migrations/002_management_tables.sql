@@ -115,7 +115,8 @@ CREATE TABLE presence
   FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE SET NULL,
   -- a `presence` must have a `student_learning_token` for calculating `presence` fee. If one wishes to delete a token ID, we force the `presence` to migrate to use another token.
-  FOREIGN KEY (token_id) REFERENCES student_learning_token(id) ON UPDATE CASCADE ON DELETE RESTRICT
+  FOREIGN KEY (token_id) REFERENCES student_learning_token(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  UNIQUE KEY `class_id--student_id--date` (`class_id`, `student_id`, `date`)
 );
 
 CREATE TABLE teacher_salary

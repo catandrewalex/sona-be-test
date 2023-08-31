@@ -1751,6 +1751,8 @@ func (s *BackendService) AddPresenceHandler(ctx context.Context, req *output.Add
 		return nil, errV
 	}
 
+	allowAutoCreateSLT := configObject.AllowAutoCreateSLTOnAddPresence
+
 	presenceIDs, err := s.teachingService.AddPresence(ctx, teaching.AddPresenceSpec{
 		ClassID:               req.ClassID,
 		TeacherID:             req.TeacherID,
@@ -1758,9 +1760,17 @@ func (s *BackendService) AddPresenceHandler(ctx context.Context, req *output.Add
 		UsedStudentTokenQuota: req.UsedStudentTokenQuota,
 		Duration:              req.Duration,
 		Note:                  req.Note,
-	})
+	}, allowAutoCreateSLT)
 	if err != nil {
-		return nil, handleUpsertionError(err, "teachingService.AddPresence()", "presence")
+		errContext := fmt.Errorf("teachingService.AddPresence(): %w", err)
+		if errors.Is(err, errs.ErrClassHaveNoStudent) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "This class doesn't have any student, try registering a student first")
+		}
+		if errors.Is(err, errs.ErrStudentEnrollmentHaveNoLearningToken) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One/more students of this class don't have learningToken, try adding students' enrollmenyPayment first")
+		}
+
+		return nil, handleUpsertionError(err, errContext.Error(), "presence")
 	}
 	mainLog.Info("Presences added: presenceIDs='%v'", presenceIDs)
 

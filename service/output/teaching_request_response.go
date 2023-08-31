@@ -180,7 +180,7 @@ func (r GetPresencesByClassIDRequest) Validate() errs.ValidationError {
 }
 
 type AddPresenceRequest struct {
-	ClassID               entity.ClassID   `json:"classId"`
+	ClassID               entity.ClassID   `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	TeacherID             entity.TeacherID `json:"teacherId"`
 	Date                  time.Time        `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	UsedStudentTokenQuota float64          `json:"usedStudentTokenQuota,omitempty"`

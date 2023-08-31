@@ -134,14 +134,16 @@ WITH slt_min_max AS (
     GROUP BY enrollment_id
     -- each record will be unique if all non-latest SLTs has 0 quota; OR duplicated (2 records) if there exists non-latest SLT with quota > 0
 )
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
     -- we have 2 SLT option, pick the earliest
-    MIN(createDateWithNonZeroQuota_or_maxCreateDate)
+    se.student_id AS student_id, MIN(createDateWithNonZeroQuota_or_maxCreateDate)
 FROM student_learning_token AS slt
     JOIN slt_min_max ON (
         slt.enrollment_id = slt_min_max.enrollment_id
         AND created_at = createDateWithNonZeroQuota_or_maxCreateDate
     )
+
+    JOIN student_enrollment AS se ON slt.enrollment_id = se.id
 WHERE slt.enrollment_id IN (sqlc.slice('student_enrollment_ids'))
 GROUP BY slt.enrollment_id;
 
@@ -239,6 +241,10 @@ INSERT INTO student_learning_token (
 -- name: UpdateStudentLearningToken :exec
 UPDATE student_learning_token SET quota = ?, course_fee_value = ?, transport_fee_value = ?
 WHERE id = ?;
+
+-- name: ResetStudentLearningTokenQuotaByIds :exec
+UPDATE student_learning_token SET quota = 0
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteStudentLearningTokenById :exec
 DELETE FROM student_learning_token

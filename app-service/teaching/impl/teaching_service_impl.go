@@ -12,6 +12,7 @@ import (
 	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
+	"sonamusica-backend/errs"
 	"sonamusica-backend/logging"
 )
 
@@ -128,6 +129,27 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			return fmt.Errorf("entityService.InsertEnrollmentPayments(): %w", err)
 		}
 
+		// sum all negative quotas to reduce balanceTUpValue, and reset those SLTs with negative quota to 0
+		var balanceTopUpMinusPenalty = float64(spec.BalanceTopUp)
+		slts, err := qtx.GetSLTWithNegativeQuotaByEnrollmentId(newCtx, int64(spec.StudentEnrollmentID))
+		if err != nil {
+			return fmt.Errorf("qtx.GetSLTWithNegativeQuotaByEnrollmentId(): %w", err)
+		}
+		negativeQuotaSLTIDs := make([]int64, 0, len(slts))
+		for _, slt := range slts {
+			if slt.Quota >= 0 {
+				continue
+			}
+			balanceTopUpMinusPenalty += slt.Quota
+			negativeQuotaSLTIDs = append(negativeQuotaSLTIDs, slt.ID)
+		}
+		// NOTE: we actually can combine these: (1) sum all negative quotas, and (2) reset the quota to 0 into a single SQL method.
+		//  But, for the sake of better control, I decided to do this separately, with the cost of more DB I/O.
+		err = qtx.ResetStudentLearningTokenQuotaByIds(newCtx, negativeQuotaSLTIDs)
+		if err != nil {
+			return fmt.Errorf("qtx.ResetStudentLearningTokenQuotaByIds(): %w", err)
+		}
+
 		// Upsert StudentLearningTokens
 		existingSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams{
 			EnrollmentID:      int64(spec.StudentEnrollmentID),
@@ -146,7 +168,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			_, err = s.entityService.InsertStudentLearningTokens(newCtx, []entity.InsertStudentLearningTokenSpec{
 				{
 					StudentEnrollmentID: spec.StudentEnrollmentID,
-					Quota:               float64(spec.BalanceTopUp),
+					Quota:               balanceTopUpMinusPenalty,
 					CourseFeeValue:      spec.CourseFeeValue,
 					TransportFeeValue:   spec.TransportFeeValue,
 				},
@@ -156,7 +178,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			}
 		} else {
 			err := qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: float64(spec.BalanceTopUp),
+				Quota: balanceTopUpMinusPenalty,
 				ID:    existingSLT.ID,
 			})
 			if err != nil {
@@ -312,7 +334,7 @@ func (s teachingServiceImpl) GetPresencesByClassID(ctx context.Context, spec tea
 	}, nil
 }
 
-func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddPresenceSpec) ([]entity.PresenceID, error) {
+func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddPresenceSpec, autoCreateSLT bool) ([]entity.PresenceID, error) {
 	presenceIDs := make([]entity.PresenceID, 0)
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
@@ -320,28 +342,16 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 		if err != nil {
 			return fmt.Errorf("qtx.GetStudentEnrollmentsByClassId(): %w", err)
 		}
+		if len(studentEnrollments) == 0 {
+			return fmt.Errorf("classID='%d': %w", spec.ClassID, errs.ErrClassHaveNoStudent)
+		}
 
-		specs := make([]entity.InsertPresenceSpec, 0, len(studentEnrollments))
 		studentEnrollmentIDsInt64 := make([]int64, 0, len(studentEnrollments))
 		for _, studentEnrollment := range studentEnrollments {
-			specs = append(specs, entity.InsertPresenceSpec{
-				ClassID:                spec.ClassID,
-				TeacherID:              spec.TeacherID,
-				StudentID:              entity.StudentID(studentEnrollment.StudentID),
-				StudentLearningTokenID: entity.StudentLearningTokenID(studentEnrollment.StudentEnrollmentID),
-				Date:                   spec.Date,
-				UsedStudentTokenQuota:  spec.UsedStudentTokenQuota,
-				Duration:               spec.Duration,
-				Note:                   spec.Note,
-			})
 			studentEnrollmentIDsInt64 = append(studentEnrollmentIDsInt64, studentEnrollment.StudentEnrollmentID)
 		}
 
-		presenceIDs, err = s.entityService.InsertPresences(newCtx, specs)
-		if err != nil {
-			return fmt.Errorf("entityService.InsertPresences(): %w", err)
-		}
-
+		enrollmentIDToEarliestSLTID := make(map[int64]entity.StudentLearningTokenID, 0)
 		// students may have > 1 SLT, we'll pick the one with earliest non-zero quota.
 		//   if all <= 0, we decrement the last SLT (thus becoming negative for paymentPenalty later).
 		earliestAvailableSLTs, err := qtx.GetEarliestAvailableSLTsByStudentEnrollmentIds(newCtx, studentEnrollmentIDsInt64)
@@ -350,13 +360,48 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 		}
 
 		for _, earliestAvailableSLT := range earliestAvailableSLTs {
+			enrollmentIDToEarliestSLTID[earliestAvailableSLT.EnrollmentID] = entity.StudentLearningTokenID(earliestAvailableSLT.StudentLearningTokenID)
+
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: -1 * spec.UsedStudentTokenQuota,
-				ID:    earliestAvailableSLT.ID,
+				Quota: spec.UsedStudentTokenQuota * -1,
+				ID:    earliestAvailableSLT.StudentLearningTokenID,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
 			}
+		}
+
+		// Insert presences
+		specs := make([]entity.InsertPresenceSpec, 0, len(studentEnrollments))
+		for _, studentEnrollment := range studentEnrollments {
+			sltID, ok := enrollmentIDToEarliestSLTID[studentEnrollment.StudentEnrollmentID]
+			if !ok {
+				if !autoCreateSLT {
+					return fmt.Errorf("studentEnrollment='%d': %w", studentEnrollment.StudentEnrollmentID, errs.ErrStudentEnrollmentHaveNoLearningToken)
+				}
+
+				newSLTID, err := s.autoRegisterSLTWithZeroQuota(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID))
+				if err != nil {
+					return fmt.Errorf("autoRegisterSLTWithZeroQuota(): %w", err)
+				}
+				sltID = newSLTID
+			}
+
+			specs = append(specs, entity.InsertPresenceSpec{
+				ClassID:                spec.ClassID,
+				TeacherID:              spec.TeacherID,
+				StudentID:              entity.StudentID(studentEnrollment.StudentID),
+				StudentLearningTokenID: sltID,
+				Date:                   spec.Date,
+				UsedStudentTokenQuota:  spec.UsedStudentTokenQuota,
+				Duration:               spec.Duration,
+				Note:                   spec.Note,
+			})
+		}
+
+		presenceIDs, err = s.entityService.InsertPresences(newCtx, specs)
+		if err != nil {
+			return fmt.Errorf("entityService.InsertPresences(): %w", err)
 		}
 
 		return nil
@@ -366,4 +411,26 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 	}
 
 	return presenceIDs, nil
+}
+
+func (s teachingServiceImpl) autoRegisterSLTWithZeroQuota(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (entity.StudentLearningTokenID, error) {
+	enrollmentID := entity.StudentEnrollmentID(studentEnrollmentID)
+	invoice, err := s.CalculateStudentEnrollmentInvoice(ctx, enrollmentID)
+	if err != nil {
+		return entity.StudentLearningTokenID_None, fmt.Errorf("CalculateStudentEnrollmentInvoice(): %w", err)
+	}
+
+	newSLTIDs, err := s.entityService.InsertStudentLearningTokens(ctx, []entity.InsertStudentLearningTokenSpec{
+		{
+			StudentEnrollmentID: studentEnrollmentID,
+			Quota:               0,
+			CourseFeeValue:      invoice.CourseFeeValue,
+			TransportFeeValue:   invoice.TransportFeeValue,
+		},
+	})
+	if err != nil {
+		return entity.StudentLearningTokenID_None, fmt.Errorf("entityService.InsertStudentLearningTokens(): %w", err)
+	}
+
+	return newSLTIDs[0], nil
 }

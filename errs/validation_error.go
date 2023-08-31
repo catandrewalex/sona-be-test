@@ -11,8 +11,15 @@ import (
 )
 
 var (
-	ErrInvalidRequest  = errors.New("invalid request")
+	// General
+	ErrInvalidRequest = errors.New("invalid request")
+
+	// Identity
 	ErrUserDeactivated = errors.New("user is deactivated")
+
+	// Teaching
+	ErrClassHaveNoStudent                   = errors.New("class doesn't have any student")
+	ErrStudentEnrollmentHaveNoLearningToken = errors.New("studentEnrollment doesn't have any studentLearningToken")
 )
 
 type Validatable interface {
