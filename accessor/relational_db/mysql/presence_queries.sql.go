@@ -95,8 +95,43 @@ func (q *Queries) DeletePresencesByIds(ctx context.Context, ids []int64) error {
 	return err
 }
 
+const editPresences = `-- name: EditPresences :exec
+UPDATE presence
+SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, teacher_id = ?
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+type EditPresencesParams struct {
+	Date                  time.Time
+	UsedStudentTokenQuota float64
+	Duration              int32
+	Note                  string
+	TeacherID             sql.NullInt64
+	Ids                   []int64
+}
+
+func (q *Queries) EditPresences(ctx context.Context, arg EditPresencesParams) error {
+	sql := editPresences
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Date)
+	queryParams = append(queryParams, arg.UsedStudentTokenQuota)
+	queryParams = append(queryParams, arg.Duration)
+	queryParams = append(queryParams, arg.Note)
+	queryParams = append(queryParams, arg.TeacherID)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
+	return err
+}
+
 const getPresenceById = `-- name: GetPresenceById :one
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -125,6 +160,7 @@ type GetPresenceByIdRow struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+	IsPaid                int32
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -141,7 +177,6 @@ type GetPresenceByIdRow struct {
 	StudentLearningToken  StudentLearningToken
 }
 
-// ============================== PRESENCE ==============================
 func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, getPresenceById, id)
 	var i GetPresenceByIdRow
@@ -151,6 +186,7 @@ func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByI
 		&i.UsedStudentTokenQuota,
 		&i.Duration,
 		&i.Note,
+		&i.IsPaid,
 		&i.Class.ID,
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
@@ -185,8 +221,49 @@ func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByI
 	return i, err
 }
 
+const getPresenceIdsOfSameClassAndDate = `-- name: GetPresenceIdsOfSameClassAndDate :many
+WITH ref_presence AS (
+    SELECT id, date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id
+    FROM presence
+    WHERE presence.id = ?
+)
+SELECT presence.id AS id, presence.is_paid AS is_paid
+FROM presence
+    JOIN ref_presence ON presence.class_id = ref_presence.class_id AND presence.date = ref_presence.date
+ORDER by presence.id
+`
+
+type GetPresenceIdsOfSameClassAndDateRow struct {
+	ID     int64
+	IsPaid int32
+}
+
+// ============================== PRESENCE ==============================
+func (q *Queries) GetPresenceIdsOfSameClassAndDate(ctx context.Context, id int64) ([]GetPresenceIdsOfSameClassAndDateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPresenceIdsOfSameClassAndDate, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPresenceIdsOfSameClassAndDateRow
+	for rows.Next() {
+		var i GetPresenceIdsOfSameClassAndDateRow
+		if err := rows.Scan(&i.ID, &i.IsPaid); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPresences = `-- name: GetPresences :many
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -231,6 +308,7 @@ type GetPresencesRow struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+	IsPaid                int32
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -271,6 +349,7 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
 			&i.Note,
+			&i.IsPaid,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -316,7 +395,7 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 }
 
 const getPresencesByIds = `-- name: GetPresencesByIds :many
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -345,6 +424,7 @@ type GetPresencesByIdsRow struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+	IsPaid                int32
 	Class                 Class
 	Course                Course
 	Instrument            Instrument
@@ -386,6 +466,7 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 			&i.UsedStudentTokenQuota,
 			&i.Duration,
 			&i.Note,
+			&i.IsPaid,
 			&i.Class.ID,
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
@@ -432,9 +513,9 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 
 const insertPresence = `-- name: InsertPresence :execlastid
 INSERT INTO presence (
-    date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id
+    date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -443,6 +524,7 @@ type InsertPresenceParams struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+	IsPaid                int32
 	ClassID               sql.NullInt64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
@@ -455,6 +537,7 @@ func (q *Queries) InsertPresence(ctx context.Context, arg InsertPresenceParams) 
 		arg.UsedStudentTokenQuota,
 		arg.Duration,
 		arg.Note,
+		arg.IsPaid,
 		arg.ClassID,
 		arg.TeacherID,
 		arg.StudentID,
@@ -468,7 +551,7 @@ func (q *Queries) InsertPresence(ctx context.Context, arg InsertPresenceParams) 
 
 const updatePresence = `-- name: UpdatePresence :exec
 UPDATE presence
-SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
+SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, is_paid = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
 WHERE id = ?
 `
 
@@ -477,6 +560,7 @@ type UpdatePresenceParams struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+	IsPaid                int32
 	ClassID               sql.NullInt64
 	TeacherID             sql.NullInt64
 	StudentID             sql.NullInt64
@@ -490,6 +574,7 @@ func (q *Queries) UpdatePresence(ctx context.Context, arg UpdatePresenceParams) 
 		arg.UsedStudentTokenQuota,
 		arg.Duration,
 		arg.Note,
+		arg.IsPaid,
 		arg.ClassID,
 		arg.TeacherID,
 		arg.StudentID,

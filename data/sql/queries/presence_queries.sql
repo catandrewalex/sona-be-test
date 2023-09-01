@@ -1,6 +1,18 @@
 /* ============================== PRESENCE ============================== */
+-- name: GetPresenceIdsOfSameClassAndDate :many
+WITH ref_presence AS (
+    SELECT *
+    FROM presence
+    WHERE presence.id = ?
+)
+SELECT presence.id AS id, presence.is_paid AS is_paid
+FROM presence
+    JOIN ref_presence ON presence.class_id = ref_presence.class_id AND presence.date = ref_presence.date
+ORDER by presence.id;
+
+
 -- name: GetPresenceById :one
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -23,7 +35,7 @@ FROM presence
 WHERE presence.id = ? LIMIT 1;
 
 -- name: GetPresencesByIds :many
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -46,7 +58,7 @@ FROM presence
 WHERE presence.id IN (sqlc.slice('ids'));
 
 -- name: GetPresences :many
-SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note,
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -86,15 +98,20 @@ WHERE id IN (sqlc.slice('ids'));
 
 -- name: InsertPresence :execlastid
 INSERT INTO presence (
-    date, used_student_token_quota, duration, note, class_id, teacher_id, student_id, token_id
+    date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?
 );
 
 -- name: UpdatePresence :exec
 UPDATE presence
-SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
+SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, is_paid = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
 WHERE id = ?;
+
+-- name: EditPresences :exec
+UPDATE presence
+SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, teacher_id = ?
+WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeletePresenceById :exec
 DELETE FROM presence

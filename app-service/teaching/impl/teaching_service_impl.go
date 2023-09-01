@@ -381,9 +381,9 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 				}
 
 				mainLog.Warn("studentEnrollment='%d' doesn't have any studentLearningToken (SLT). Creating a new negative quota SLT as 'autoCreateSLT' is true.", studentEnrollment.StudentEnrollmentID)
-				newSLTID, err := s.autoRegisterSLTWithQuota(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID), spec.UsedStudentTokenQuota*-1)
+				newSLTID, err := s.autoRegisterSLT(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID), spec.UsedStudentTokenQuota*-1)
 				if err != nil {
-					return fmt.Errorf("autoRegisterSLTWithQuota(): %w", err)
+					return fmt.Errorf("autoRegisterSLT(): %w", err)
 				}
 				sltID = newSLTID
 			}
@@ -414,7 +414,7 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 	return presenceIDs, nil
 }
 
-func (s teachingServiceImpl) autoRegisterSLTWithQuota(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID, quota float64) (entity.StudentLearningTokenID, error) {
+func (s teachingServiceImpl) autoRegisterSLT(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID, quota float64) (entity.StudentLearningTokenID, error) {
 	enrollmentID := entity.StudentEnrollmentID(studentEnrollmentID)
 	invoice, err := s.CalculateStudentEnrollmentInvoice(ctx, enrollmentID)
 	if err != nil {
@@ -434,4 +434,75 @@ func (s teachingServiceImpl) autoRegisterSLTWithQuota(ctx context.Context, stude
 	}
 
 	return newSLTIDs[0], nil
+}
+
+func (s teachingServiceImpl) EditPresence(ctx context.Context, spec teaching.EditPresenceSpec) ([]entity.PresenceID, error) {
+	presenceIDs := make([]entity.PresenceID, 0)
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		rowResults, err := qtx.GetPresenceIdsOfSameClassAndDate(newCtx, int64(spec.PresenceID))
+		if err != nil {
+			return fmt.Errorf("qtx.GetPresenceIdsOfSameClassAndDate(): %w", err)
+		}
+
+		presenceIDsInt := make([]int64, 0, len(rowResults))
+		for _, rowResult := range rowResults {
+			if util.Int32ToBool(rowResult.IsPaid) == true {
+				return errs.ErrModifyingPaidPresence
+			}
+			presenceIDs = append(presenceIDs, entity.PresenceID(rowResult.ID))
+			presenceIDsInt = append(presenceIDsInt, rowResult.ID)
+		}
+
+		err = qtx.EditPresences(newCtx, mysql.EditPresencesParams{
+			TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
+			Date:                  spec.Date,
+			UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
+			Duration:              spec.Duration,
+			Note:                  spec.Note,
+			Ids:                   presenceIDsInt,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.EditPresences(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []entity.PresenceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return presenceIDs, nil
+}
+
+func (s teachingServiceImpl) RemovePresence(ctx context.Context, presenceID entity.PresenceID) ([]entity.PresenceID, error) {
+	deletedPresenceIDs := make([]entity.PresenceID, 0)
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		rowResults, err := qtx.GetPresenceIdsOfSameClassAndDate(newCtx, int64(presenceID))
+		if err != nil {
+			return fmt.Errorf("qtx.GetPresenceIdsOfSameClassAndDate(): %w", err)
+		}
+
+		presenceIDsInt := make([]int64, 0, len(rowResults))
+		for _, rowResult := range rowResults {
+			if util.Int32ToBool(rowResult.IsPaid) == true {
+				return errs.ErrModifyingPaidPresence
+			}
+			deletedPresenceIDs = append(deletedPresenceIDs, entity.PresenceID(rowResult.ID))
+			presenceIDsInt = append(presenceIDsInt, rowResult.ID)
+		}
+
+		err = qtx.DeletePresencesByIds(newCtx, presenceIDsInt)
+		if err != nil {
+			return fmt.Errorf("qtx.DeletePresencesByIds(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []entity.PresenceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return deletedPresenceIDs, nil
 }

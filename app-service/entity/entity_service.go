@@ -117,6 +117,7 @@ type Presence struct {
 	UsedStudentTokenQuota float64                      `json:"usedStudentTokenQuota"`
 	Duration              int32                        `json:"duration"`
 	Note                  string                       `json:"note"`
+	IsPaid                bool                         `json:"isPaid"`
 }
 
 type TeacherID int64
@@ -447,6 +448,7 @@ type UpdatePresenceSpec struct {
 	UsedStudentTokenQuota  float64
 	Duration               int32
 	Note                   string
+	IsPaid                 bool
 }
 
 func (s UpdatePresenceSpec) GetInt64ID() int64 {

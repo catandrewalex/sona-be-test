@@ -1450,6 +1450,7 @@ func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.U
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
 				Note:                  spec.Note,
+				IsPaid:                util.BoolToInt32(spec.IsPaid),
 				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
 				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
 				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},

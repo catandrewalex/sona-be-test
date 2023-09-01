@@ -27,7 +27,7 @@ type TeachingService interface {
 	// This includes calculating teacherSpecialFee, and penaltyFee.
 	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
 	// SubmitEnrollmentPayment adds new enrollmentPayment, then upsert StudentLearningToken (insert new, or update quota).
-	// The SLT update will prioritize on neutralizing negative (penalized) quota first.
+	// The SLT update will sum up spec.BalanceTopUp with all negative quota, set them to 0, and set the summed quota for the earliest available SLT.
 	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
 	EditEnrollmentPayment(ctx context.Context, spec EditStudentEnrollmentPaymentSpec) (entity.EnrollmentPaymentID, error)
 	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
@@ -39,6 +39,8 @@ type TeachingService interface {
 	//
 	// Enabling "autoCreateSLT" will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).
 	AddPresence(ctx context.Context, spec AddPresenceSpec, autoCreateSLT bool) ([]entity.PresenceID, error)
+	EditPresence(ctx context.Context, spec EditPresenceSpec) ([]entity.PresenceID, error)
+	RemovePresence(ctx context.Context, presenceID entity.PresenceID) ([]entity.PresenceID, error)
 }
 
 type SubmitStudentEnrollmentPaymentSpec struct {
@@ -76,6 +78,15 @@ type GetPresencesByClassIDResult struct {
 
 type AddPresenceSpec struct {
 	ClassID               entity.ClassID
+	TeacherID             entity.TeacherID
+	Date                  time.Time
+	UsedStudentTokenQuota float64
+	Duration              int32
+	Note                  string
+}
+
+type EditPresenceSpec struct {
+	PresenceID            entity.PresenceID
 	TeacherID             entity.TeacherID
 	Date                  time.Time
 	UsedStudentTokenQuota float64

@@ -398,6 +398,7 @@ func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []ent
 			UsedStudentTokenQuota: presenceRow.UsedStudentTokenQuota,
 			Duration:              presenceRow.Duration,
 			Note:                  presenceRow.Note,
+			IsPaid:                util.Int32ToBool(presenceRow.IsPaid),
 		})
 	}
 

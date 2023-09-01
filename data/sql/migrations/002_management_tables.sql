@@ -65,7 +65,7 @@ CREATE TABLE student_enrollment
 CREATE TABLE enrollment_payment
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  payment_date TIMESTAMP NOT NULL,
+  payment_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   balance_top_up INT NOT NULL,
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
@@ -102,10 +102,11 @@ CREATE TABLE teacher_special_fee
 CREATE TABLE presence
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  date TIMESTAMP NOT NULL,
+  date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   used_student_token_quota FLOAT NOT NULL,
   duration INT NOT NULL,
   note VARCHAR(255) NOT NULL DEFAULT '',
+  is_paid TINYINT NOT NULL DEFAULT 0,
   class_id BIGINT unsigned,
   teacher_id BIGINT unsigned,
   student_id BIGINT unsigned,

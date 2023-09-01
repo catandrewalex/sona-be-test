@@ -163,8 +163,10 @@ func main() {
 		authRouter.Post("/enrollmentPayment/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPaymentHandler))
 
 		authRouter.Get("/class/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
-		authRouter.Get("/presences/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesByClassIDHandler, "ClassID"))
-		authRouter.Post("/presences/{ClassID}/add", jsonSerdeWrapper.WrapFunc(backendService.AddPresenceHandler, "ClassID"))
+		authRouter.Get("/class/{ClassID}/presences", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesByClassIDHandler, "ClassID"))
+		authRouter.Post("/class/{ClassID}/presence/add", jsonSerdeWrapper.WrapFunc(backendService.AddPresenceHandler, "ClassID"))
+		authRouter.Post("/presence/{PresenceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditPresenceHandler, "PresenceID"))
+		authRouter.Post("/presence/{PresenceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemovePresenceHandler, "PresenceID"))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

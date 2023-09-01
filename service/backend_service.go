@@ -1559,6 +1559,7 @@ func (s *BackendService) UpdatePresencesHandler(ctx context.Context, req *output
 			UsedStudentTokenQuota:  param.UsedStudentTokenQuota,
 			Duration:               param.Duration,
 			Note:                   param.Note,
+			IsPaid:                 param.IsPaid,
 		})
 	}
 
@@ -1767,7 +1768,7 @@ func (s *BackendService) AddPresenceHandler(ctx context.Context, req *output.Add
 			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "This class doesn't have any student, try registering a student first")
 		}
 		if errors.Is(err, errs.ErrStudentEnrollmentHaveNoLearningToken) {
-			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One/more students of this class don't have learningToken, try adding students' enrollmenyPayment first")
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One/more students of this class don't have learningToken, try adding students' enrollmentPayment first")
 		}
 
 		return nil, handleUpsertionError(err, errContext.Error(), "presence")
@@ -1784,6 +1785,63 @@ func (s *BackendService) AddPresenceHandler(ctx context.Context, req *output.Add
 			Results: presences,
 		},
 		Message: "Successfully added presences",
+	}, nil
+}
+
+func (s *BackendService) EditPresenceHandler(ctx context.Context, req *output.EditPresenceRequest) (*output.EditPresenceResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	presenceIDs, err := s.teachingService.EditPresence(ctx, teaching.EditPresenceSpec{
+		PresenceID:            req.PresenceID,
+		TeacherID:             req.TeacherID,
+		Date:                  req.Date,
+		UsedStudentTokenQuota: req.UsedStudentTokenQuota,
+		Duration:              req.Duration,
+		Note:                  req.Note,
+	})
+	if err != nil {
+		errContext := fmt.Errorf("teachingService.EditPresence(): %w", err)
+		if errors.Is(err, errs.ErrModifyingPaidPresence) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "You are editing a paid presence, try de-registering the presence from teacher payment first")
+		}
+
+		return nil, handleUpsertionError(err, errContext.Error(), "presence")
+	}
+	mainLog.Info("Presences edited: presenceIDs='%v'", presenceIDs)
+
+	presences, err := s.entityService.GetPresencesByIds(ctx, presenceIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetPresencesByIds: %v", err), nil, "")
+	}
+
+	return &output.EditPresenceResponse{
+		Data: output.UpsertPresenceResult{
+			Results: presences,
+		},
+		Message: "Successfully edited presence",
+	}, nil
+}
+
+func (s *BackendService) RemovePresenceHandler(ctx context.Context, req *output.RemovePresenceRequest) (*output.RemovePresenceResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	presenceIDs, err := s.teachingService.RemovePresence(ctx, req.PresenceID)
+	if err != nil {
+		errContext := fmt.Errorf("teachingService.RemovePresence(): %w", err)
+		if errors.Is(err, errs.ErrModifyingPaidPresence) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "You are removing a paid presence, try de-registering the presence from teacher payment first")
+		}
+
+		return nil, handleUpsertionError(err, errContext.Error(), "presence")
+	}
+	mainLog.Info("Presences removed: presenceIDs='%v'", presenceIDs)
+
+	return &output.RemovePresenceResponse{
+		Message: "Successfully removed presence",
 	}, nil
 }
 

@@ -840,6 +840,7 @@ type UpdatePresencesRequestParam struct {
 	UsedStudentTokenQuota  float64                       `json:"usedStudentTokenQuota"`
 	Duration               int32                         `json:"duration"`
 	Note                   string                        `json:"note,omitempty"`
+	IsPaid                 bool                          `json:"isPaid,omitempty"`
 }
 type UpdatePresencesResponse struct {
 	Data    UpsertPresenceResult `json:"data"`
