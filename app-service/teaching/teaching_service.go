@@ -37,7 +37,7 @@ type TeachingService interface {
 	GetPresencesByClassID(ctx context.Context, spec GetPresencesByClassIDSpec) (GetPresencesByClassIDResult, error)
 	// AddPresence creates presence(s) based on spec, duplicated for every students who enroll in the class.
 	//
-	// Enabling "allowAutoCreateSLT" will automatically create StudentLearningToken (SLT) when any of the class' students have not paid the enrollment, which cause them to have no SLT.
+	// Enabling "autoCreateSLT" will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).
 	AddPresence(ctx context.Context, spec AddPresenceSpec, autoCreateSLT bool) ([]entity.PresenceID, error)
 }
 

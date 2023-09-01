@@ -380,9 +380,10 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 					return fmt.Errorf("studentEnrollment='%d': %w", studentEnrollment.StudentEnrollmentID, errs.ErrStudentEnrollmentHaveNoLearningToken)
 				}
 
-				newSLTID, err := s.autoRegisterSLTWithZeroQuota(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID))
+				mainLog.Warn("studentEnrollment='%d' doesn't have any studentLearningToken (SLT). Creating a new negative quota SLT as 'autoCreateSLT' is true.", studentEnrollment.StudentEnrollmentID)
+				newSLTID, err := s.autoRegisterSLTWithQuota(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID), spec.UsedStudentTokenQuota*-1)
 				if err != nil {
-					return fmt.Errorf("autoRegisterSLTWithZeroQuota(): %w", err)
+					return fmt.Errorf("autoRegisterSLTWithQuota(): %w", err)
 				}
 				sltID = newSLTID
 			}
@@ -413,7 +414,7 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 	return presenceIDs, nil
 }
 
-func (s teachingServiceImpl) autoRegisterSLTWithZeroQuota(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (entity.StudentLearningTokenID, error) {
+func (s teachingServiceImpl) autoRegisterSLTWithQuota(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID, quota float64) (entity.StudentLearningTokenID, error) {
 	enrollmentID := entity.StudentEnrollmentID(studentEnrollmentID)
 	invoice, err := s.CalculateStudentEnrollmentInvoice(ctx, enrollmentID)
 	if err != nil {
@@ -423,7 +424,7 @@ func (s teachingServiceImpl) autoRegisterSLTWithZeroQuota(ctx context.Context, s
 	newSLTIDs, err := s.entityService.InsertStudentLearningTokens(ctx, []entity.InsertStudentLearningTokenSpec{
 		{
 			StudentEnrollmentID: studentEnrollmentID,
-			Quota:               0,
+			Quota:               quota,
 			CourseFeeValue:      invoice.CourseFeeValue,
 			TransportFeeValue:   invoice.TransportFeeValue,
 		},
