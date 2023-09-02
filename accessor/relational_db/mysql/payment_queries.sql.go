@@ -232,6 +232,19 @@ func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Con
 	return items, nil
 }
 
+const getEarliestPenaltyDateSLTByStudentEnrollmentId = `-- name: GetEarliestPenaltyDateSLTByStudentEnrollmentId :one
+SELECT MIN(penalty_start_at) AS penalty_date FROM student_learning_token
+WHERE enrollment_id = ?
+GROUP BY enrollment_id
+`
+
+func (q *Queries) GetEarliestPenaltyDateSLTByStudentEnrollmentId(ctx context.Context, enrollmentID int64) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getEarliestPenaltyDateSLTByStudentEnrollmentId, enrollmentID)
+	var penalty_date interface{}
+	err := row.Scan(&penalty_date)
+	return penalty_date, err
+}
+
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -622,7 +635,7 @@ func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg G
 }
 
 const getSLTByEnrollmentIdAndCourseFeeAndTransportFee = `-- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
+SELECT id, quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?
 `
 
@@ -641,6 +654,7 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Co
 		&i.CourseFeeValue,
 		&i.TransportFeeValue,
 		&i.CreatedAt,
+		&i.PenaltyStartAt,
 		&i.LastUpdatedAt,
 		&i.EnrollmentID,
 	)
@@ -648,7 +662,7 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Co
 }
 
 const getSLTWithNegativeQuotaByEnrollmentId = `-- name: GetSLTWithNegativeQuotaByEnrollmentId :many
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
+SELECT id, quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id FROM student_learning_token
 WHERE enrollment_id = ? AND quota < 0
 `
 
@@ -668,6 +682,7 @@ func (q *Queries) GetSLTWithNegativeQuotaByEnrollmentId(ctx context.Context, enr
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
 			&i.CreatedAt,
+			&i.PenaltyStartAt,
 			&i.LastUpdatedAt,
 			&i.EnrollmentID,
 		); err != nil {

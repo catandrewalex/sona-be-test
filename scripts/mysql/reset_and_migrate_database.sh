@@ -21,8 +21,12 @@ echo "Recreating database ${DB_NAME}..."
 mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" -e "DROP DATABASE IF EXISTS ${DB_NAME}; CREATE DATABASE ${DB_NAME};"
 echo "Database has been recreated."
 
-echo "Running migrations..."
+echo "Running migrations and triggers..."
 for f in ./data/sql/migrations/*.sql; do
+    echo "Running migration $(basename "$f" .sql)..."
+    mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
+done
+for f in ./data/sql/triggers/*.sql; do
     echo "Running migration $(basename "$f" .sql)..."
     mysql -u "${DB_USER}" -p"${DB_PASSWORD}" -h "${DB_HOST}" -P "${DB_PORT}" "${DB_NAME}" < "$f"
 done

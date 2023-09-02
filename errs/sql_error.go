@@ -40,7 +40,7 @@ func WrapMySQLError(err error) error {
 			wrappedErr = convertNoReferencedRowErrToValidationErr(*mySQLErr)
 		}
 	} else {
-		panic("WrapMySQLError received an unsupported error type")
+		panic(fmt.Sprintf("WrapMySQLError received an unsupported error type: %v", err))
 	}
 
 	return wrappedErr

@@ -120,6 +120,11 @@ WHERE enrollment_id = ? AND quota < 0;
 SELECT * FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?;
 
+-- name: GetEarliestPenaltyDateSLTByStudentEnrollmentId :one
+SELECT MIN(penalty_start_at) AS penalty_date FROM student_learning_token
+WHERE enrollment_id = ?
+GROUP BY enrollment_id;
+
 -- name: GetEarliestAvailableSLTsByStudentEnrollmentIds :many
 WITH slt_min_max AS (
     -- fetch earliest SLT with quota > 0

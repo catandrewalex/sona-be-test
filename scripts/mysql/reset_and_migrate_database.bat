@@ -27,9 +27,13 @@ mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% -e "DROP DATABASE I
 echo Database has been recreated.
 echo.
 
-echo Running migrations...
+echo Running migrations and triggers...
 for %%f in (.\data\sql\migrations\*.sql) do (
   echo Running migration %%f...
+  mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% %DB_NAME% < "%%f"
+)
+for %%f in (.\data\sql\triggers\*.sql) do (
+  echo Running trigger %%f...
   mysql -u %DB_USER% -p%DB_PASSWORD% -h %DB_HOST% -P %DB_PORT% %DB_NAME% < "%%f"
 )
 echo Migrations executed successfully.

@@ -136,7 +136,7 @@ SELECT presence.id AS presence_id, date, used_student_token_quota, duration, not
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
 FROM presence
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -215,6 +215,7 @@ func (q *Queries) GetPresenceById(ctx context.Context, id int64) (GetPresenceByI
 		&i.StudentLearningToken.CourseFeeValue,
 		&i.StudentLearningToken.TransportFeeValue,
 		&i.StudentLearningToken.CreatedAt,
+		&i.StudentLearningToken.PenaltyStartAt,
 		&i.StudentLearningToken.LastUpdatedAt,
 		&i.StudentLearningToken.EnrollmentID,
 	)
@@ -268,7 +269,7 @@ SELECT presence.id AS presence_id, date, used_student_token_quota, duration, not
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
 FROM presence
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -378,6 +379,7 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 			&i.StudentLearningToken.CourseFeeValue,
 			&i.StudentLearningToken.TransportFeeValue,
 			&i.StudentLearningToken.CreatedAt,
+			&i.StudentLearningToken.PenaltyStartAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
 		); err != nil {
@@ -400,7 +402,7 @@ SELECT presence.id AS presence_id, date, used_student_token_quota, duration, not
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
 FROM presence
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -495,6 +497,7 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 			&i.StudentLearningToken.CourseFeeValue,
 			&i.StudentLearningToken.TransportFeeValue,
 			&i.StudentLearningToken.CreatedAt,
+			&i.StudentLearningToken.PenaltyStartAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
 		); err != nil {

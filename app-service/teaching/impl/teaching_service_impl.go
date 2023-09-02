@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/accessor/relational_db/mysql"
@@ -80,19 +81,18 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 	}
 
 	// calculate Course Fee Penalty (e.g. due to late payment)
-	var penaltyFeeValue int32 = 0
-	slts, err := s.mySQLQueries.GetSLTWithNegativeQuotaByEnrollmentId(ctx, int64(studentEnrollmentID))
+	earliestSLTPenaltyDate, err := s.mySQLQueries.GetEarliestPenaltyDateSLTByStudentEnrollmentId(ctx, int64(studentEnrollmentID))
 	if err != nil {
-		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetSLTWithNegativeQuotaByEnrollmentId(): %w", err)
-	}
-	for _, slt := range slts {
-		if slt.Quota >= 0 {
-			continue
+		if !errors.Is(err, sql.ErrNoRows) {
+			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetEarliestPenaltyDateSLTByStudentEnrollmentId(): %w", err)
+		} else {
+			fmt.Println("NO PENALTY DATE FOUND. GREAT!")
 		}
-		// make the value positive
-		unpaidQuota := slt.Quota * -1
-		// penaly = penaltyValue (in Rupiah) per 1 course cycle
-		penaltyFeeValue += int32((unpaidQuota-1)/teaching.Default_OneCourseCycle+1) * teaching.Default_PenaltyFeeValue
+	}
+
+	var penaltyFeeValue int32 = 0
+	if earliestSLTPenaltyDate != nil {
+		penaltyFeeValue = teaching.Default_PenaltyFeeValue * (int32(time.Since(earliestSLTPenaltyDate.(time.Time)).Hours()/24) + 1)
 	}
 
 	// calculate transport fee (splitted unionly across all class students)

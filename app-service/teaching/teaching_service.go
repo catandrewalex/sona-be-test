@@ -11,7 +11,7 @@ import (
 const (
 	Default_OneCourseCycle  = 4
 	Default_BalanceTopUp    = 4
-	Default_PenaltyFeeValue = 20000
+	Default_PenaltyFeeValue = 10000
 )
 
 type StudentEnrollmentInvoice struct {

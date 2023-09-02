@@ -308,51 +308,51 @@ INSERT INTO enrollment_payment (
 
 /* ============================== STUDENT_LEARNING_TOKEN ============================== */
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    0, 300000, 0, '2023-07-01 07:00:00', '2023-07-01 07:00:00', 1
+    0, 300000, 0, '2023-07-01 07:00:00', NULL, '2023-07-01 07:00:00', 1
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    0, 750000, 0, '2023-07-01 08:00:00', '2023-07-01 08:00:00', 2
+    0, 750000, 0, '2023-07-01 08:00:00', NULL, '2023-07-01 08:00:00', 2
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    5, 375000, 0, '2023-08-01 07:00:00', '2023-08-01 07:00:00', 1
+    5, 375000, 0, '2023-08-01 07:00:00', NULL, '2023-08-01 07:00:00', 1
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    4, 850000, 0, '2023-08-01 08:00:00', '2023-08-01 08:00:00', 2
+    4, 850000, 0, '2023-08-01 08:00:00', NULL, '2023-08-01 08:00:00', 2
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    1, 250000, 37500, '2023-08-28 21:04:23', '2023-08-28 21:04:23', 5
+    1, 250000, 37500, '2023-08-28 21:04:23', NULL, '2023-08-28 21:04:23', 5
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    1, 250000, 37500, '2023-08-28 21:04:42', '2023-08-28 21:04:42', 6
+    1, 250000, 37500, '2023-08-28 21:04:42', NULL, '2023-08-28 21:04:42', 6
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    1, 250000, 37500, '2023-08-28 21:04:57', '2023-08-28 21:04:57', 7
+    1, 250000, 37500, '2023-08-28 21:04:57', NULL, '2023-08-28 21:04:57', 7
 );
 
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id
+    quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id
 ) VALUES (
-    1, 250000, 37500, '2023-08-28 21:05:07', '2023-08-28 21:05:07', 8
+    1, 250000, 37500, '2023-08-28 21:05:07', NULL, '2023-08-28 21:05:07', 8
 );
 
 /* ============================== PRESENCE & STUDENT_ATTEND ============================== */

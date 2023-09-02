@@ -82,6 +82,7 @@ CREATE TABLE student_learning_token
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  penalty_start_at TIMESTAMP NULL DEFAULT NULL, -- this column IS MANAGED BY TRIGGER. so, don't manage this column value from the application logic
   last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   enrollment_id BIGINT unsigned NOT NULL,
   -- `student_learning_token` has quota, whose value must be transferrable to another `enrollment` before a student `enrollment` is deleted
