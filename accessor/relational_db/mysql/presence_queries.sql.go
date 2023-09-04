@@ -18,6 +18,7 @@ WHERE
     (date >= ? AND date <= ?)
     AND (class_id = ? OR ? = false)
     AND (student_id = ? OR ? = false)
+    AND (is_paid = 0 OR ? = false)
 `
 
 type CountPresencesParams struct {
@@ -27,6 +28,7 @@ type CountPresencesParams struct {
 	UseClassFilter   interface{}
 	StudentID        sql.NullInt64
 	UseStudentFilter interface{}
+	UsePaidFilter    interface{}
 }
 
 func (q *Queries) CountPresences(ctx context.Context, arg CountPresencesParams) (int64, error) {
@@ -37,6 +39,7 @@ func (q *Queries) CountPresences(ctx context.Context, arg CountPresencesParams) 
 		arg.UseClassFilter,
 		arg.StudentID,
 		arg.UseStudentFilter,
+		arg.UsePaidFilter,
 	)
 	var total int64
 	err := row.Scan(&total)
@@ -288,6 +291,7 @@ WHERE
     (presence.date >= ? AND presence.date <= ?)
     AND (class_id = ? OR ? = false)
     AND (student_id = ? OR ? = false)
+    AND (is_paid = 0 OR ? = false)
 ORDER BY class.id
 LIMIT ? OFFSET ?
 `
@@ -299,6 +303,7 @@ type GetPresencesParams struct {
 	UseClassFilter   interface{}
 	StudentID        sql.NullInt64
 	UseStudentFilter interface{}
+	UseUnpaidFilter  interface{}
 	Limit            int32
 	Offset           int32
 }
@@ -334,6 +339,7 @@ func (q *Queries) GetPresences(ctx context.Context, arg GetPresencesParams) ([]G
 		arg.UseClassFilter,
 		arg.StudentID,
 		arg.UseStudentFilter,
+		arg.UseUnpaidFilter,
 		arg.Limit,
 		arg.Offset,
 	)
@@ -514,6 +520,135 @@ func (q *Queries) GetPresencesByIds(ctx context.Context, ids []int64) ([]GetPres
 	return items, nil
 }
 
+const getPresencesForTeacherSalary = `-- name: GetPresencesForTeacherSalary :many
+SELECT presence.id AS presence_id, date, used_student_token_quota, duration, note, is_paid,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
+FROM presence
+    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+
+    LEFT JOIN class on presence.class_id = class.id
+    LEFT JOIN course ON course_id = course.id
+    LEFT JOIN instrument ON course.instrument_id = instrument.id
+    LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+
+    JOIN student_learning_token as slt ON presence.token_id = slt.id
+WHERE
+    (presence.date >= ? AND presence.date <= ?)
+    AND (presence.teacher_id = ? OR ? = false)
+    AND (class_id = ? OR ? = false)
+    AND is_paid = 0
+ORDER BY presence.teacher_id, class.id, presence.student_id, date, presence.id
+`
+
+type GetPresencesForTeacherSalaryParams struct {
+	StartDate        time.Time
+	EndDate          time.Time
+	TeacherID        sql.NullInt64
+	UseTeacherFilter interface{}
+	ClassID          sql.NullInt64
+	UseClassFilter   interface{}
+}
+
+type GetPresencesForTeacherSalaryRow struct {
+	PresenceID            int64
+	Date                  time.Time
+	UsedStudentTokenQuota float64
+	Duration              int32
+	Note                  string
+	IsPaid                int32
+	Class                 Class
+	Course                Course
+	Instrument            Instrument
+	Grade                 Grade
+	TeacherID             sql.NullInt64
+	TeacherUsername       sql.NullString
+	TeacherDetail         []byte
+	StudentID             sql.NullInt64
+	StudentUsername       sql.NullString
+	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
+	StudentLearningToken  StudentLearningToken
+}
+
+func (q *Queries) GetPresencesForTeacherSalary(ctx context.Context, arg GetPresencesForTeacherSalaryParams) ([]GetPresencesForTeacherSalaryRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPresencesForTeacherSalary,
+		arg.StartDate,
+		arg.EndDate,
+		arg.TeacherID,
+		arg.UseTeacherFilter,
+		arg.ClassID,
+		arg.UseClassFilter,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPresencesForTeacherSalaryRow
+	for rows.Next() {
+		var i GetPresencesForTeacherSalaryRow
+		if err := rows.Scan(
+			&i.PresenceID,
+			&i.Date,
+			&i.UsedStudentTokenQuota,
+			&i.Duration,
+			&i.Note,
+			&i.IsPaid,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+			&i.TeacherID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.StudentID,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
+			&i.StudentLearningToken.ID,
+			&i.StudentLearningToken.Quota,
+			&i.StudentLearningToken.CourseFeeValue,
+			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CreatedAt,
+			&i.StudentLearningToken.PenaltyStartAt,
+			&i.StudentLearningToken.LastUpdatedAt,
+			&i.StudentLearningToken.EnrollmentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertPresence = `-- name: InsertPresence :execlastid
 INSERT INTO presence (
     date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id
@@ -550,6 +685,32 @@ func (q *Queries) InsertPresence(ctx context.Context, arg InsertPresenceParams) 
 		return 0, err
 	}
 	return result.LastInsertId()
+}
+
+const setPresencesIsPaidStatusByIds = `-- name: SetPresencesIsPaidStatusByIds :exec
+UPDATE presence SET is_paid = ?
+WHERE id IN (/*SLICE:ids*/?)
+`
+
+type SetPresencesIsPaidStatusByIdsParams struct {
+	IsPaid int32
+	Ids    []int64
+}
+
+func (q *Queries) SetPresencesIsPaidStatusByIds(ctx context.Context, arg SetPresencesIsPaidStatusByIdsParams) error {
+	sql := setPresencesIsPaidStatusByIds
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.IsPaid)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, sql, queryParams...)
+	return err
 }
 
 const updatePresence = `-- name: UpdatePresence :exec

@@ -1602,6 +1602,30 @@ func (s *BackendService) DeletePresencesHandler(ctx context.Context, req *output
 	}, nil
 }
 
+func (s *BackendService) GetTeacherSalariesHandler(ctx context.Context, req *output.GetTeacherSalariesRequest) (*output.GetTeacherSalariesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	paginationSpec := util.PaginationSpec(req.PaginationRequest)
+	getTeacherSalariesSpec := entity.GetTeacherSalariesSpec{
+		TimeSpec: util.TimeSpec(req.TimeFilter),
+	}
+	getTeacherSalariesResult, err := s.entityService.GetTeacherSalaries(ctx, paginationSpec, getTeacherSalariesSpec)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSalaries(): %w", err), nil, "Failed to get teacherSalaries")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getTeacherSalariesResult.PaginationResult)
+
+	return &output.GetTeacherSalariesResponse{
+		Data: output.GetTeacherSalariesResult{
+			Results:            getTeacherSalariesResult.TeacherSalaries,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
 func (s *BackendService) SearchEnrollmentPaymentHandler(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -1625,9 +1649,9 @@ func (s *BackendService) GetEnrollmentPaymentInvoiceHandler(ctx context.Context,
 		return nil, errV
 	}
 
-	paymentInvoice, err := s.teachingService.CalculateStudentEnrollmentInvoice(ctx, req.StudentEnrollmentID)
+	paymentInvoice, err := s.teachingService.GetEnrollmentPaymentInvoice(ctx, req.StudentEnrollmentID)
 	if err != nil {
-		return nil, handleReadError(err, "teachingService.CalculateStudentEnrollmentInvoice()", "studentEnrollment")
+		return nil, handleReadError(err, "teachingService.GetEnrollmentPaymentInvoice()", "studentEnrollment")
 	}
 
 	return &output.GetEnrollmentPaymentInvoiceResponse{
@@ -1842,6 +1866,105 @@ func (s *BackendService) RemovePresenceHandler(ctx context.Context, req *output.
 
 	return &output.RemovePresenceResponse{
 		Message: "Successfully removed presence",
+	}, nil
+}
+
+func (s *BackendService) GetTeacherSalaryInvoicesHandler(ctx context.Context, req *output.GetTeacherSalaryInvoicesRequest) (*output.GetTeacherSalaryInvoicesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	invoices, err := s.teachingService.GetTeacherSalaryInvoices(ctx, teaching.GetTeacherSalaryInvoicesSpec{
+		TeacherID: req.TeacherID,
+		ClassID:   req.ClassID,
+		TimeSpec:  util.TimeSpec(req.TimeFilter),
+	})
+	if err != nil {
+		return nil, handleReadError(err, "teachingService.GetTeacherSalaryInvoices()", "teacherSalary")
+	}
+
+	return &output.GetTeacherSalaryInvoicesResponse{
+		Data: output.GetTeacherSalaryInvoicesResult{
+			Results: invoices,
+		},
+	}, nil
+}
+
+func (s *BackendService) SubmitTeacherSalariesHandler(ctx context.Context, req *output.SubmitTeacherSalariesRequest) (*output.SubmitTeacherSalariesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.SubmitTeacherSalariesSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.SubmitTeacherSalariesSpec{
+			PresenceID:            param.PresenceID,
+			PaidCourseFeeValue:    param.PaidCourseFeeValue,
+			PaidTransportFeeValue: param.PaidTransportFeeValue,
+		})
+	}
+
+	err := s.teachingService.SubmitTeacherSalaries(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.SubmitTeacherSalaries()", "TeacherSalaries")
+	}
+
+	return &output.SubmitTeacherSalariesResponse{
+		Message: "Successfully submitted TeacherSalaries",
+	}, nil
+}
+
+func (s *BackendService) EditTeacherSalariesHandler(ctx context.Context, req *output.EditTeacherSalariesRequest) (*output.EditTeacherSalariesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.EditTeacherSalariesSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.EditTeacherSalariesSpec{
+			TeacherSalaryID:       param.TeacherSalaryID,
+			PaidCourseFeeValue:    param.PaidCourseFeeValue,
+			PaidTransportFeeValue: param.PaidTransportFeeValue,
+		})
+	}
+
+	teacherSalaryIDs, err := s.teachingService.EditTeacherSalaries(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.EditTeacherSalaries()", "teacherSalary")
+	}
+	mainLog.Info("TeacherSalaries edited: teacherSalaryIDs='%v'", teacherSalaryIDs)
+
+	teacherSalaries, err := s.entityService.GetTeacherSalariesByIds(ctx, teacherSalaryIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherSalariesByIds: %v", err), nil, "")
+	}
+
+	return &output.EditTeacherSalariesResponse{
+		Data: output.EditTeacherSalariesResult{
+			Results: teacherSalaries,
+		},
+		Message: "Successfully edited teacherSalary",
+	}, nil
+}
+
+func (s *BackendService) RemoveTeacherSalariesHandler(ctx context.Context, req *output.RemoveTeacherSalariesRequest) (*output.RemoveTeacherSalariesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	ids := make([]entity.TeacherSalaryID, 0, len(req.Data))
+	for _, param := range req.Data {
+		ids = append(ids, param.TeacherSalaryID)
+	}
+
+	err := s.teachingService.RemoveTeacherSalaries(ctx, ids)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.RemoveTeacherSalaries():", "teacherSalary")
+	}
+	mainLog.Info("TeacherSalariess removed: teacherSalaryIDs='%v'", ids)
+
+	return &output.RemoveTeacherSalariesResponse{
+		Message: "Successfully removed teacherSalary",
 	}, nil
 }
 

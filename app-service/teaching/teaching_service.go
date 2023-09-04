@@ -9,9 +9,11 @@ import (
 )
 
 const (
-	Default_OneCourseCycle  = 4
-	Default_BalanceTopUp    = 4
-	Default_PenaltyFeeValue = 10000
+	Default_OneCourseCycle                = 4
+	Default_BalanceTopUp                  = Default_OneCourseCycle
+	Default_PenaltyFeeValue               = 10000
+	Default_CourseFeeSharingPercentage    = 0.5
+	Default_TransportFeeSharingPercentage = 1.0
 )
 
 type StudentEnrollmentInvoice struct {
@@ -21,11 +23,20 @@ type StudentEnrollmentInvoice struct {
 	TransportFeeValue int32 `json:"transportFeeValue"`
 }
 
+type TeacherSalaryInvoice struct {
+	Presence entity.Presence `json:"presence"`
+	// These 4 below fields are displayed in FE to simplify the calculation of PaidCourseFeeValue & PaidTransportFeeValue
+	CourseFeeFullValue            int32   `json:"courseFeeFullValue"`
+	TransportFeeFullValue         int32   `json:"transportFeeFullValue"`
+	CourseFeeSharingPercentage    float64 `json:"courseFeeSharingPercentage"`
+	TransportFeeSharingPercentage float64 `json:"transportFeeSharingPercentage"`
+}
+
 type TeachingService interface {
 	SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
-	// CalculateStudentEnrollmentInvoice returns values for used by SubmitEnrollmentPayment.
+	// GetEnrollmentPaymentInvoice returns values for used by SubmitEnrollmentPayment.
 	// This includes calculating teacherSpecialFee, and penaltyFee.
-	CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
+	GetEnrollmentPaymentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (StudentEnrollmentInvoice, error)
 	// SubmitEnrollmentPayment adds new enrollmentPayment, then upsert StudentLearningToken (insert new, or update quota).
 	// The SLT update will sum up spec.BalanceTopUp with all negative quota, set them to 0, and set the summed quota for the earliest available SLT.
 	SubmitEnrollmentPayment(ctx context.Context, spec SubmitStudentEnrollmentPaymentSpec) error
@@ -41,6 +52,11 @@ type TeachingService interface {
 	AddPresence(ctx context.Context, spec AddPresenceSpec, autoCreateSLT bool) ([]entity.PresenceID, error)
 	EditPresence(ctx context.Context, spec EditPresenceSpec) ([]entity.PresenceID, error)
 	RemovePresence(ctx context.Context, presenceID entity.PresenceID) ([]entity.PresenceID, error)
+
+	GetTeacherSalaryInvoices(ctx context.Context, spec GetTeacherSalaryInvoicesSpec) ([]TeacherSalaryInvoice, error)
+	SubmitTeacherSalaries(ctx context.Context, specs []SubmitTeacherSalariesSpec) error
+	EditTeacherSalaries(ctx context.Context, specs []EditTeacherSalariesSpec) ([]entity.TeacherSalaryID, error)
+	RemoveTeacherSalaries(ctx context.Context, teacherSalaryIDs []entity.TeacherSalaryID) error
 }
 
 type SubmitStudentEnrollmentPaymentSpec struct {
@@ -92,4 +108,30 @@ type EditPresenceSpec struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+}
+
+func (s EditPresenceSpec) GetInt64ID() int64 {
+	return int64(s.PresenceID)
+}
+
+type GetTeacherSalaryInvoicesSpec struct {
+	TeacherID entity.TeacherID
+	ClassID   entity.ClassID
+	util.TimeSpec
+}
+
+type SubmitTeacherSalariesSpec struct {
+	PresenceID            entity.PresenceID
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+}
+
+type EditTeacherSalariesSpec struct {
+	TeacherSalaryID       entity.TeacherSalaryID
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+}
+
+func (s EditTeacherSalariesSpec) GetInt64ID() int64 {
+	return int64(s.TeacherSalaryID)
 }

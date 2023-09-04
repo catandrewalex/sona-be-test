@@ -81,3 +81,15 @@ func (r GetPresenceByIdRow) ToGetPresencesRow() GetPresencesRow {
 func (r GetPresencesByIdsRow) ToGetPresencesRow() GetPresencesRow {
 	return GetPresencesRow(r)
 }
+func (r GetPresencesForTeacherSalaryRow) ToGetPresencesRow() GetPresencesRow {
+	return GetPresencesRow(r)
+}
+
+// ============================== PRESENCE ==============================
+
+func (r GetTeacherSalaryByIdRow) ToGetTeacherSalariesRow() GetTeacherSalariesRow {
+	return GetTeacherSalariesRow(r)
+}
+func (r GetTeacherSalariesByIdsRow) ToGetTeacherSalariesRow() GetTeacherSalariesRow {
+	return GetTeacherSalariesRow(r)
+}

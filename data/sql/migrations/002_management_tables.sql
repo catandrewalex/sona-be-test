@@ -124,9 +124,10 @@ CREATE TABLE presence
 CREATE TABLE teacher_salary
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  presence_id BIGINT unsigned NOT NULL,
-  profit_sharing_percentage FLOAT NOT NULL,
-  added_at DATE NOT NULL,
+  presence_id BIGINT unsigned NOT NULL UNIQUE,
+  paid_course_fee_value INT NOT NULL,
+  paid_transport_fee_value INT NOT NULL,
+  added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- `teacher_salary` stores historical records of teacher payment, and must be deleted explicitly
   FOREIGN KEY (presence_id) REFERENCES presence(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );

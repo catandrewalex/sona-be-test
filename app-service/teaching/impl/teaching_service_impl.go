@@ -47,15 +47,15 @@ func (s teachingServiceImpl) SearchEnrollmentPayment(ctx context.Context, timeFi
 		Page:           pagination_FirstPage,
 		ResultsPerPage: pagination_FetchAll,
 	}
-	enrollmentPayments, err := s.entityService.GetEnrollmentPayments(ctx, paginationSpec, timeFilter, true)
+	getEnrollmentPaymentsResult, err := s.entityService.GetEnrollmentPayments(ctx, paginationSpec, timeFilter, true)
 	if err != nil {
 		return []entity.EnrollmentPayment{}, fmt.Errorf("entityService.GetEnrollmentPayments(): %v", err)
 	}
 
-	return enrollmentPayments.EnrollmentPayments, nil
+	return getEnrollmentPaymentsResult.EnrollmentPayments, nil
 }
 
-func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (teaching.StudentEnrollmentInvoice, error) {
+func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (teaching.StudentEnrollmentInvoice, error) {
 	studentEnrollment, err := s.entityService.GetStudentEnrollmentById(ctx, studentEnrollmentID)
 	if err != nil {
 		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("entityService.GetStudentEnrollmentById(): %w", err)
@@ -85,8 +85,6 @@ func (s teachingServiceImpl) CalculateStudentEnrollmentInvoice(ctx context.Conte
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetEarliestPenaltyDateSLTByStudentEnrollmentId(): %w", err)
-		} else {
-			fmt.Println("NO PENALTY DATE FOUND. GREAT!")
 		}
 	}
 
@@ -416,9 +414,9 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 
 func (s teachingServiceImpl) autoRegisterSLT(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID, quota float64) (entity.StudentLearningTokenID, error) {
 	enrollmentID := entity.StudentEnrollmentID(studentEnrollmentID)
-	invoice, err := s.CalculateStudentEnrollmentInvoice(ctx, enrollmentID)
+	invoice, err := s.GetEnrollmentPaymentInvoice(ctx, enrollmentID)
 	if err != nil {
-		return entity.StudentLearningTokenID_None, fmt.Errorf("CalculateStudentEnrollmentInvoice(): %w", err)
+		return entity.StudentLearningTokenID_None, fmt.Errorf("GetEnrollmentPaymentInvoice(): %w", err)
 	}
 
 	newSLTIDs, err := s.entityService.InsertStudentLearningTokens(ctx, []entity.InsertStudentLearningTokenSpec{
@@ -437,6 +435,11 @@ func (s teachingServiceImpl) autoRegisterSLT(ctx context.Context, studentEnrollm
 }
 
 func (s teachingServiceImpl) EditPresence(ctx context.Context, spec teaching.EditPresenceSpec) ([]entity.PresenceID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, []teaching.EditPresenceSpec{spec}, s.mySQLQueries.CountPresencesByIds)
+	if errV != nil {
+		return []entity.PresenceID{}, errV
+	}
+
 	presenceIDs := make([]entity.PresenceID, 0)
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
@@ -505,4 +508,125 @@ func (s teachingServiceImpl) RemovePresence(ctx context.Context, presenceID enti
 	}
 
 	return deletedPresenceIDs, nil
+}
+
+func (s teachingServiceImpl) GetTeacherSalaryInvoices(ctx context.Context, spec teaching.GetTeacherSalaryInvoicesSpec) ([]teaching.TeacherSalaryInvoice, error) {
+	getPresencesForTeacherSalarySpec := entity.GetPresencesForTeacherSalarySpec{
+		TeacherID: spec.TeacherID,
+		ClassID:   spec.ClassID,
+		TimeSpec:  spec.TimeSpec,
+	}
+
+	presences, err := s.entityService.GetPresencesForTeacherSalary(ctx, getPresencesForTeacherSalarySpec)
+	if err != nil {
+		return []teaching.TeacherSalaryInvoice{}, fmt.Errorf("entityService.GetPresences(): %v", err)
+	}
+
+	teacherSalaryInvoices := make([]teaching.TeacherSalaryInvoice, 0, len(presences))
+	for _, presence := range presences {
+		teacherSalaryInvoices = append(teacherSalaryInvoices, teaching.TeacherSalaryInvoice{
+			Presence:                      presence,
+			CourseFeeFullValue:            int32(float64(presence.StudentLearningToken.CourseFeeValue) * presence.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			TransportFeeFullValue:         int32(float64(presence.StudentLearningToken.TransportFeeValue) * presence.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			CourseFeeSharingPercentage:    teaching.Default_CourseFeeSharingPercentage,
+			TransportFeeSharingPercentage: teaching.Default_TransportFeeSharingPercentage,
+		})
+	}
+
+	return teacherSalaryInvoices, nil
+}
+
+func (s teachingServiceImpl) SubmitTeacherSalaries(ctx context.Context, specs []teaching.SubmitTeacherSalariesSpec) error {
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		insertSpecs := make([]entity.InsertTeacherSalarySpec, 0, len(specs))
+		affectedPresencedIDsInt64 := make([]int64, 0, len(specs))
+		for _, spec := range specs {
+			insertSpecs = append(insertSpecs, entity.InsertTeacherSalarySpec{
+				PresenceID:            spec.PresenceID,
+				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
+				PaidTransportFeeValue: spec.PaidTransportFeeValue,
+			})
+			affectedPresencedIDsInt64 = append(affectedPresencedIDsInt64, int64(spec.PresenceID))
+		}
+
+		_, err := s.entityService.InsertTeacherSalaries(newCtx, insertSpecs)
+		if err != nil {
+			return fmt.Errorf("entityService.InsertTeacherSalaries(): %w", err)
+		}
+
+		err = qtx.SetPresencesIsPaidStatusByIds(newCtx, mysql.SetPresencesIsPaidStatusByIdsParams{
+			IsPaid: 1,
+			Ids:    affectedPresencedIDsInt64,
+		})
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
+}
+
+func (s teachingServiceImpl) EditTeacherSalaries(ctx context.Context, specs []teaching.EditTeacherSalariesSpec) ([]entity.TeacherSalaryID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherSalariesByIds)
+	if errV != nil {
+		return []entity.TeacherSalaryID{}, errV
+	}
+
+	teacherSalaryIDs := make([]entity.TeacherSalaryID, 0, len(specs))
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			teacherSalaryIDs = append(teacherSalaryIDs, spec.TeacherSalaryID)
+			err := qtx.EditTeacherSalary(newCtx, mysql.EditTeacherSalaryParams{
+				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
+				PaidTransportFeeValue: spec.PaidTransportFeeValue,
+				ID:                    int64(spec.TeacherSalaryID),
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.EditTeacherSalary(): %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []entity.TeacherSalaryID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return teacherSalaryIDs, nil
+}
+
+func (s teachingServiceImpl) RemoveTeacherSalaries(ctx context.Context, teacherSalaryIDs []entity.TeacherSalaryID) error {
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		teacherSalaryIDsint64 := make([]int64, 0, len(teacherSalaryIDs))
+		for _, teacherSalaryID := range teacherSalaryIDs {
+			teacherSalaryIDsint64 = append(teacherSalaryIDsint64, int64(teacherSalaryID))
+		}
+		affectedPresencedIDsInt64, err := qtx.GetTeacherSalaryPresenceIdsByIds(newCtx, teacherSalaryIDsint64)
+		if err != nil {
+			return fmt.Errorf("GetTeacherSalaryPresenceIdsByIds(): %w", err)
+		}
+
+		err = s.entityService.DeleteTeacherSalaries(newCtx, teacherSalaryIDs)
+		if err != nil {
+			return fmt.Errorf("entityService.DeleteTeacherSalaries(): %w", err)
+		}
+
+		err = qtx.SetPresencesIsPaidStatusByIds(newCtx, mysql.SetPresencesIsPaidStatusByIdsParams{
+			IsPaid: 0,
+			Ids:    affectedPresencedIDsInt64,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.SetPresencesIsPaidStatusByIds(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
 }

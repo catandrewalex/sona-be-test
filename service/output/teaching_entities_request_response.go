@@ -34,6 +34,9 @@ const (
 
 	MaxPage_GetPresences           = Default_MaxPage
 	MaxResultsPerPage_GetPresences = Default_MaxResultsPerPage
+
+	MaxPage_GetTeacherSalaries           = Default_MaxPage
+	MaxResultsPerPage_GetTeacherSalaries = Default_MaxResultsPerPage
 )
 
 // ============================== INSTRUMENT ==============================
@@ -880,5 +883,38 @@ type DeletePresencesResponse struct {
 }
 
 func (r DeletePresencesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== PRESENCE ==============================
+
+type GetTeacherSalariesRequest struct {
+	PaginationRequest
+	TimeFilter
+}
+type GetTeacherSalariesResponse struct {
+	Data    GetTeacherSalariesResult `json:"data"`
+	Message string                   `json:"message,omitempty"`
+}
+type GetTeacherSalariesResult struct {
+	Results []entity.TeacherSalary `json:"results"`
+	PaginationResponse
+}
+
+func (r GetTeacherSalariesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeacherSalaries, MaxResultsPerPage_GetTeacherSalaries); validationErr != nil {
+		errorDetail = validationErr.GetErrorDetail()
+	}
+
+	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
 	return nil
 }

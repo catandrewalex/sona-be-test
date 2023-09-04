@@ -120,6 +120,18 @@ type Presence struct {
 	IsPaid                bool                         `json:"isPaid"`
 }
 
+type TeacherSalary struct {
+	TeacherSalaryID       TeacherSalaryID `json:"teacherSalaryId"`
+	Presence              Presence        `json:"presence"`
+	PaidCourseFeeValue    int32           `json:"paidCourseFeeValue"`
+	PaidTransportFeeValue int32           `json:"paidTransportFeeValue"`
+	AddedAt               time.Time       `json:"addedAt"`
+
+	// These 2 fields value are derived from Presence.[Course|Transport]Fee, Presence.UsedStudentTokenQuota, and Default_OneCourseCycle
+	CourseFeeFullValue    int32 `json:"courseFeeFullValue"`
+	TransportFeeFullValue int32 `json:"transportFeeFullValue"`
+}
+
 type TeacherID int64
 type StudentID int64
 type InstrumentID int64
@@ -133,6 +145,8 @@ type EnrollmentPaymentID int64
 type StudentLearningTokenID int64
 type PresenceID int64
 
+type TeacherSalaryID int64
+
 const TeacherID_None TeacherID = iota
 const StudentID_None StudentID = iota
 const InstrumentID_None InstrumentID = iota
@@ -145,6 +159,8 @@ const TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
 const EnrollmentPaymentID_None EnrollmentPaymentID = iota
 const StudentLearningTokenID_None StudentLearningTokenID = iota
 const PresenceID_None PresenceID = iota
+
+const TeacherSalaryID_None PresenceID = iota
 
 type EntityService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
@@ -214,11 +230,19 @@ type EntityService interface {
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 
 	GetPresences(ctx context.Context, pagination util.PaginationSpec, spec GetPresencesSpec) (GetPresencesResult, error)
+	GetPresencesForTeacherSalary(ctx context.Context, spec GetPresencesForTeacherSalarySpec) ([]Presence, error)
 	GetPresenceById(ctx context.Context, id PresenceID) (Presence, error)
 	GetPresencesByIds(ctx context.Context, ids []PresenceID) ([]Presence, error)
 	InsertPresences(ctx context.Context, specs []InsertPresenceSpec) ([]PresenceID, error)
 	UpdatePresences(ctx context.Context, specs []UpdatePresenceSpec) ([]PresenceID, error)
 	DeletePresences(ctx context.Context, ids []PresenceID) error
+
+	GetTeacherSalaries(ctx context.Context, pagination util.PaginationSpec, spec GetTeacherSalariesSpec) (GetTeacherSalariesResult, error)
+	GetTeacherSalaryById(ctx context.Context, id TeacherSalaryID) (TeacherSalary, error)
+	GetTeacherSalariesByIds(ctx context.Context, ids []TeacherSalaryID) ([]TeacherSalary, error)
+	InsertTeacherSalaries(ctx context.Context, specs []InsertTeacherSalarySpec) ([]TeacherSalaryID, error)
+	UpdateTeacherSalaries(ctx context.Context, specs []UpdateTeacherSalarySpec) ([]TeacherSalaryID, error)
+	DeleteTeacherSalaries(ctx context.Context, ids []TeacherSalaryID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -417,8 +441,15 @@ func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {
 // ============================== PRESENCE ==============================
 
 type GetPresencesSpec struct {
+	ClassID    ClassID
+	StudentID  StudentID
+	UnpaidOnly bool
+	util.TimeSpec
+}
+
+type GetPresencesForTeacherSalarySpec struct {
+	TeacherID TeacherID
 	ClassID   ClassID
-	StudentID StudentID
 	util.TimeSpec
 }
 
@@ -453,4 +484,34 @@ type UpdatePresenceSpec struct {
 
 func (s UpdatePresenceSpec) GetInt64ID() int64 {
 	return int64(s.PresenceID)
+}
+
+// ============================== TEACHER SALARY ==============================
+
+type GetTeacherSalariesSpec struct {
+	TeacherID TeacherID
+	util.TimeSpec
+}
+
+type GetTeacherSalariesResult struct {
+	TeacherSalaries  []TeacherSalary
+	PaginationResult util.PaginationResult
+}
+
+type InsertTeacherSalarySpec struct {
+	PresenceID            PresenceID
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+}
+
+type UpdateTeacherSalarySpec struct {
+	TeacherSalaryID       TeacherSalaryID
+	PresenceID            PresenceID
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+	AddedAt               time.Time
+}
+
+func (s UpdateTeacherSalarySpec) GetInt64ID() int64 {
+	return int64(s.TeacherSalaryID)
 }

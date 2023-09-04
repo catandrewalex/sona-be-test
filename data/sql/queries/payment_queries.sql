@@ -150,7 +150,8 @@ FROM student_learning_token AS slt
 
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
 WHERE slt.enrollment_id IN (sqlc.slice('student_enrollment_ids'))
-GROUP BY slt.enrollment_id;
+-- grouping by slt.id is actually not necessary as slt.id is also a primary key. But, somehow SQL with "sql_mode=only_full_group_by" rejects the query if we don't aggregate by slt.id
+GROUP BY slt.enrollment_id, slt.id;
 
 -- name: IncrementSLTQuotaById :exec
 UPDATE student_learning_token SET quota = quota + ?
@@ -260,17 +261,18 @@ DELETE FROM student_learning_token
 WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== TEACHER_SALARY ============================== */
--- name: GetTeacherSalaryById :one
-SELECT * FROM teacher_salary
-WHERE id = ? LIMIT 1;
+-- name: GetTeacherSalaryPresenceIdsByIds :many
+SELECT presence_id AS id FROM teacher_salary
+WHERE teacher_salary.id IN (sqlc.slice('teacher_salary_ids'));
 
--- name: GetTeacherSalaries :many
-SELECT ts.id AS teacher_salary_id, profit_sharing_percentage, added_at,
-    presence.id AS presence_id, date, used_student_token_quota, duration,
+-- name: GetTeacherSalaryById :one
+SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+    sqlc.embed(presence),
     presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
-    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    sqlc.embed(slt)
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -284,15 +286,93 @@ FROM teacher_salary AS ts
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
-ORDER BY ts.id;
+    
+    JOIN student_learning_token as slt ON presence.token_id = slt.id
+WHERE ts.id = ? LIMIT 1;
+
+-- name: GetTeacherSalariesByIds :many
+SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+    sqlc.embed(presence),
+    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    sqlc.embed(slt)
+FROM teacher_salary AS ts
+    JOIN presence ON presence_id = presence.id
+    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+
+    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN course ON class.course_id = course.id
+    LEFT JOIN instrument ON course.instrument_id = instrument.id
+    LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    
+    JOIN student_learning_token as slt ON presence.token_id = slt.id
+WHERE ts.id IN (sqlc.slice('ids'));
+
+-- name: GetTeacherSalaries :many
+SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+    sqlc.embed(presence),
+    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    sqlc.embed(slt)
+FROM teacher_salary AS ts
+    JOIN presence ON presence_id = presence.id
+    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+
+    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN course ON class.course_id = course.id
+    LEFT JOIN instrument ON course.instrument_id = instrument.id
+    LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    
+    JOIN student_learning_token as slt ON presence.token_id = slt.id
+WHERE
+    (presence.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
+ORDER BY presence.teacher_id, class.id, student_id, ts.id
+LIMIT ? OFFSET ?;
+
+-- name: CountTeacherSalariesByIds :one
+SELECT Count(id) AS total FROM teacher_salary
+WHERE id IN (sqlc.slice('ids'));
+
+-- name: CountTeacherSalaries :one
+SELECT Count(teacher_salary.id) AS total
+FROM teacher_salary
+    JOIN presence ON presence_id = presence.id
+WHERE
+    (presence.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false);
 
 -- name: InsertTeacherSalary :execlastid
 INSERT INTO teacher_salary (
-    presence_id, profit_sharing_percentage, added_at
+    presence_id, paid_course_fee_value, paid_transport_fee_value
 ) VALUES (
     ?, ?, ?
 );
 
+-- name: UpdateTeacherSalary :exec
+UPDATE teacher_salary SET presence_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
+WHERE id = ?;
+
+-- name: EditTeacherSalary :exec
+UPDATE teacher_salary SET paid_course_fee_value = ?, paid_transport_fee_value = ?
+WHERE id = ?;
+
 -- name: DeleteTeacherSalaryById :exec
 DELETE FROM teacher_salary
 WHERE id = ?;
+
+-- name: DeleteTeacherSalariesByIds :exec
+DELETE FROM teacher_salary
+WHERE id IN (sqlc.slice('ids'));

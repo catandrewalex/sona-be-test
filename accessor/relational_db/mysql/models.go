@@ -88,10 +88,11 @@ type Teacher struct {
 }
 
 type TeacherSalary struct {
-	ID                      int64
-	PresenceID              int64
-	ProfitSharingPercentage float64
-	AddedAt                 time.Time
+	ID                    int64
+	PresenceID            int64
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+	AddedAt               time.Time
 }
 
 type TeacherSpecialFee struct {

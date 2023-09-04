@@ -10,6 +10,7 @@ services:
       - .env
     ports:
       - "3306:3306"
+    command: "--log-bin-trust-function-creators=ON"
     volumes:
       - "./scripts/mysql/init_user.sql:/docker-entrypoint-initdb.d/init_user.sql"
       - "./scripts:/scripts"

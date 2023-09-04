@@ -144,6 +144,8 @@ func main() {
 		authRouter.Post("/presences", jsonSerdeWrapper.WrapFunc(backendService.InsertPresencesHandler))
 		authRouter.Put("/presences", jsonSerdeWrapper.WrapFunc(backendService.UpdatePresencesHandler))
 		authRouter.Delete("/presences", jsonSerdeWrapper.WrapFunc(backendService.DeletePresencesHandler))
+
+		authRouter.Get("/teacherSalaries", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalariesHandler))
 	})
 
 	// Router group for staff-only (and above) endpoints
@@ -167,6 +169,11 @@ func main() {
 		authRouter.Post("/class/{ClassID}/presence/add", jsonSerdeWrapper.WrapFunc(backendService.AddPresenceHandler, "ClassID"))
 		authRouter.Post("/presence/{PresenceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditPresenceHandler, "PresenceID"))
 		authRouter.Post("/presence/{PresenceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemovePresenceHandler, "PresenceID"))
+
+		authRouter.Get("/teacherSalaries/invoice/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalaryInvoicesHandler, "TeacherID"))
+		authRouter.Post("/teacherSalaries/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherSalariesHandler))
+		authRouter.Post("/teacherSalaries/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherSalariesHandler))
+		authRouter.Post("/teacherSalaries/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherSalariesHandler))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

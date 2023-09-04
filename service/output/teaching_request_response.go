@@ -1,6 +1,7 @@
 package output
 
 import (
+	"fmt"
 	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/errs"
@@ -245,5 +246,112 @@ type RemovePresenceResponse struct {
 }
 
 func (r RemovePresenceRequest) Validate() errs.ValidationError {
+	return nil
+}
+
+// ============================== TEACHER_SALARY ==============================
+
+type GetTeacherSalaryInvoicesRequest struct {
+	TeacherID entity.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	ClassID   entity.ClassID   `json:"classId,omitempty"`
+	TimeFilter
+}
+type GetTeacherSalaryInvoicesResponse struct {
+	Data GetTeacherSalaryInvoicesResult `json:"data"`
+}
+
+type GetTeacherSalaryInvoicesResult struct {
+	Results []teaching.TeacherSalaryInvoice `json:"results"`
+}
+
+func (r GetTeacherSalaryInvoicesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	return nil
+}
+
+type SubmitTeacherSalariesRequest struct {
+	Data []SubmitTeacherSalariesRequestParam `json:"data"`
+}
+type SubmitTeacherSalariesRequestParam struct {
+	PresenceID            entity.PresenceID `json:"presenceId"`
+	PaidCourseFeeValue    int32             `json:"paidCourseFeeValue,omitempty"`
+	PaidTransportFeeValue int32             `json:"paidTransportFeeValue,omitempty"`
+}
+type SubmitTeacherSalariesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r SubmitTeacherSalariesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.PaidCourseFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.paidCourseFeeValue", i)] = "paidCourseFeeValue must be >= 0"
+		}
+		if datum.PaidTransportFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.paidTransportFeeValue", i)] = "paidTransportFeeValue must be >= 0"
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
+type EditTeacherSalariesRequest struct {
+	Data []EditTeacherSalariesRequestParam `json:"data"`
+}
+type EditTeacherSalariesRequestParam struct {
+	TeacherSalaryID       entity.TeacherSalaryID `json:"teacherSalaryId"`
+	PaidCourseFeeValue    int32                  `json:"paidCourseFeeValue,omitempty"`
+	PaidTransportFeeValue int32                  `json:"paidTransportFeeValue,omitempty"`
+}
+type EditTeacherSalariesResponse struct {
+	Data    EditTeacherSalariesResult `json:"data"`
+	Message string                    `json:"message,omitempty"`
+}
+
+type EditTeacherSalariesResult struct {
+	Results []entity.TeacherSalary `json:"results"`
+}
+
+func (r EditTeacherSalariesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.PaidCourseFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.paidCourseFeeValue", i)] = "paidCourseFeeValue must be >= 0"
+		}
+		if datum.PaidTransportFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.paidTransportFeeValue", i)] = "paidTransportFeeValue must be >= 0"
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type RemoveTeacherSalariesRequest struct {
+	Data []RemoveTeacherSalariesRequestParam `json:"data"`
+}
+type RemoveTeacherSalariesRequestParam struct {
+	TeacherSalaryID entity.TeacherSalaryID `json:"teacherSalaryId"`
+}
+type RemoveTeacherSalariesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r RemoveTeacherSalariesRequest) Validate() errs.ValidationError {
 	return nil
 }
