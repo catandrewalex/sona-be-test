@@ -157,6 +157,7 @@ func main() {
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
 		authRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
+		authRouter.Get("/presences", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesHandler))
 
 		authRouter.Get("/enrollmentPayment/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPaymentHandler))
 		authRouter.Get("/enrollmentPayment/invoice/studentEnrollment/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoiceHandler, "StudentEnrollmentID"))
