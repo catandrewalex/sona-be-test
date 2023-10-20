@@ -95,7 +95,7 @@ func (s entityServiceImpl) InsertTeachers(ctx context.Context, userIDs []identit
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, userID := range userIDs {
-			teacherID, err := s.mySQLQueries.InsertTeacher(ctx, int64(userID))
+			teacherID, err := qtx.InsertTeacher(newCtx, int64(userID))
 			if err != nil {
 				return fmt.Errorf("qtx.InsertTeacher(): %w", err)
 			}
@@ -756,7 +756,7 @@ func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.Upd
 		for _, spec := range specs {
 			classId := int64(spec.ClassID)
 			// Updated class
-			err := s.mySQLQueries.UpdateClass(newCtx, mysql.UpdateClassParams{
+			err := qtx.UpdateClass(newCtx, mysql.UpdateClassParams{
 				TransportFee:  spec.TransportFee,
 				TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
 				CourseID:      int64(spec.CourseID),
@@ -1480,7 +1480,7 @@ func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.U
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			err := qtx.UpdatePresence(ctx, mysql.UpdatePresenceParams{
+			err := qtx.UpdatePresence(newCtx, mysql.UpdatePresenceParams{
 				Date:                  spec.Date,
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
