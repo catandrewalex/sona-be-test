@@ -77,7 +77,6 @@ type StudentLearningToken struct {
 	CourseFeeValue    int32
 	TransportFeeValue int32
 	CreatedAt         time.Time
-	PenaltyStartAt    sql.NullTime
 	LastUpdatedAt     time.Time
 	EnrollmentID      int64
 }

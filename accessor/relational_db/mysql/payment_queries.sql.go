@@ -311,19 +311,6 @@ func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Con
 	return items, nil
 }
 
-const getEarliestPenaltyDateSLTByStudentEnrollmentId = `-- name: GetEarliestPenaltyDateSLTByStudentEnrollmentId :one
-SELECT MIN(penalty_start_at) AS penalty_date FROM student_learning_token
-WHERE enrollment_id = ?
-GROUP BY enrollment_id
-`
-
-func (q *Queries) GetEarliestPenaltyDateSLTByStudentEnrollmentId(ctx context.Context, enrollmentID int64) (interface{}, error) {
-	row := q.db.QueryRowContext(ctx, getEarliestPenaltyDateSLTByStudentEnrollmentId, enrollmentID)
-	var penalty_date interface{}
-	err := row.Scan(&penalty_date)
-	return penalty_date, err
-}
-
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -713,8 +700,23 @@ func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg G
 	return items, nil
 }
 
+const getLatestEnrollmentPaymentDateByStudentId = `-- name: GetLatestEnrollmentPaymentDateByStudentId :one
+SELECT MAX(payment_date) AS penalty_date
+FROM enrollment_payment AS ep
+    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
+WHERE se.student_id = ?
+GROUP BY se.student_id LIMIT 1
+`
+
+func (q *Queries) GetLatestEnrollmentPaymentDateByStudentId(ctx context.Context, studentID int64) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getLatestEnrollmentPaymentDateByStudentId, studentID)
+	var penalty_date interface{}
+	err := row.Scan(&penalty_date)
+	return penalty_date, err
+}
+
 const getSLTByEnrollmentIdAndCourseFeeAndTransportFee = `-- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id FROM student_learning_token
+SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?
 `
 
@@ -733,7 +735,6 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Co
 		&i.CourseFeeValue,
 		&i.TransportFeeValue,
 		&i.CreatedAt,
-		&i.PenaltyStartAt,
 		&i.LastUpdatedAt,
 		&i.EnrollmentID,
 	)
@@ -741,7 +742,7 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Co
 }
 
 const getSLTWithNegativeQuotaByEnrollmentId = `-- name: GetSLTWithNegativeQuotaByEnrollmentId :many
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, penalty_start_at, last_updated_at, enrollment_id FROM student_learning_token
+SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
 WHERE enrollment_id = ? AND quota < 0
 `
 
@@ -761,7 +762,6 @@ func (q *Queries) GetSLTWithNegativeQuotaByEnrollmentId(ctx context.Context, enr
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
 			&i.CreatedAt,
-			&i.PenaltyStartAt,
 			&i.LastUpdatedAt,
 			&i.EnrollmentID,
 		); err != nil {
@@ -1145,7 +1145,7 @@ SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_val
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -1253,7 +1253,6 @@ func (q *Queries) GetTeacherSalaries(ctx context.Context, arg GetTeacherSalaries
 			&i.StudentLearningToken.CourseFeeValue,
 			&i.StudentLearningToken.TransportFeeValue,
 			&i.StudentLearningToken.CreatedAt,
-			&i.StudentLearningToken.PenaltyStartAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
 		); err != nil {
@@ -1277,7 +1276,7 @@ SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_val
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -1380,7 +1379,6 @@ func (q *Queries) GetTeacherSalariesByIds(ctx context.Context, ids []int64) ([]G
 			&i.StudentLearningToken.CourseFeeValue,
 			&i.StudentLearningToken.TransportFeeValue,
 			&i.StudentLearningToken.CreatedAt,
-			&i.StudentLearningToken.PenaltyStartAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
 		); err != nil {
@@ -1404,7 +1402,7 @@ SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_val
     presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.penalty_start_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_salary AS ts
     JOIN presence ON presence_id = presence.id
     LEFT JOIN teacher ON presence.teacher_id = teacher.id
@@ -1491,7 +1489,6 @@ func (q *Queries) GetTeacherSalaryById(ctx context.Context, id int64) (GetTeache
 		&i.StudentLearningToken.CourseFeeValue,
 		&i.StudentLearningToken.TransportFeeValue,
 		&i.StudentLearningToken.CreatedAt,
-		&i.StudentLearningToken.PenaltyStartAt,
 		&i.StudentLearningToken.LastUpdatedAt,
 		&i.StudentLearningToken.EnrollmentID,
 	)

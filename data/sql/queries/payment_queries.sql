@@ -59,6 +59,13 @@ WHERE
 ORDER BY ep.id
 LIMIT ? OFFSET ?;
 
+-- name: GetLatestEnrollmentPaymentDateByStudentId :one
+SELECT MAX(payment_date) AS penalty_date
+FROM enrollment_payment AS ep
+    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
+WHERE se.student_id = ?
+GROUP BY se.student_id LIMIT 1;
+
 -- name: GetEnrollmentPaymentsDescendingDate :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -119,11 +126,6 @@ WHERE enrollment_id = ? AND quota < 0;
 -- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
 SELECT * FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?;
-
--- name: GetEarliestPenaltyDateSLTByStudentEnrollmentId :one
-SELECT MIN(penalty_start_at) AS penalty_date FROM student_learning_token
-WHERE enrollment_id = ?
-GROUP BY enrollment_id;
 
 -- name: GetEarliestAvailableSLTsByStudentEnrollmentIds :many
 WITH slt_min_max AS (

@@ -81,17 +81,16 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 	}
 
 	// calculate Course Fee Penalty (e.g. due to late payment)
-	earliestSLTPenaltyDate, err := s.mySQLQueries.GetEarliestPenaltyDateSLTByStudentEnrollmentId(ctx, int64(studentEnrollmentID))
+	latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentId(ctx, int64(studentEnrollmentID))
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetEarliestPenaltyDateSLTByStudentEnrollmentId(): %w", err)
+			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentId(): %w", err)
 		}
 	}
-
-	var penaltyFeeValue int32 = 0
-	if earliestSLTPenaltyDate != nil {
-		penaltyFeeValue = teaching.Default_PenaltyFeeValue * (int32(time.Since(earliestSLTPenaltyDate.(time.Time)).Hours()/24) + 1)
-	}
+	lastDateBeforePenalty := time.Date(latestPaymentDate.(time.Time).Year(), latestPaymentDate.(time.Time).AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, time.UTC)
+	penaltyFeeValue := teaching.Default_PenaltyFeeValue * int32(time.Since(lastDateBeforePenalty).Hours()/24)
+	fmt.Printf("latestPaymentDate: %v\n", latestPaymentDate)
+	fmt.Printf("lastDateBeforePenalty: %v\n", lastDateBeforePenalty)
 
 	// calculate transport fee (splitted unionly across all class students)
 	splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
@@ -351,7 +350,7 @@ func (s teachingServiceImpl) AddPresence(ctx context.Context, spec teaching.AddP
 
 		enrollmentIDToEarliestSLTID := make(map[int64]entity.StudentLearningTokenID, 0)
 		// students may have > 1 SLT, we'll pick the one with earliest non-zero quota.
-		//   if all <= 0, we decrement the last SLT (thus becoming negative for paymentPenalty later).
+		//   if all <= 0, we decrement the last SLT (thus becoming negative).
 		earliestAvailableSLTs, err := qtx.GetEarliestAvailableSLTsByStudentEnrollmentIds(newCtx, studentEnrollmentIDsInt64)
 		if err != nil {
 			return fmt.Errorf("qtx.GetEarliestAvailableSLTsByStudentEnrollmentIds(): %w", err)
