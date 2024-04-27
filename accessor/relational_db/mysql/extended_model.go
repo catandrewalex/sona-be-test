@@ -73,19 +73,19 @@ func (r GetStudentLearningTokensByIdsRow) ToGetStudentLearningTokensRow() GetStu
 	return GetStudentLearningTokensRow(r)
 }
 
-// ============================== PRESENCE ==============================
+// ============================== ATTENDANCE ==============================
 
-func (r GetPresenceByIdRow) ToGetPresencesRow() GetPresencesRow {
-	return GetPresencesRow(r)
+func (r GetAttendanceByIdRow) ToGetAttendancesRow() GetAttendancesRow {
+	return GetAttendancesRow(r)
 }
-func (r GetPresencesByIdsRow) ToGetPresencesRow() GetPresencesRow {
-	return GetPresencesRow(r)
+func (r GetAttendancesByIdsRow) ToGetAttendancesRow() GetAttendancesRow {
+	return GetAttendancesRow(r)
 }
-func (r GetPresencesForTeacherSalaryRow) ToGetPresencesRow() GetPresencesRow {
-	return GetPresencesRow(r)
+func (r GetAttendancesForTeacherSalaryRow) ToGetAttendancesRow() GetAttendancesRow {
+	return GetAttendancesRow(r)
 }
 
-// ============================== PRESENCE ==============================
+// ============================== ATTENDANCE ==============================
 
 func (r GetTeacherSalaryByIdRow) ToGetTeacherSalariesRow() GetTeacherSalariesRow {
 	return GetTeacherSalariesRow(r)

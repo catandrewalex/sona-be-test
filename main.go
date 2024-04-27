@@ -139,11 +139,11 @@ func main() {
 		authRouter.Put("/studentLearningTokens", jsonSerdeWrapper.WrapFunc(backendService.UpdateStudentLearningTokensHandler))
 		authRouter.Delete("/studentLearningTokens", jsonSerdeWrapper.WrapFunc(backendService.DeleteStudentLearningTokensHandler))
 
-		authRouter.Get("/presences", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesHandler))
-		authRouter.Get("/presence/{PresenceID}", jsonSerdeWrapper.WrapFunc(backendService.GetPresenceByIdHandler, "PresenceID"))
-		authRouter.Post("/presences", jsonSerdeWrapper.WrapFunc(backendService.InsertPresencesHandler))
-		authRouter.Put("/presences", jsonSerdeWrapper.WrapFunc(backendService.UpdatePresencesHandler))
-		authRouter.Delete("/presences", jsonSerdeWrapper.WrapFunc(backendService.DeletePresencesHandler))
+		authRouter.Get("/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesHandler))
+		authRouter.Get("/attendance/{AttendanceID}", jsonSerdeWrapper.WrapFunc(backendService.GetAttendanceByIdHandler, "AttendanceID"))
+		authRouter.Post("/attendances", jsonSerdeWrapper.WrapFunc(backendService.InsertAttendancesHandler))
+		authRouter.Put("/attendances", jsonSerdeWrapper.WrapFunc(backendService.UpdateAttendancesHandler))
+		authRouter.Delete("/attendances", jsonSerdeWrapper.WrapFunc(backendService.DeleteAttendancesHandler))
 
 		authRouter.Get("/teacherSalaries", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalariesHandler))
 	})
@@ -157,7 +157,7 @@ func main() {
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
 		authRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
-		authRouter.Get("/presences", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesHandler))
+		authRouter.Get("/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesHandler))
 
 		authRouter.Get("/enrollmentPayment/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPaymentHandler))
 		authRouter.Get("/enrollmentPayment/invoice/studentEnrollment/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoiceHandler, "StudentEnrollmentID"))
@@ -166,10 +166,10 @@ func main() {
 		authRouter.Post("/enrollmentPayment/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPaymentHandler))
 
 		authRouter.Get("/class/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
-		authRouter.Get("/class/{ClassID}/presences", jsonSerdeWrapper.WrapFunc(backendService.GetPresencesByClassIDHandler, "ClassID"))
-		authRouter.Post("/class/{ClassID}/presence/add", jsonSerdeWrapper.WrapFunc(backendService.AddPresenceHandler, "ClassID"))
-		authRouter.Post("/presence/{PresenceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditPresenceHandler, "PresenceID"))
-		authRouter.Post("/presence/{PresenceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemovePresenceHandler, "PresenceID"))
+		authRouter.Get("/class/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
+		authRouter.Post("/class/{ClassID}/attendance/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
+		authRouter.Post("/attendance/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
+		authRouter.Post("/attendance/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
 
 		authRouter.Get("/teacherSalaries/invoice/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalaryInvoicesHandler, "TeacherID"))
 		authRouter.Post("/teacherSalaries/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherSalariesHandler))

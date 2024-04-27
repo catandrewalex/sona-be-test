@@ -20,7 +20,7 @@ var (
 	// Teaching
 	ErrClassHaveNoStudent                   = errors.New("class doesn't have any student")
 	ErrStudentEnrollmentHaveNoLearningToken = errors.New("studentEnrollment doesn't have any studentLearningToken")
-	ErrModifyingPaidPresence                = errors.New("presence is already paid and cannot be updated/deleted")
+	ErrModifyingPaidAttendance              = errors.New("attendance is already paid and cannot be updated/deleted")
 )
 
 type Validatable interface {

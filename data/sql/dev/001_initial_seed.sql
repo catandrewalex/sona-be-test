@@ -355,59 +355,59 @@ INSERT INTO student_learning_token (
     1, 250000, 37500, '2023-08-28 21:05:07', '2023-08-28 21:05:07', 8
 );
 
-/* ============================== PRESENCE & STUDENT_ATTEND ============================== */
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-01 09:00:00', 1, 30, 'voice placement technique 1', 0, 1, 1, 1, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-08 09:10:00', 1, 30, 'voice placement technique 2', 0, 1, 1, 1, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-15 08:55:00', 1, 30, 'voice placement technique 3', 0, 1, 1, 1, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-23 08:55:00', 1, 30, 'voice placement technique 4', 0, 1, 1, 1, 1 );
+/* ============================== ATTENDANCE & STUDENT_ATTEND ============================== */
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-01 09:00:00', 1, 30, 'voice placement technique 1', 0, 1, 1, 1, 1 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-08 09:10:00', 1, 30, 'voice placement technique 2', 0, 1, 1, 1, 1 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-15 08:55:00', 1, 30, 'voice placement technique 3', 0, 1, 1, 1, 1 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-23 08:55:00', 1, 30, 'voice placement technique 4', 0, 1, 1, 1, 1 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-30 09:00:00', 1, 30, 'breath control technique 1', 0, 1, 1, 1, 1 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-07 09:10:00', 1, 30, 'breath control technique 2', 0, 1, 1, 1, 3 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-14 08:55:00', 1, 30, 'breath control technique 3', 0, 1, 1, 1, 3 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-30 09:00:00', 1, 30, 'breath control technique 1', 0, 1, 1, 1, 1 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-07 09:10:00', 1, 30, 'breath control technique 2', 0, 1, 1, 1, 3 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-14 08:55:00', 1, 30, 'breath control technique 3', 0, 1, 1, 1, 3 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-02 10:00:00', 1, 60, 'ABRSM grade 8 scales', 0, 2, 2, 2, 4 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-09 11:10:00', 1, 60, 'ABRSM grade 8 arpegios', 0, 2, 2, 2, 4 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-16 09:55:00', 1, 60, 'fantaise improptu', 0, 2, 2, 2, 4 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-23 09:35:20', 1, 60, 'fantaise improptu', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-02 10:00:00', 1, 60, 'ABRSM grade 8 scales', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-09 11:10:00', 1, 60, 'ABRSM grade 8 arpegios', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-16 09:55:00', 1, 60, 'fantaise improptu', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-07-23 09:35:20', 1, 60, 'fantaise improptu', 0, 2, 2, 2, 4 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-09-30 10:00:00', 1, 60, 'fantaise improptu: phrasing', 0, 2, 2, 2, 4 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-07 11:10:00', 1, 60, 'fantaise improptu: phrasing', 0, 2, 2, 2, 4 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-14 09:55:00', 1, 60, 'fantaise improptu: structure', 0, 2, 2, 2, 4 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-21 09:35:20', 1, 60, 'fantaise improptu: structure', 0, 2, 2, 2, 4 );
-
-
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 4, 8 );
-
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 4, 8 );
-
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 4, 8 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-09-30 10:00:00', 1, 60, 'fantaise improptu: phrasing', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-07 11:10:00', 1, 60, 'fantaise improptu: phrasing', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-14 09:55:00', 1, 60, 'fantaise improptu: structure', 0, 2, 2, 2, 4 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-21 09:35:20', 1, 60, 'fantaise improptu: structure', 0, 2, 2, 2, 4 );
 
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 4, 8 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-03 05:00:00', 1, 30, 'time signature & key signature introduction', 0, 5, 4, 4, 8 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 4, 8 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-10 05:00:00', 1, 30, 'notes value & bar counting', 0, 5, 4, 4, 8 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 4, 8 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-17 05:00:00', 1, 30, 'scale & interval', 0, 5, 4, 4, 8 );
 
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 1, 5 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 2, 6 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 3, 7 );
-INSERT INTO presence ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 4, 8 );
+
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-10-25 06:00:00', 1, 30, 'intervals & chords 1', 0, 5, 4, 4, 8 );
+
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-02 06:00:00', 1, 30, 'intervals & chords 2', 0, 5, 4, 4, 8 );
+
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-09 06:00:00', 1, 30, 'triad', 0, 5, 4, 4, 8 );
+
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 1, 5 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 2, 6 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 3, 7 );
+INSERT INTO attendance ( date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id ) VALUES ( '2023-11-16 06:00:00', 1, 30, 'triad 2 & cadence', 0, 5, 4, 4, 8 );

@@ -32,8 +32,8 @@ const (
 	MaxPage_GetStudentLearningTokens           = Default_MaxPage
 	MaxResultsPerPage_GetStudentLearningTokens = Default_MaxResultsPerPage
 
-	MaxPage_GetPresences           = Default_MaxPage
-	MaxResultsPerPage_GetPresences = Default_MaxResultsPerPage
+	MaxPage_GetAttendances           = Default_MaxPage
+	MaxResultsPerPage_GetAttendances = Default_MaxResultsPerPage
 
 	MaxPage_GetTeacherSalaries           = Default_MaxPage
 	MaxResultsPerPage_GetTeacherSalaries = Default_MaxResultsPerPage
@@ -749,24 +749,24 @@ func (r DeleteStudentLearningTokensRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-// ============================== PRESENCE ==============================
+// ============================== ATTENDANCE ==============================
 
-type GetPresencesRequest struct {
+type GetAttendancesRequest struct {
 	PaginationRequest
 	TimeFilter
 }
-type GetPresencesResponse struct {
-	Data    GetPresencesResult `json:"data"`
-	Message string             `json:"message,omitempty"`
+type GetAttendancesResponse struct {
+	Data    GetAttendancesResult `json:"data"`
+	Message string               `json:"message,omitempty"`
 }
-type GetPresencesResult struct {
-	Results []entity.Presence `json:"results"`
+type GetAttendancesResult struct {
+	Results []entity.Attendance `json:"results"`
 	PaginationResponse
 }
 
-func (r GetPresencesRequest) Validate() errs.ValidationError {
+func (r GetAttendancesRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if validationErr := r.PaginationRequest.Validate(MaxPage_GetPresences, MaxResultsPerPage_GetPresences); validationErr != nil {
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetAttendances, MaxResultsPerPage_GetAttendances); validationErr != nil {
 		errorDetail = validationErr.GetErrorDetail()
 	}
 
@@ -782,22 +782,22 @@ func (r GetPresencesRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type GetPresenceRequest struct {
-	PresenceID entity.PresenceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+type GetAttendanceRequest struct {
+	AttendanceID entity.AttendanceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
-type GetPresenceResponse struct {
-	Data    entity.Presence `json:"data"`
-	Message string          `json:"message,omitempty"`
+type GetAttendanceResponse struct {
+	Data    entity.Attendance `json:"data"`
+	Message string            `json:"message,omitempty"`
 }
 
-func (r GetPresenceRequest) Validate() errs.ValidationError {
+func (r GetAttendanceRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type InsertPresencesRequest struct {
-	Data []InsertPresencesRequestParam `json:"data"`
+type InsertAttendancesRequest struct {
+	Data []InsertAttendancesRequestParam `json:"data"`
 }
-type InsertPresencesRequestParam struct {
+type InsertAttendancesRequestParam struct {
 	ClassID                entity.ClassID                `json:"classId"`
 	TeacherID              entity.TeacherID              `json:"teacherId"`
 	StudentID              entity.StudentID              `json:"studentId"`
@@ -807,12 +807,12 @@ type InsertPresencesRequestParam struct {
 	Duration               int32                         `json:"duration,omitempty"`
 	Note                   string                        `json:"note,omitempty"`
 }
-type InsertPresencesResponse struct {
-	Data    UpsertPresenceResult `json:"data"`
-	Message string               `json:"message,omitempty"`
+type InsertAttendancesResponse struct {
+	Data    UpsertAttendanceResult `json:"data"`
+	Message string                 `json:"message,omitempty"`
 }
 
-func (r InsertPresencesRequest) Validate() errs.ValidationError {
+func (r InsertAttendancesRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	for i, datum := range r.Data {
@@ -830,11 +830,11 @@ func (r InsertPresencesRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type UpdatePresencesRequest struct {
-	Data []UpdatePresencesRequestParam `json:"data"`
+type UpdateAttendancesRequest struct {
+	Data []UpdateAttendancesRequestParam `json:"data"`
 }
-type UpdatePresencesRequestParam struct {
-	PresenceID             entity.PresenceID             `json:"presenceId"`
+type UpdateAttendancesRequestParam struct {
+	AttendanceID           entity.AttendanceID           `json:"attendanceId"`
 	ClassID                entity.ClassID                `json:"classId"`
 	TeacherID              entity.TeacherID              `json:"teacherId"`
 	StudentID              entity.StudentID              `json:"studentId"`
@@ -845,12 +845,12 @@ type UpdatePresencesRequestParam struct {
 	Note                   string                        `json:"note,omitempty"`
 	IsPaid                 bool                          `json:"isPaid,omitempty"`
 }
-type UpdatePresencesResponse struct {
-	Data    UpsertPresenceResult `json:"data"`
-	Message string               `json:"message,omitempty"`
+type UpdateAttendancesResponse struct {
+	Data    UpsertAttendanceResult `json:"data"`
+	Message string                 `json:"message,omitempty"`
 }
 
-func (r UpdatePresencesRequest) Validate() errs.ValidationError {
+func (r UpdateAttendancesRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	for i, datum := range r.Data {
@@ -868,25 +868,25 @@ func (r UpdatePresencesRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type UpsertPresenceResult struct {
-	Results []entity.Presence `json:"results"`
+type UpsertAttendanceResult struct {
+	Results []entity.Attendance `json:"results"`
 }
 
-type DeletePresencesRequest struct {
-	Data []DeletePresencesRequestParam `json:"data"`
+type DeleteAttendancesRequest struct {
+	Data []DeleteAttendancesRequestParam `json:"data"`
 }
-type DeletePresencesRequestParam struct {
-	PresenceID entity.PresenceID `json:"presenceId"`
+type DeleteAttendancesRequestParam struct {
+	AttendanceID entity.AttendanceID `json:"attendanceId"`
 }
-type DeletePresencesResponse struct {
+type DeleteAttendancesResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (r DeletePresencesRequest) Validate() errs.ValidationError {
+func (r DeleteAttendancesRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-// ============================== PRESENCE ==============================
+// ============================== ATTENDANCE ==============================
 
 type GetTeacherSalariesRequest struct {
 	PaginationRequest

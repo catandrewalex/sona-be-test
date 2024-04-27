@@ -99,7 +99,7 @@ CREATE TABLE teacher_special_fee
   FOREIGN KEY (course_id) REFERENCES course(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE TABLE presence
+CREATE TABLE attendance
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -111,11 +111,11 @@ CREATE TABLE presence
   teacher_id BIGINT unsigned,
   student_id BIGINT unsigned,
   token_id BIGINT unsigned NOT NULL,
-  -- `presence` stores historical records, and must not be deleted by CASCADE, but allow deletion of the parent entity
+  -- `attendance` stores historical records, and must not be deleted by CASCADE, but allow deletion of the parent entity
   FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE SET NULL,
-  -- a `presence` must have a `student_learning_token` for calculating `presence` fee. If one wishes to delete a token ID, we force the `presence` to migrate to use another token.
+  -- an `attendance` must have a `student_learning_token` for calculating `attendance` fee. If one wishes to delete a token ID, we force the `attendance` to migrate to use another token.
   FOREIGN KEY (token_id) REFERENCES student_learning_token(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   UNIQUE KEY `class_id--student_id--date` (`class_id`, `student_id`, `date`)
 );
@@ -123,10 +123,10 @@ CREATE TABLE presence
 CREATE TABLE teacher_salary
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  presence_id BIGINT unsigned NOT NULL UNIQUE,
+  attendance_id BIGINT unsigned NOT NULL UNIQUE,
   paid_course_fee_value INT NOT NULL,
   paid_transport_fee_value INT NOT NULL,
   added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- `teacher_salary` stores historical records of teacher payment, and must be deleted explicitly
-  FOREIGN KEY (presence_id) REFERENCES presence(id) ON UPDATE CASCADE ON DELETE RESTRICT
+  FOREIGN KEY (attendance_id) REFERENCES attendance(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );

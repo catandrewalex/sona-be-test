@@ -107,8 +107,8 @@ type StudentLearningToken_Minimal struct {
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
 }
 
-type Presence struct {
-	PresenceID            PresenceID                   `json:"presenceId"`
+type Attendance struct {
+	AttendanceID          AttendanceID                 `json:"attendanceId"`
 	ClassInfo             *ClassInfo_Minimal           `json:"class,omitempty"`
 	TeacherInfo           *TeacherInfo_Minimal         `json:"teacher,omitempty"`
 	StudentInfo           *StudentInfo_Minimal         `json:"student,omitempty"`
@@ -122,12 +122,12 @@ type Presence struct {
 
 type TeacherSalary struct {
 	TeacherSalaryID       TeacherSalaryID `json:"teacherSalaryId"`
-	Presence              Presence        `json:"presence"`
+	Attendance            Attendance      `json:"attendance"`
 	PaidCourseFeeValue    int32           `json:"paidCourseFeeValue"`
 	PaidTransportFeeValue int32           `json:"paidTransportFeeValue"`
 	AddedAt               time.Time       `json:"addedAt"`
 
-	// These 2 fields value are derived from Presence.[Course|Transport]Fee, Presence.UsedStudentTokenQuota, and Default_OneCourseCycle
+	// These 2 fields value are derived from Attendance.[Course|Transport]Fee, Attendance.UsedStudentTokenQuota, and Default_OneCourseCycle
 	CourseFeeFullValue    int32 `json:"courseFeeFullValue"`
 	TransportFeeFullValue int32 `json:"transportFeeFullValue"`
 }
@@ -143,7 +143,7 @@ type StudentEnrollmentID int64
 type TeacherSpecialFeeID int64
 type EnrollmentPaymentID int64
 type StudentLearningTokenID int64
-type PresenceID int64
+type AttendanceID int64
 
 type TeacherSalaryID int64
 
@@ -158,9 +158,9 @@ const StudentEnrollmentID_None StudentEnrollmentID = iota
 const TeacherSpecialFeeID_None TeacherSpecialFeeID = iota
 const EnrollmentPaymentID_None EnrollmentPaymentID = iota
 const StudentLearningTokenID_None StudentLearningTokenID = iota
-const PresenceID_None PresenceID = iota
+const AttendanceID_None AttendanceID = iota
 
-const TeacherSalaryID_None PresenceID = iota
+const TeacherSalaryID_None AttendanceID = iota
 
 type EntityService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
@@ -229,13 +229,13 @@ type EntityService interface {
 	UpdateStudentLearningTokens(ctx context.Context, specs []UpdateStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 
-	GetPresences(ctx context.Context, pagination util.PaginationSpec, spec GetPresencesSpec) (GetPresencesResult, error)
-	GetPresencesForTeacherSalary(ctx context.Context, spec GetPresencesForTeacherSalarySpec) ([]Presence, error)
-	GetPresenceById(ctx context.Context, id PresenceID) (Presence, error)
-	GetPresencesByIds(ctx context.Context, ids []PresenceID) ([]Presence, error)
-	InsertPresences(ctx context.Context, specs []InsertPresenceSpec) ([]PresenceID, error)
-	UpdatePresences(ctx context.Context, specs []UpdatePresenceSpec) ([]PresenceID, error)
-	DeletePresences(ctx context.Context, ids []PresenceID) error
+	GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec GetAttendancesSpec) (GetAttendancesResult, error)
+	GetAttendancesForTeacherSalary(ctx context.Context, spec GetAttendancesForTeacherSalarySpec) ([]Attendance, error)
+	GetAttendanceById(ctx context.Context, id AttendanceID) (Attendance, error)
+	GetAttendancesByIds(ctx context.Context, ids []AttendanceID) ([]Attendance, error)
+	InsertAttendances(ctx context.Context, specs []InsertAttendanceSpec) ([]AttendanceID, error)
+	UpdateAttendances(ctx context.Context, specs []UpdateAttendanceSpec) ([]AttendanceID, error)
+	DeleteAttendances(ctx context.Context, ids []AttendanceID) error
 
 	GetTeacherSalaries(ctx context.Context, pagination util.PaginationSpec, spec GetTeacherSalariesSpec) (GetTeacherSalariesResult, error)
 	GetTeacherSalaryById(ctx context.Context, id TeacherSalaryID) (TeacherSalary, error)
@@ -438,27 +438,27 @@ func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {
 	return int64(s.StudentLearningTokenID)
 }
 
-// ============================== PRESENCE ==============================
+// ============================== ATTENDANCE ==============================
 
-type GetPresencesSpec struct {
+type GetAttendancesSpec struct {
 	ClassID    ClassID
 	StudentID  StudentID
 	UnpaidOnly bool
 	util.TimeSpec
 }
 
-type GetPresencesForTeacherSalarySpec struct {
+type GetAttendancesForTeacherSalarySpec struct {
 	TeacherID TeacherID
 	ClassID   ClassID
 	util.TimeSpec
 }
 
-type GetPresencesResult struct {
-	Presences        []Presence
+type GetAttendancesResult struct {
+	Attendances      []Attendance
 	PaginationResult util.PaginationResult
 }
 
-type InsertPresenceSpec struct {
+type InsertAttendanceSpec struct {
 	ClassID                ClassID
 	TeacherID              TeacherID
 	StudentID              StudentID
@@ -469,8 +469,8 @@ type InsertPresenceSpec struct {
 	Note                   string
 }
 
-type UpdatePresenceSpec struct {
-	PresenceID             PresenceID
+type UpdateAttendanceSpec struct {
+	AttendanceID           AttendanceID
 	ClassID                ClassID
 	TeacherID              TeacherID
 	StudentID              StudentID
@@ -482,8 +482,8 @@ type UpdatePresenceSpec struct {
 	IsPaid                 bool
 }
 
-func (s UpdatePresenceSpec) GetInt64ID() int64 {
-	return int64(s.PresenceID)
+func (s UpdateAttendanceSpec) GetInt64ID() int64 {
+	return int64(s.AttendanceID)
 }
 
 // ============================== TEACHER SALARY ==============================
@@ -499,14 +499,14 @@ type GetTeacherSalariesResult struct {
 }
 
 type InsertTeacherSalarySpec struct {
-	PresenceID            PresenceID
+	AttendanceID          AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 }
 
 type UpdateTeacherSalarySpec struct {
 	TeacherSalaryID       TeacherSalaryID
-	PresenceID            PresenceID
+	AttendanceID          AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time

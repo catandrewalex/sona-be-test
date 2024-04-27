@@ -263,25 +263,25 @@ DELETE FROM student_learning_token
 WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== TEACHER_SALARY ============================== */
--- name: GetTeacherSalaryPresenceIdsByIds :many
-SELECT presence_id AS id FROM teacher_salary
+-- name: GetTeacherSalaryAttendanceIdsByIds :many
+SELECT attendance_id AS id FROM teacher_salary
 WHERE teacher_salary.id IN (sqlc.slice('teacher_salary_ids'));
 
 -- name: GetTeacherSalaryById :one
 SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
-    sqlc.embed(presence),
-    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(attendance),
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
 FROM teacher_salary AS ts
-    JOIN presence ON presence_id = presence.id
-    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
 
-    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
@@ -289,24 +289,24 @@ FROM teacher_salary AS ts
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     
-    JOIN student_learning_token as slt ON presence.token_id = slt.id
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id = ? LIMIT 1;
 
 -- name: GetTeacherSalariesByIds :many
 SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
-    sqlc.embed(presence),
-    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(attendance),
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
 FROM teacher_salary AS ts
-    JOIN presence ON presence_id = presence.id
-    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
 
-    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
@@ -314,24 +314,24 @@ FROM teacher_salary AS ts
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     
-    JOIN student_learning_token as slt ON presence.token_id = slt.id
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id IN (sqlc.slice('ids'));
 
 -- name: GetTeacherSalaries :many
 SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
-    sqlc.embed(presence),
-    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    sqlc.embed(attendance),
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
 FROM teacher_salary AS ts
-    JOIN presence ON presence_id = presence.id
-    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
 
-    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
@@ -339,10 +339,10 @@ FROM teacher_salary AS ts
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     
-    JOIN student_learning_token as slt ON presence.token_id = slt.id
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
-    (presence.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
-ORDER BY presence.teacher_id, class.id, student_id, ts.id
+    (attendance.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
+ORDER BY attendance.teacher_id, class.id, student_id, ts.id
 LIMIT ? OFFSET ?;
 
 -- name: CountTeacherSalariesByIds :one
@@ -352,19 +352,19 @@ WHERE id IN (sqlc.slice('ids'));
 -- name: CountTeacherSalaries :one
 SELECT Count(teacher_salary.id) AS total
 FROM teacher_salary
-    JOIN presence ON presence_id = presence.id
+    JOIN attendance ON attendance_id = attendance.id
 WHERE
-    (presence.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false);
+    (attendance.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false);
 
 -- name: InsertTeacherSalary :execlastid
 INSERT INTO teacher_salary (
-    presence_id, paid_course_fee_value, paid_transport_fee_value
+    attendance_id, paid_course_fee_value, paid_transport_fee_value
 ) VALUES (
     ?, ?, ?
 );
 
 -- name: UpdateTeacherSalary :exec
-UPDATE teacher_salary SET presence_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
+UPDATE teacher_salary SET attendance_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
 WHERE id = ?;
 
 -- name: EditTeacherSalary :exec

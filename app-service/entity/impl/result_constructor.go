@@ -335,87 +335,87 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 	return studentLearningTokens
 }
 
-func NewPresencesFromGetPresencesRow(presenceRows []mysql.GetPresencesRow) []entity.Presence {
-	presences := make([]entity.Presence, 0, len(presenceRows))
-	for _, presenceRow := range presenceRows {
+func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRow) []entity.Attendance {
+	attendances := make([]entity.Attendance, 0, len(attendanceRows))
+	for _, attendanceRow := range attendanceRows {
 		var classInfo *entity.ClassInfo_Minimal
-		classId := entity.ClassID(presenceRow.Class.ID)
+		classId := entity.ClassID(attendanceRow.Class.ID)
 		if classId != entity.ClassID(entity.ClassID_None) {
-			// presence.teacher & presence.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
+			// attendance.teacher & attendance.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
 			var classTeacherInfo *entity.TeacherInfo_Minimal
-			teacherId := entity.TeacherID(presenceRow.ClassTeacherID.Int64)
-			if presenceRow.ClassTeacherID.Valid && teacherId != entity.TeacherID_None {
+			teacherId := entity.TeacherID(attendanceRow.ClassTeacherID.Int64)
+			if attendanceRow.ClassTeacherID.Valid && teacherId != entity.TeacherID_None {
 				classTeacherInfo = &entity.TeacherInfo_Minimal{
 					TeacherID: teacherId,
 					UserInfo_Minimal: identity.UserInfo_Minimal{
-						Username:   presenceRow.ClassTeacherUsername.String,
-						UserDetail: identity.UnmarshalUserDetail(presenceRow.ClassTeacherDetail, mainLog),
+						Username:   attendanceRow.ClassTeacherUsername.String,
+						UserDetail: identity.UnmarshalUserDetail(attendanceRow.ClassTeacherDetail, mainLog),
 					},
 				}
 			}
 
 			classInfo = &entity.ClassInfo_Minimal{
-				ClassID:             entity.ClassID(presenceRow.Class.ID),
+				ClassID:             entity.ClassID(attendanceRow.Class.ID),
 				TeacherInfo_Minimal: classTeacherInfo,
 				Course: NewCoursesFromGetCoursesRow([]mysql.GetCoursesRow{
 					{
-						CourseID:              presenceRow.Course.ID,
-						Instrument:            presenceRow.Instrument,
-						Grade:                 presenceRow.Grade,
-						DefaultFee:            presenceRow.Course.DefaultFee,
-						DefaultDurationMinute: presenceRow.Course.DefaultDurationMinute,
+						CourseID:              attendanceRow.Course.ID,
+						Instrument:            attendanceRow.Instrument,
+						Grade:                 attendanceRow.Grade,
+						DefaultFee:            attendanceRow.Course.DefaultFee,
+						DefaultDurationMinute: attendanceRow.Course.DefaultDurationMinute,
 					},
 				})[0],
-				TransportFee:  presenceRow.Class.TransportFee,
-				IsDeactivated: util.Int32ToBool(presenceRow.Class.IsDeactivated),
+				TransportFee:  attendanceRow.Class.TransportFee,
+				IsDeactivated: util.Int32ToBool(attendanceRow.Class.IsDeactivated),
 			}
 		}
 
-		// presence.teacher & presence.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
+		// attendance.teacher & attendance.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
 		var teacherInfo *entity.TeacherInfo_Minimal
-		teacherId := entity.TeacherID(presenceRow.TeacherID.Int64)
-		if presenceRow.TeacherID.Valid && teacherId != entity.TeacherID_None {
+		teacherId := entity.TeacherID(attendanceRow.TeacherID.Int64)
+		if attendanceRow.TeacherID.Valid && teacherId != entity.TeacherID_None {
 			teacherInfo = &entity.TeacherInfo_Minimal{
 				TeacherID: teacherId,
 				UserInfo_Minimal: identity.UserInfo_Minimal{
-					Username:   presenceRow.TeacherUsername.String,
-					UserDetail: identity.UnmarshalUserDetail(presenceRow.TeacherDetail, mainLog),
+					Username:   attendanceRow.TeacherUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(attendanceRow.TeacherDetail, mainLog),
 				},
 			}
 		}
 
 		var studentInfo *entity.StudentInfo_Minimal
-		studentId := entity.StudentID(presenceRow.StudentID.Int64)
-		if presenceRow.StudentID.Valid && studentId != entity.StudentID_None {
+		studentId := entity.StudentID(attendanceRow.StudentID.Int64)
+		if attendanceRow.StudentID.Valid && studentId != entity.StudentID_None {
 			studentInfo = &entity.StudentInfo_Minimal{
 				StudentID: studentId,
 				UserInfo_Minimal: identity.UserInfo_Minimal{
-					Username:   presenceRow.StudentUsername.String,
-					UserDetail: identity.UnmarshalUserDetail(presenceRow.StudentDetail, mainLog),
+					Username:   attendanceRow.StudentUsername.String,
+					UserDetail: identity.UnmarshalUserDetail(attendanceRow.StudentDetail, mainLog),
 				},
 			}
 		}
 
-		presences = append(presences, entity.Presence{
-			PresenceID:  entity.PresenceID(presenceRow.PresenceID),
-			ClassInfo:   classInfo,
-			TeacherInfo: teacherInfo,
-			StudentInfo: studentInfo,
+		attendances = append(attendances, entity.Attendance{
+			AttendanceID: entity.AttendanceID(attendanceRow.AttendanceID),
+			ClassInfo:    classInfo,
+			TeacherInfo:  teacherInfo,
+			StudentInfo:  studentInfo,
 			StudentLearningToken: entity.StudentLearningToken_Minimal{
-				StudentLearningTokenID: entity.StudentLearningTokenID(presenceRow.StudentLearningToken.ID),
-				CourseFeeValue:         presenceRow.StudentLearningToken.CourseFeeValue,
-				TransportFeeValue:      presenceRow.StudentLearningToken.TransportFeeValue,
-				LastUpdatedAt:          presenceRow.StudentLearningToken.LastUpdatedAt,
+				StudentLearningTokenID: entity.StudentLearningTokenID(attendanceRow.StudentLearningToken.ID),
+				CourseFeeValue:         attendanceRow.StudentLearningToken.CourseFeeValue,
+				TransportFeeValue:      attendanceRow.StudentLearningToken.TransportFeeValue,
+				LastUpdatedAt:          attendanceRow.StudentLearningToken.LastUpdatedAt,
 			},
-			Date:                  presenceRow.Date,
-			UsedStudentTokenQuota: presenceRow.UsedStudentTokenQuota,
-			Duration:              presenceRow.Duration,
-			Note:                  presenceRow.Note,
-			IsPaid:                util.Int32ToBool(presenceRow.IsPaid),
+			Date:                  attendanceRow.Date,
+			UsedStudentTokenQuota: attendanceRow.UsedStudentTokenQuota,
+			Duration:              attendanceRow.Duration,
+			Note:                  attendanceRow.Note,
+			IsPaid:                util.Int32ToBool(attendanceRow.IsPaid),
 		})
 	}
 
-	return presences
+	return attendances
 }
 
 func NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows []mysql.GetTeacherSalariesRow) []entity.TeacherSalary {
@@ -423,14 +423,14 @@ func NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows []mysql.GetTe
 	for _, tsRow := range teacherSalaryRows {
 		teacherSalaries = append(teacherSalaries, entity.TeacherSalary{
 			TeacherSalaryID: entity.TeacherSalaryID(tsRow.TeacherSalaryID),
-			Presence: NewPresencesFromGetPresencesRow([]mysql.GetPresencesRow{
+			Attendance: NewAttendancesFromGetAttendancesRow([]mysql.GetAttendancesRow{
 				{
-					PresenceID:            tsRow.Presence.ID,
-					Date:                  tsRow.Presence.Date,
-					UsedStudentTokenQuota: tsRow.Presence.UsedStudentTokenQuota,
-					Duration:              tsRow.Presence.Duration,
-					Note:                  tsRow.Presence.Note,
-					IsPaid:                tsRow.Presence.IsPaid,
+					AttendanceID:          tsRow.Attendance.ID,
+					Date:                  tsRow.Attendance.Date,
+					UsedStudentTokenQuota: tsRow.Attendance.UsedStudentTokenQuota,
+					Duration:              tsRow.Attendance.Duration,
+					Note:                  tsRow.Attendance.Note,
+					IsPaid:                tsRow.Attendance.IsPaid,
 					Class:                 tsRow.Class,
 					Course:                tsRow.Course,
 					Instrument:            tsRow.Instrument,
@@ -450,8 +450,8 @@ func NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows []mysql.GetTe
 			PaidCourseFeeValue:    tsRow.PaidCourseFeeValue,
 			PaidTransportFeeValue: tsRow.PaidTransportFeeValue,
 			AddedAt:               tsRow.AddedAt,
-			CourseFeeFullValue:    int32(float64(tsRow.StudentLearningToken.CourseFeeValue) * tsRow.Presence.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
-			TransportFeeFullValue: int32(float64(tsRow.StudentLearningToken.TransportFeeValue) * tsRow.Presence.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			CourseFeeFullValue:    int32(float64(tsRow.StudentLearningToken.CourseFeeValue) * tsRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			TransportFeeFullValue: int32(float64(tsRow.StudentLearningToken.TransportFeeValue) * tsRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
 		})
 	}
 

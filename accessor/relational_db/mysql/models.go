@@ -10,6 +10,19 @@ import (
 	"time"
 )
 
+type Attendance struct {
+	ID                    int64
+	Date                  time.Time
+	UsedStudentTokenQuota float64
+	Duration              int32
+	Note                  string
+	IsPaid                int32
+	ClassID               sql.NullInt64
+	TeacherID             sql.NullInt64
+	StudentID             sql.NullInt64
+	TokenID               int64
+}
+
 type Class struct {
 	ID            int64
 	TransportFee  int32
@@ -46,19 +59,6 @@ type Instrument struct {
 	Name string
 }
 
-type Presence struct {
-	ID                    int64
-	Date                  time.Time
-	UsedStudentTokenQuota float64
-	Duration              int32
-	Note                  string
-	IsPaid                int32
-	ClassID               sql.NullInt64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
-	TokenID               int64
-}
-
 type Student struct {
 	ID     int64
 	UserID int64
@@ -88,7 +88,7 @@ type Teacher struct {
 
 type TeacherSalary struct {
 	ID                    int64
-	PresenceID            int64
+	AttendanceID          int64
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time

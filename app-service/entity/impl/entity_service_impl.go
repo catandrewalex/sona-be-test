@@ -1328,7 +1328,7 @@ func (s entityServiceImpl) DeleteStudentLearningTokens(ctx context.Context, ids 
 	return nil
 }
 
-func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.PaginationSpec, spec entity.GetPresencesSpec) (entity.GetPresencesResult, error) {
+func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec entity.GetAttendancesSpec) (entity.GetAttendancesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 
@@ -1343,7 +1343,7 @@ func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.Pag
 
 	useUnpaidFilter := spec.UnpaidOnly
 
-	presenceRows, err := s.mySQLQueries.GetPresences(ctx, mysql.GetPresencesParams{
+	attendanceRows, err := s.mySQLQueries.GetAttendances(ctx, mysql.GetAttendancesParams{
 		StartDate:        timeFilter.StartDatetime,
 		EndDate:          timeFilter.EndDatetime,
 		ClassID:          classID,
@@ -1355,12 +1355,12 @@ func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.Pag
 		Offset:           int32(offset),
 	})
 	if err != nil {
-		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.GetPresences(): %w", err)
+		return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.GetAttendances(): %w", err)
 	}
 
-	presences := NewPresencesFromGetPresencesRow(presenceRows)
+	attendances := NewAttendancesFromGetAttendancesRow(attendanceRows)
 
-	totalResults, err := s.mySQLQueries.CountPresences(ctx, mysql.CountPresencesParams{
+	totalResults, err := s.mySQLQueries.CountAttendances(ctx, mysql.CountAttendancesParams{
 		StartDate:        timeFilter.StartDatetime,
 		EndDate:          timeFilter.EndDatetime,
 		ClassID:          classID,
@@ -1369,16 +1369,16 @@ func (s entityServiceImpl) GetPresences(ctx context.Context, pagination util.Pag
 		UseStudentFilter: useStudentFilter,
 	})
 	if err != nil {
-		return entity.GetPresencesResult{}, fmt.Errorf("mySQLQueries.CountPresences(): %w", err)
+		return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.CountAttendances(): %w", err)
 	}
 
-	return entity.GetPresencesResult{
-		Presences:        presences,
+	return entity.GetAttendancesResult{
+		Attendances:      attendances,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s entityServiceImpl) GetPresencesForTeacherSalary(ctx context.Context, spec entity.GetPresencesForTeacherSalarySpec) ([]entity.Presence, error) {
+func (s entityServiceImpl) GetAttendancesForTeacherSalary(ctx context.Context, spec entity.GetAttendancesForTeacherSalarySpec) ([]entity.Attendance, error) {
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
@@ -1388,7 +1388,7 @@ func (s entityServiceImpl) GetPresencesForTeacherSalary(ctx context.Context, spe
 	classID := sql.NullInt64{Int64: int64(spec.ClassID), Valid: true}
 	useClassFilter := spec.ClassID != entity.ClassID_None
 
-	presenceRows, err := s.mySQLQueries.GetPresencesForTeacherSalary(ctx, mysql.GetPresencesForTeacherSalaryParams{
+	attendanceRows, err := s.mySQLQueries.GetAttendancesForTeacherSalary(ctx, mysql.GetAttendancesForTeacherSalaryParams{
 		StartDate:        timeFilter.StartDatetime,
 		EndDate:          timeFilter.EndDatetime,
 		TeacherID:        teacherID,
@@ -1397,57 +1397,57 @@ func (s entityServiceImpl) GetPresencesForTeacherSalary(ctx context.Context, spe
 		UseClassFilter:   useClassFilter,
 	})
 	if err != nil {
-		return []entity.Presence{}, fmt.Errorf("mySQLQueries.GetPresencesForTeacherSalary(): %w", err)
+		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendancesForTeacherSalary(): %w", err)
 	}
 
-	presenceRowsConverted := make([]mysql.GetPresencesRow, 0, len(presenceRows))
-	for _, row := range presenceRows {
-		presenceRowsConverted = append(presenceRowsConverted, row.ToGetPresencesRow())
+	attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
+	for _, row := range attendanceRows {
+		attendanceRowsConverted = append(attendanceRowsConverted, row.ToGetAttendancesRow())
 	}
 
-	presences := NewPresencesFromGetPresencesRow(presenceRowsConverted)
+	attendances := NewAttendancesFromGetAttendancesRow(attendanceRowsConverted)
 
-	return presences, nil
+	return attendances, nil
 }
 
-func (s entityServiceImpl) GetPresenceById(ctx context.Context, id entity.PresenceID) (entity.Presence, error) {
-	presenceRow, err := s.mySQLQueries.GetPresenceById(ctx, int64(id))
+func (s entityServiceImpl) GetAttendanceById(ctx context.Context, id entity.AttendanceID) (entity.Attendance, error) {
+	attendanceRow, err := s.mySQLQueries.GetAttendanceById(ctx, int64(id))
 	if err != nil {
-		return entity.Presence{}, fmt.Errorf("mySQLQueries.GetPresenceById(): %w", err)
+		return entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendanceById(): %w", err)
 	}
 
-	presence := NewPresencesFromGetPresencesRow([]mysql.GetPresencesRow{presenceRow.ToGetPresencesRow()})[0]
+	attendance := NewAttendancesFromGetAttendancesRow([]mysql.GetAttendancesRow{attendanceRow.ToGetAttendancesRow()})[0]
 
-	return presence, nil
+	return attendance, nil
 }
 
-func (s entityServiceImpl) GetPresencesByIds(ctx context.Context, ids []entity.PresenceID) ([]entity.Presence, error) {
+func (s entityServiceImpl) GetAttendancesByIds(ctx context.Context, ids []entity.AttendanceID) ([]entity.Attendance, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
 	}
 
-	presenceRows, err := s.mySQLQueries.GetPresencesByIds(ctx, idsInt)
+	attendanceRows, err := s.mySQLQueries.GetAttendancesByIds(ctx, idsInt)
 	if err != nil {
-		return []entity.Presence{}, fmt.Errorf("mySQLQueries.GetPresencesByIds(): %w", err)
+		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendancesByIds(): %w", err)
 	}
 
-	presenceRowsConverted := make([]mysql.GetPresencesRow, 0, len(presenceRows))
-	for _, row := range presenceRows {
-		presenceRowsConverted = append(presenceRowsConverted, row.ToGetPresencesRow())
+	attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
+	for _, row := range attendanceRows {
+		attendanceRowsConverted = append(attendanceRowsConverted, row.ToGetAttendancesRow())
 	}
 
-	presences := NewPresencesFromGetPresencesRow(presenceRowsConverted)
+	attendances := NewAttendancesFromGetAttendancesRow(attendanceRowsConverted)
 
-	return presences, nil
+	return attendances, nil
 }
 
-func (s entityServiceImpl) InsertPresences(ctx context.Context, specs []entity.InsertPresenceSpec) ([]entity.PresenceID, error) {
-	presenceIDs := make([]entity.PresenceID, 0, len(specs))
+func (s entityServiceImpl) InsertAttendances(ctx context.Context, specs []entity.InsertAttendanceSpec) ([]entity.AttendanceID, error) {
+	attendanceIDs := make([]entity.AttendanceID, 0, len(specs))
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			presenceID, err := qtx.InsertPresence(newCtx, mysql.InsertPresenceParams{
+			attendanceID, err := qtx.InsertAttendance(newCtx, mysql.InsertAttendanceParams{
 				Date:                  spec.Date,
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
@@ -1458,29 +1458,29 @@ func (s entityServiceImpl) InsertPresences(ctx context.Context, specs []entity.I
 				TokenID:               int64(spec.StudentLearningTokenID),
 			})
 			if err != nil {
-				return fmt.Errorf("qtx.InsertPresence(): %w", err)
+				return fmt.Errorf("qtx.InsertAttendance(): %w", err)
 			}
-			presenceIDs = append(presenceIDs, entity.PresenceID(presenceID))
+			attendanceIDs = append(attendanceIDs, entity.AttendanceID(attendanceID))
 		}
 		return nil
 	})
 	if err != nil {
-		return []entity.PresenceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+		return []entity.AttendanceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
-	return presenceIDs, nil
+	return attendanceIDs, nil
 }
 
-func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.UpdatePresenceSpec) ([]entity.PresenceID, error) {
-	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountPresencesByIds)
+func (s entityServiceImpl) UpdateAttendances(ctx context.Context, specs []entity.UpdateAttendanceSpec) ([]entity.AttendanceID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountAttendancesByIds)
 	if errV != nil {
-		return []entity.PresenceID{}, errV
+		return []entity.AttendanceID{}, errV
 	}
 
-	presenceIDs := make([]entity.PresenceID, 0, len(specs))
+	attendanceIDs := make([]entity.AttendanceID, 0, len(specs))
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			err := qtx.UpdatePresence(newCtx, mysql.UpdatePresenceParams{
+			err := qtx.UpdateAttendance(newCtx, mysql.UpdateAttendanceParams{
 				Date:                  spec.Date,
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
@@ -1490,31 +1490,31 @@ func (s entityServiceImpl) UpdatePresences(ctx context.Context, specs []entity.U
 				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
 				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
 				TokenID:               int64(spec.StudentLearningTokenID),
-				ID:                    int64(spec.PresenceID),
+				ID:                    int64(spec.AttendanceID),
 			})
 			if err != nil {
-				return fmt.Errorf("qtx.UpdatePresence(): %w", err)
+				return fmt.Errorf("qtx.UpdateAttendance(): %w", err)
 			}
-			presenceIDs = append(presenceIDs, spec.PresenceID)
+			attendanceIDs = append(attendanceIDs, spec.AttendanceID)
 		}
 		return nil
 	})
 	if err != nil {
-		return []entity.PresenceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+		return []entity.AttendanceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	return presenceIDs, nil
+	return attendanceIDs, nil
 }
 
-func (s entityServiceImpl) DeletePresences(ctx context.Context, ids []entity.PresenceID) error {
-	presenceIdsInt64 := make([]int64, 0, len(ids))
+func (s entityServiceImpl) DeleteAttendances(ctx context.Context, ids []entity.AttendanceID) error {
+	attendanceIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		presenceIdsInt64 = append(presenceIdsInt64, int64(id))
+		attendanceIdsInt64 = append(attendanceIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeletePresencesByIds(ctx, presenceIdsInt64)
+	err := s.mySQLQueries.DeleteAttendancesByIds(ctx, attendanceIdsInt64)
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeletePresenceByIds(): %w", err)
+		return fmt.Errorf("mySQLQueries.DeleteAttendanceByIds(): %w", err)
 	}
 
 	return nil
@@ -1594,7 +1594,7 @@ func (s entityServiceImpl) InsertTeacherSalaries(ctx context.Context, specs []en
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			teacherSalaryID, err := qtx.InsertTeacherSalary(newCtx, mysql.InsertTeacherSalaryParams{
-				PresenceID:            int64(spec.PresenceID),
+				AttendanceID:          int64(spec.AttendanceID),
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
 				PaidTransportFeeValue: spec.PaidTransportFeeValue,
 			})
@@ -1623,7 +1623,7 @@ func (s entityServiceImpl) UpdateTeacherSalaries(ctx context.Context, specs []en
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			err := qtx.UpdateTeacherSalary(newCtx, mysql.UpdateTeacherSalaryParams{
-				PresenceID:            int64(spec.PresenceID),
+				AttendanceID:          int64(spec.AttendanceID),
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
 				PaidTransportFeeValue: spec.PaidTransportFeeValue,
 				AddedAt:               spec.AddedAt,

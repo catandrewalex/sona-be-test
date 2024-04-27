@@ -120,7 +120,7 @@ func (r RemoveEnrollmentPaymentRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-// ============================== CLASS & PRESENCE ==============================
+// ============================== CLASS & ATTENDANCE ==============================
 
 type SearchClassRequest struct {
 	TeacherID entity.TeacherID `json:"teacherId,omitempty"`
@@ -149,23 +149,23 @@ func (r SearchClassRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type GetPresencesByClassIDRequest struct {
+type GetAttendancesByClassIDRequest struct {
 	ClassID   entity.ClassID   `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	StudentID entity.StudentID `json:"studentId,omitempty"`
 	PaginationRequest
 	TimeFilter
 }
-type GetPresencesByClassIDResponse struct {
-	Data    GetPresencesByClassIDResult `json:"data"`
-	Message string                      `json:"message,omitempty"`
+type GetAttendancesByClassIDResponse struct {
+	Data    GetAttendancesByClassIDResult `json:"data"`
+	Message string                        `json:"message,omitempty"`
 }
 
-type GetPresencesByClassIDResult struct {
-	Results []entity.Presence `json:"results"`
+type GetAttendancesByClassIDResult struct {
+	Results []entity.Attendance `json:"results"`
 	PaginationResponse
 }
 
-func (r GetPresencesByClassIDRequest) Validate() errs.ValidationError {
+func (r GetAttendancesByClassIDRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
@@ -180,7 +180,7 @@ func (r GetPresencesByClassIDRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type AddPresenceRequest struct {
+type AddAttendanceRequest struct {
 	ClassID               entity.ClassID   `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	TeacherID             entity.TeacherID `json:"teacherId"`
 	Date                  time.Time        `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
@@ -188,12 +188,12 @@ type AddPresenceRequest struct {
 	Duration              int32            `json:"duration,omitempty"`
 	Note                  string           `json:"note,omitempty"`
 }
-type AddPresenceResponse struct {
-	Data    UpsertPresenceResult `json:"data"`
-	Message string               `json:"message,omitempty"`
+type AddAttendanceResponse struct {
+	Data    UpsertAttendanceResult `json:"data"`
+	Message string                 `json:"message,omitempty"`
 }
 
-func (r AddPresenceRequest) Validate() errs.ValidationError {
+func (r AddAttendanceRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if r.UsedStudentTokenQuota < 0 {
@@ -209,20 +209,20 @@ func (r AddPresenceRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type EditPresenceRequest struct {
-	PresenceID            entity.PresenceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
-	TeacherID             entity.TeacherID  `json:"teacherId"`
-	Date                  time.Time         `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
-	UsedStudentTokenQuota float64           `json:"usedStudentTokenQuota,omitempty"`
-	Duration              int32             `json:"duration,omitempty"`
-	Note                  string            `json:"note,omitempty"`
+type EditAttendanceRequest struct {
+	AttendanceID          entity.AttendanceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	TeacherID             entity.TeacherID    `json:"teacherId"`
+	Date                  time.Time           `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
+	UsedStudentTokenQuota float64             `json:"usedStudentTokenQuota,omitempty"`
+	Duration              int32               `json:"duration,omitempty"`
+	Note                  string              `json:"note,omitempty"`
 }
-type EditPresenceResponse struct {
-	Data    UpsertPresenceResult `json:"data"`
-	Message string               `json:"message,omitempty"`
+type EditAttendanceResponse struct {
+	Data    UpsertAttendanceResult `json:"data"`
+	Message string                 `json:"message,omitempty"`
 }
 
-func (r EditPresenceRequest) Validate() errs.ValidationError {
+func (r EditAttendanceRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if r.UsedStudentTokenQuota < 0 {
@@ -238,14 +238,14 @@ func (r EditPresenceRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type RemovePresenceRequest struct {
-	PresenceID entity.PresenceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+type RemoveAttendanceRequest struct {
+	AttendanceID entity.AttendanceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
-type RemovePresenceResponse struct {
+type RemoveAttendanceResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (r RemovePresenceRequest) Validate() errs.ValidationError {
+func (r RemoveAttendanceRequest) Validate() errs.ValidationError {
 	return nil
 }
 
@@ -280,9 +280,9 @@ type SubmitTeacherSalariesRequest struct {
 	Data []SubmitTeacherSalariesRequestParam `json:"data"`
 }
 type SubmitTeacherSalariesRequestParam struct {
-	PresenceID            entity.PresenceID `json:"presenceId"`
-	PaidCourseFeeValue    int32             `json:"paidCourseFeeValue,omitempty"`
-	PaidTransportFeeValue int32             `json:"paidTransportFeeValue,omitempty"`
+	AttendanceID          entity.AttendanceID `json:"attendanceId"`
+	PaidCourseFeeValue    int32               `json:"paidCourseFeeValue,omitempty"`
+	PaidTransportFeeValue int32               `json:"paidTransportFeeValue,omitempty"`
 }
 type SubmitTeacherSalariesResponse struct {
 	Message string `json:"message,omitempty"`

@@ -2,7 +2,7 @@
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/FerdiantJoshua/sonamusica-administration-backend) ![GitHub issues](https://img.shields.io/github/issues/FerdiantJoshua/sonamusica-administration-backend) ![GitHub](https://img.shields.io/github/license/FerdiantJoshua/sonamusica-administration-backend) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/FerdiantJoshua/sonamusica-administration-backend?include_prereleases)
 
-Backend part for the administration app of Sonamusica, a private music school in Bandung. This app manages teacher payroll, student & teacher presences, and many more. 
+Backend part for the administration app of Sonamusica, a private music school in Bandung. This app manages teacher payroll, student & teacher attendances, and many more. 
 
 ## Requirement
 

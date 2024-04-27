@@ -82,9 +82,9 @@ func (q *Queries) CountStudentLearningTokensByIds(ctx context.Context, ids []int
 const countTeacherSalaries = `-- name: CountTeacherSalaries :one
 SELECT Count(teacher_salary.id) AS total
 FROM teacher_salary
-    JOIN presence ON presence_id = presence.id
+    JOIN attendance ON attendance_id = attendance.id
 WHERE
-    (presence.teacher_id = ? OR ? = false)
+    (attendance.teacher_id = ? OR ? = false)
 `
 
 type CountTeacherSalariesParams struct {
@@ -1140,19 +1140,19 @@ func (q *Queries) GetStudentLearningTokensByIds(ctx context.Context, ids []int64
 
 const getTeacherSalaries = `-- name: GetTeacherSalaries :many
 SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
-    presence.id, presence.date, presence.used_student_token_quota, presence.duration, presence.note, presence.is_paid, presence.class_id, presence.teacher_id, presence.student_id, presence.token_id,
-    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_salary AS ts
-    JOIN presence ON presence_id = presence.id
-    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
 
-    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
@@ -1160,10 +1160,10 @@ FROM teacher_salary AS ts
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     
-    JOIN student_learning_token as slt ON presence.token_id = slt.id
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
-    (presence.teacher_id = ? OR ? = false)
-ORDER BY presence.teacher_id, class.id, student_id, ts.id
+    (attendance.teacher_id = ? OR ? = false)
+ORDER BY attendance.teacher_id, class.id, student_id, ts.id
 LIMIT ? OFFSET ?
 `
 
@@ -1179,7 +1179,7 @@ type GetTeacherSalariesRow struct {
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
-	Presence              Presence
+	Attendance            Attendance
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
@@ -1215,16 +1215,16 @@ func (q *Queries) GetTeacherSalaries(ctx context.Context, arg GetTeacherSalaries
 			&i.PaidCourseFeeValue,
 			&i.PaidTransportFeeValue,
 			&i.AddedAt,
-			&i.Presence.ID,
-			&i.Presence.Date,
-			&i.Presence.UsedStudentTokenQuota,
-			&i.Presence.Duration,
-			&i.Presence.Note,
-			&i.Presence.IsPaid,
-			&i.Presence.ClassID,
-			&i.Presence.TeacherID,
-			&i.Presence.StudentID,
-			&i.Presence.TokenID,
+			&i.Attendance.ID,
+			&i.Attendance.Date,
+			&i.Attendance.UsedStudentTokenQuota,
+			&i.Attendance.Duration,
+			&i.Attendance.Note,
+			&i.Attendance.IsPaid,
+			&i.Attendance.ClassID,
+			&i.Attendance.TeacherID,
+			&i.Attendance.StudentID,
+			&i.Attendance.TokenID,
 			&i.TeacherID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
@@ -1271,19 +1271,19 @@ func (q *Queries) GetTeacherSalaries(ctx context.Context, arg GetTeacherSalaries
 
 const getTeacherSalariesByIds = `-- name: GetTeacherSalariesByIds :many
 SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
-    presence.id, presence.date, presence.used_student_token_quota, presence.duration, presence.note, presence.is_paid, presence.class_id, presence.teacher_id, presence.student_id, presence.token_id,
-    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_salary AS ts
-    JOIN presence ON presence_id = presence.id
-    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
 
-    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
@@ -1291,7 +1291,7 @@ FROM teacher_salary AS ts
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     
-    JOIN student_learning_token as slt ON presence.token_id = slt.id
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id IN (/*SLICE:ids*/?)
 `
 
@@ -1300,7 +1300,7 @@ type GetTeacherSalariesByIdsRow struct {
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
-	Presence              Presence
+	Attendance            Attendance
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
@@ -1341,16 +1341,16 @@ func (q *Queries) GetTeacherSalariesByIds(ctx context.Context, ids []int64) ([]G
 			&i.PaidCourseFeeValue,
 			&i.PaidTransportFeeValue,
 			&i.AddedAt,
-			&i.Presence.ID,
-			&i.Presence.Date,
-			&i.Presence.UsedStudentTokenQuota,
-			&i.Presence.Duration,
-			&i.Presence.Note,
-			&i.Presence.IsPaid,
-			&i.Presence.ClassID,
-			&i.Presence.TeacherID,
-			&i.Presence.StudentID,
-			&i.Presence.TokenID,
+			&i.Attendance.ID,
+			&i.Attendance.Date,
+			&i.Attendance.UsedStudentTokenQuota,
+			&i.Attendance.Duration,
+			&i.Attendance.Note,
+			&i.Attendance.IsPaid,
+			&i.Attendance.ClassID,
+			&i.Attendance.TeacherID,
+			&i.Attendance.StudentID,
+			&i.Attendance.TokenID,
 			&i.TeacherID,
 			&i.TeacherUsername,
 			&i.TeacherDetail,
@@ -1395,21 +1395,60 @@ func (q *Queries) GetTeacherSalariesByIds(ctx context.Context, ids []int64) ([]G
 	return items, nil
 }
 
+const getTeacherSalaryAttendanceIdsByIds = `-- name: GetTeacherSalaryAttendanceIdsByIds :many
+SELECT attendance_id AS id FROM teacher_salary
+WHERE teacher_salary.id IN (/*SLICE:teacher_salary_ids*/?)
+`
+
+// ============================== TEACHER_SALARY ==============================
+func (q *Queries) GetTeacherSalaryAttendanceIdsByIds(ctx context.Context, teacherSalaryIds []int64) ([]int64, error) {
+	sql := getTeacherSalaryAttendanceIdsByIds
+	var queryParams []interface{}
+	if len(teacherSalaryIds) > 0 {
+		for _, v := range teacherSalaryIds {
+			queryParams = append(queryParams, v)
+		}
+		sql = strings.Replace(sql, "/*SLICE:teacher_salary_ids*/?", strings.Repeat(",?", len(teacherSalaryIds))[1:], 1)
+	} else {
+		sql = strings.Replace(sql, "/*SLICE:teacher_salary_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTeacherSalaryById = `-- name: GetTeacherSalaryById :one
 SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
-    presence.id, presence.date, presence.used_student_token_quota, presence.duration, presence.note, presence.is_paid, presence.class_id, presence.teacher_id, presence.student_id, presence.token_id,
-    presence.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
-    presence.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_salary AS ts
-    JOIN presence ON presence_id = presence.id
-    LEFT JOIN teacher ON presence.teacher_id = teacher.id
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON presence.student_id = user_student.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
 
-    LEFT JOIN class ON presence.class_id = class.id
+    LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
     LEFT JOIN instrument ON course.instrument_id = instrument.id
     LEFT JOIN grade ON course.grade_id = grade.id
@@ -1417,7 +1456,7 @@ FROM teacher_salary AS ts
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     
-    JOIN student_learning_token as slt ON presence.token_id = slt.id
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id = ? LIMIT 1
 `
 
@@ -1426,7 +1465,7 @@ type GetTeacherSalaryByIdRow struct {
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
-	Presence              Presence
+	Attendance            Attendance
 	TeacherID             sql.NullInt64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
@@ -1451,16 +1490,16 @@ func (q *Queries) GetTeacherSalaryById(ctx context.Context, id int64) (GetTeache
 		&i.PaidCourseFeeValue,
 		&i.PaidTransportFeeValue,
 		&i.AddedAt,
-		&i.Presence.ID,
-		&i.Presence.Date,
-		&i.Presence.UsedStudentTokenQuota,
-		&i.Presence.Duration,
-		&i.Presence.Note,
-		&i.Presence.IsPaid,
-		&i.Presence.ClassID,
-		&i.Presence.TeacherID,
-		&i.Presence.StudentID,
-		&i.Presence.TokenID,
+		&i.Attendance.ID,
+		&i.Attendance.Date,
+		&i.Attendance.UsedStudentTokenQuota,
+		&i.Attendance.Duration,
+		&i.Attendance.Note,
+		&i.Attendance.IsPaid,
+		&i.Attendance.ClassID,
+		&i.Attendance.TeacherID,
+		&i.Attendance.StudentID,
+		&i.Attendance.TokenID,
 		&i.TeacherID,
 		&i.TeacherUsername,
 		&i.TeacherDetail,
@@ -1493,45 +1532,6 @@ func (q *Queries) GetTeacherSalaryById(ctx context.Context, id int64) (GetTeache
 		&i.StudentLearningToken.EnrollmentID,
 	)
 	return i, err
-}
-
-const getTeacherSalaryPresenceIdsByIds = `-- name: GetTeacherSalaryPresenceIdsByIds :many
-SELECT presence_id AS id FROM teacher_salary
-WHERE teacher_salary.id IN (/*SLICE:teacher_salary_ids*/?)
-`
-
-// ============================== TEACHER_SALARY ==============================
-func (q *Queries) GetTeacherSalaryPresenceIdsByIds(ctx context.Context, teacherSalaryIds []int64) ([]int64, error) {
-	sql := getTeacherSalaryPresenceIdsByIds
-	var queryParams []interface{}
-	if len(teacherSalaryIds) > 0 {
-		for _, v := range teacherSalaryIds {
-			queryParams = append(queryParams, v)
-		}
-		sql = strings.Replace(sql, "/*SLICE:teacher_salary_ids*/?", strings.Repeat(",?", len(teacherSalaryIds))[1:], 1)
-	} else {
-		sql = strings.Replace(sql, "/*SLICE:teacher_salary_ids*/?", "NULL", 1)
-	}
-	rows, err := q.db.QueryContext(ctx, sql, queryParams...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []int64
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		items = append(items, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const incrementSLTQuotaById = `-- name: IncrementSLTQuotaById :exec
@@ -1611,20 +1611,20 @@ func (q *Queries) InsertStudentLearningToken(ctx context.Context, arg InsertStud
 
 const insertTeacherSalary = `-- name: InsertTeacherSalary :execlastid
 INSERT INTO teacher_salary (
-    presence_id, paid_course_fee_value, paid_transport_fee_value
+    attendance_id, paid_course_fee_value, paid_transport_fee_value
 ) VALUES (
     ?, ?, ?
 )
 `
 
 type InsertTeacherSalaryParams struct {
-	PresenceID            int64
+	AttendanceID          int64
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 }
 
 func (q *Queries) InsertTeacherSalary(ctx context.Context, arg InsertTeacherSalaryParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, insertTeacherSalary, arg.PresenceID, arg.PaidCourseFeeValue, arg.PaidTransportFeeValue)
+	result, err := q.db.ExecContext(ctx, insertTeacherSalary, arg.AttendanceID, arg.PaidCourseFeeValue, arg.PaidTransportFeeValue)
 	if err != nil {
 		return 0, err
 	}
@@ -1716,12 +1716,12 @@ func (q *Queries) UpdateStudentLearningToken(ctx context.Context, arg UpdateStud
 }
 
 const updateTeacherSalary = `-- name: UpdateTeacherSalary :exec
-UPDATE teacher_salary SET presence_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
+UPDATE teacher_salary SET attendance_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
 WHERE id = ?
 `
 
 type UpdateTeacherSalaryParams struct {
-	PresenceID            int64
+	AttendanceID          int64
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
@@ -1730,7 +1730,7 @@ type UpdateTeacherSalaryParams struct {
 
 func (q *Queries) UpdateTeacherSalary(ctx context.Context, arg UpdateTeacherSalaryParams) error {
 	_, err := q.db.ExecContext(ctx, updateTeacherSalary,
-		arg.PresenceID,
+		arg.AttendanceID,
 		arg.PaidCourseFeeValue,
 		arg.PaidTransportFeeValue,
 		arg.AddedAt,

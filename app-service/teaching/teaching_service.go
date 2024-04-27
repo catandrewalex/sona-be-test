@@ -24,7 +24,7 @@ type StudentEnrollmentInvoice struct {
 }
 
 type TeacherSalaryInvoice struct {
-	Presence entity.Presence `json:"presence"`
+	Attendance entity.Attendance `json:"attendance"`
 	// These 4 below fields are displayed in FE to simplify the calculation of PaidCourseFeeValue & PaidTransportFeeValue
 	CourseFeeFullValue            int32   `json:"courseFeeFullValue"`
 	TransportFeeFullValue         int32   `json:"transportFeeFullValue"`
@@ -45,13 +45,13 @@ type TeachingService interface {
 
 	SearchClass(ctx context.Context, spec SearchClassSpec) ([]entity.Class, error)
 
-	GetPresencesByClassID(ctx context.Context, spec GetPresencesByClassIDSpec) (GetPresencesByClassIDResult, error)
-	// AddPresence creates presence(s) based on spec, duplicated for every students who enroll in the class.
+	GetAttendancesByClassID(ctx context.Context, spec GetAttendancesByClassIDSpec) (GetAttendancesByClassIDResult, error)
+	// AddAttendance creates attendance(s) based on spec, duplicated for every students who enroll in the class.
 	//
 	// Enabling "autoCreateSLT" will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).
-	AddPresence(ctx context.Context, spec AddPresenceSpec, autoCreateSLT bool) ([]entity.PresenceID, error)
-	EditPresence(ctx context.Context, spec EditPresenceSpec) ([]entity.PresenceID, error)
-	RemovePresence(ctx context.Context, presenceID entity.PresenceID) ([]entity.PresenceID, error)
+	AddAttendance(ctx context.Context, spec AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error)
+	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
+	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
 	GetTeacherSalaryInvoices(ctx context.Context, spec GetTeacherSalaryInvoicesSpec) ([]TeacherSalaryInvoice, error)
 	SubmitTeacherSalaries(ctx context.Context, specs []SubmitTeacherSalariesSpec) error
@@ -80,19 +80,19 @@ type SearchClassSpec struct {
 	CourseID  entity.CourseID
 }
 
-type GetPresencesByClassIDSpec struct {
+type GetAttendancesByClassIDSpec struct {
 	ClassID   entity.ClassID
 	StudentID entity.StudentID
 	util.PaginationSpec
 	util.TimeSpec
 }
 
-type GetPresencesByClassIDResult struct {
-	Presences        []entity.Presence
+type GetAttendancesByClassIDResult struct {
+	Attendances      []entity.Attendance
 	PaginationResult util.PaginationResult
 }
 
-type AddPresenceSpec struct {
+type AddAttendanceSpec struct {
 	ClassID               entity.ClassID
 	TeacherID             entity.TeacherID
 	Date                  time.Time
@@ -101,8 +101,8 @@ type AddPresenceSpec struct {
 	Note                  string
 }
 
-type EditPresenceSpec struct {
-	PresenceID            entity.PresenceID
+type EditAttendanceSpec struct {
+	AttendanceID          entity.AttendanceID
 	TeacherID             entity.TeacherID
 	Date                  time.Time
 	UsedStudentTokenQuota float64
@@ -110,8 +110,8 @@ type EditPresenceSpec struct {
 	Note                  string
 }
 
-func (s EditPresenceSpec) GetInt64ID() int64 {
-	return int64(s.PresenceID)
+func (s EditAttendanceSpec) GetInt64ID() int64 {
+	return int64(s.AttendanceID)
 }
 
 type GetTeacherSalaryInvoicesSpec struct {
@@ -121,7 +121,7 @@ type GetTeacherSalaryInvoicesSpec struct {
 }
 
 type SubmitTeacherSalariesSpec struct {
-	PresenceID            entity.PresenceID
+	AttendanceID          entity.AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 }
