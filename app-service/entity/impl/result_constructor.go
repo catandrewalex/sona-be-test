@@ -447,11 +447,11 @@ func NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows []mysql.GetTe
 					StudentLearningToken:  tsRow.StudentLearningToken,
 				},
 			})[0],
-			PaidCourseFeeValue:    tsRow.PaidCourseFeeValue,
-			PaidTransportFeeValue: tsRow.PaidTransportFeeValue,
-			AddedAt:               tsRow.AddedAt,
-			CourseFeeFullValue:    int32(float64(tsRow.StudentLearningToken.CourseFeeValue) * tsRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
-			TransportFeeFullValue: int32(float64(tsRow.StudentLearningToken.TransportFeeValue) * tsRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			PaidCourseFeeValue:     tsRow.PaidCourseFeeValue,
+			PaidTransportFeeValue:  tsRow.PaidTransportFeeValue,
+			AddedAt:                tsRow.AddedAt,
+			GrossCourseFeeValue:    int32(float64(tsRow.StudentLearningToken.CourseFeeValue) * tsRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			GrossTransportFeeValue: int32(float64(tsRow.StudentLearningToken.TransportFeeValue) * tsRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
 		})
 	}
 

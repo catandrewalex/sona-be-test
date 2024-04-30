@@ -1378,26 +1378,21 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 	}, nil
 }
 
-func (s entityServiceImpl) GetAttendancesForTeacherSalary(ctx context.Context, spec entity.GetAttendancesForTeacherSalarySpec) ([]entity.Attendance, error) {
+func (s entityServiceImpl) GetAttendancesByTeacherId(ctx context.Context, spec entity.GetAttendancesByTeacherIdSpec) ([]entity.Attendance, error) {
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
 	teacherID := sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true}
 	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
 
-	classID := sql.NullInt64{Int64: int64(spec.ClassID), Valid: true}
-	useClassFilter := spec.ClassID != entity.ClassID_None
-
-	attendanceRows, err := s.mySQLQueries.GetAttendancesForTeacherSalary(ctx, mysql.GetAttendancesForTeacherSalaryParams{
+	attendanceRows, err := s.mySQLQueries.GetAttendancesByTeacherId(ctx, mysql.GetAttendancesByTeacherIdParams{
 		StartDate:        timeFilter.StartDatetime,
 		EndDate:          timeFilter.EndDatetime,
 		TeacherID:        teacherID,
 		UseTeacherFilter: useTeacherFilter,
-		ClassID:          classID,
-		UseClassFilter:   useClassFilter,
 	})
 	if err != nil {
-		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendancesForTeacherSalary(): %w", err)
+		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendancesByTeacherId(): %w", err)
 	}
 
 	attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))

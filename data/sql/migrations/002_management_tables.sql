@@ -111,7 +111,7 @@ CREATE TABLE attendance
   teacher_id BIGINT unsigned,
   student_id BIGINT unsigned,
   token_id BIGINT unsigned NOT NULL,
-  -- `attendance` stores historical records, and must not be deleted by CASCADE, but allow deletion of the parent entity
+  -- `attendance` stores historical records, and requires all existing used `attendance` to be deleted before deleting the parent entities.
   FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE SET NULL,
   FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE SET NULL,

@@ -131,7 +131,7 @@ func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRe
 		UserDetail: req.UserDetail,
 	})
 	if err != nil {
-		errContext := fmt.Sprintf("identityService.SignUpUser()")
+		errContext := "identityService.SignUpUser()"
 		var validationErr errs.ValidationError
 		if errors.As(err, &validationErr) {
 			return nil, errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", errContext, err), validationErr.GetErrorDetail(), "")
@@ -1869,22 +1869,21 @@ func (s *BackendService) RemoveAttendanceHandler(ctx context.Context, req *outpu
 	}, nil
 }
 
-func (s *BackendService) GetTeacherSalaryInvoicesHandler(ctx context.Context, req *output.GetTeacherSalaryInvoicesRequest) (*output.GetTeacherSalaryInvoicesResponse, errs.HTTPError) {
+func (s *BackendService) GetTeacherSalaryInvoiceItemsHandler(ctx context.Context, req *output.GetTeacherSalaryInvoiceItemsRequest) (*output.GetTeacherSalaryInvoiceItemsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
 
-	invoices, err := s.teachingService.GetTeacherSalaryInvoices(ctx, teaching.GetTeacherSalaryInvoicesSpec{
+	invoices, err := s.teachingService.GetTeacherSalaryInvoiceItems(ctx, teaching.GetTeacherSalaryInvoiceItemsSpec{
 		TeacherID: req.TeacherID,
-		ClassID:   req.ClassID,
 		TimeSpec:  util.TimeSpec(req.TimeFilter),
 	})
 	if err != nil {
 		return nil, handleReadError(err, "teachingService.GetTeacherSalaryInvoices()", "teacherSalary")
 	}
 
-	return &output.GetTeacherSalaryInvoicesResponse{
-		Data: output.GetTeacherSalaryInvoicesResult{
+	return &output.GetTeacherSalaryInvoiceItemsResponse{
+		Data: output.GetTeacherSalaryInvoiceItemsResult{
 			Results: invoices,
 		},
 	}, nil

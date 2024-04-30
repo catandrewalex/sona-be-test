@@ -14,7 +14,7 @@ ORDER by attendance.id;
 UPDATE attendance SET is_paid = ?
 WHERE id IN (sqlc.slice('ids'));
 
--- name: GetAttendancesForTeacherSalary :many
+-- name: GetAttendancesByTeacherId :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
@@ -38,7 +38,6 @@ FROM attendance
 WHERE
     (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
     AND (attendance.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
-    AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false)
     AND is_paid = 0
 ORDER BY attendance.teacher_id, class.id, attendance.student_id, date, attendance.id;
 

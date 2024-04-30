@@ -2,6 +2,7 @@ package entity
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"sonamusica-backend/app-service/identity"
@@ -28,6 +29,10 @@ type Student struct {
 type StudentInfo_Minimal struct {
 	StudentID        StudentID                 `json:"studentId"`
 	UserInfo_Minimal identity.UserInfo_Minimal `json:"user"`
+}
+
+func (s StudentInfo_Minimal) String() string {
+	return fmt.Sprintf("%s %s", s.UserInfo_Minimal.UserDetail.FirstName, s.UserInfo_Minimal.UserDetail.LastName)
 }
 
 type Instrument struct {
@@ -64,6 +69,10 @@ type ClassInfo_Minimal struct {
 	Course              Course               `json:"course"`
 	TransportFee        int32                `json:"transportFee"`
 	IsDeactivated       bool                 `json:"isDeactivated"`
+}
+
+func (c ClassInfo_Minimal) String() string {
+	return fmt.Sprintf("%s - %s", c.Course.Instrument.Name, c.Course.Grade.Name)
 }
 
 type StudentEnrollment struct {
@@ -120,6 +129,17 @@ type Attendance struct {
 	IsPaid                bool                         `json:"isPaid"`
 }
 
+// AttendanceInfo_Minimal is a subset of struct Attendance that must have the same schema.
+type AttendanceInfo_Minimal struct {
+	AttendanceID          AttendanceID         `json:"attendanceId"`
+	TeacherInfo           *TeacherInfo_Minimal `json:"teacher,omitempty"`
+	Date                  time.Time            `json:"date"`
+	UsedStudentTokenQuota float64              `json:"usedStudentTokenQuota"`
+	Duration              int32                `json:"duration"`
+	Note                  string               `json:"note"`
+	IsPaid                bool                 `json:"isPaid"`
+}
+
 type TeacherSalary struct {
 	TeacherSalaryID       TeacherSalaryID `json:"teacherSalaryId"`
 	Attendance            Attendance      `json:"attendance"`
@@ -128,8 +148,8 @@ type TeacherSalary struct {
 	AddedAt               time.Time       `json:"addedAt"`
 
 	// These 2 fields value are derived from Attendance.[Course|Transport]Fee, Attendance.UsedStudentTokenQuota, and Default_OneCourseCycle
-	CourseFeeFullValue    int32 `json:"courseFeeFullValue"`
-	TransportFeeFullValue int32 `json:"transportFeeFullValue"`
+	GrossCourseFeeValue    int32 `json:"grossCourseFeeValue"`
+	GrossTransportFeeValue int32 `json:"grossTransportFeeValue"`
 }
 
 type TeacherID int64
@@ -230,7 +250,7 @@ type EntityService interface {
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 
 	GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec GetAttendancesSpec) (GetAttendancesResult, error)
-	GetAttendancesForTeacherSalary(ctx context.Context, spec GetAttendancesForTeacherSalarySpec) ([]Attendance, error)
+	GetAttendancesByTeacherId(ctx context.Context, spec GetAttendancesByTeacherIdSpec) ([]Attendance, error)
 	GetAttendanceById(ctx context.Context, id AttendanceID) (Attendance, error)
 	GetAttendancesByIds(ctx context.Context, ids []AttendanceID) ([]Attendance, error)
 	InsertAttendances(ctx context.Context, specs []InsertAttendanceSpec) ([]AttendanceID, error)
@@ -447,9 +467,8 @@ type GetAttendancesSpec struct {
 	util.TimeSpec
 }
 
-type GetAttendancesForTeacherSalarySpec struct {
+type GetAttendancesByTeacherIdSpec struct {
 	TeacherID TeacherID
-	ClassID   ClassID
 	util.TimeSpec
 }
 

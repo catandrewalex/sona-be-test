@@ -251,20 +251,18 @@ func (r RemoveAttendanceRequest) Validate() errs.ValidationError {
 
 // ============================== TEACHER_SALARY ==============================
 
-type GetTeacherSalaryInvoicesRequest struct {
+type GetTeacherSalaryInvoiceItemsRequest struct {
 	TeacherID entity.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
-	ClassID   entity.ClassID   `json:"classId,omitempty"`
 	TimeFilter
 }
-type GetTeacherSalaryInvoicesResponse struct {
-	Data GetTeacherSalaryInvoicesResult `json:"data"`
+type GetTeacherSalaryInvoiceItemsResponse struct {
+	Data GetTeacherSalaryInvoiceItemsResult `json:"data"`
+}
+type GetTeacherSalaryInvoiceItemsResult struct {
+	Results []teaching.TeacherSalaryInvoiceItem `json:"results"`
 }
 
-type GetTeacherSalaryInvoicesResult struct {
-	Results []teaching.TeacherSalaryInvoice `json:"results"`
-}
-
-func (r GetTeacherSalaryInvoicesRequest) Validate() errs.ValidationError {
+func (r GetTeacherSalaryInvoiceItemsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if validationErr := r.TimeFilter.Validate(); validationErr != nil {

@@ -517,7 +517,7 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 	return items, nil
 }
 
-const getAttendancesForTeacherSalary = `-- name: GetAttendancesForTeacherSalary :many
+const getAttendancesByTeacherId = `-- name: GetAttendancesByTeacherId :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
@@ -541,21 +541,18 @@ FROM attendance
 WHERE
     (attendance.date >= ? AND attendance.date <= ?)
     AND (attendance.teacher_id = ? OR ? = false)
-    AND (class_id = ? OR ? = false)
     AND is_paid = 0
 ORDER BY attendance.teacher_id, class.id, attendance.student_id, date, attendance.id
 `
 
-type GetAttendancesForTeacherSalaryParams struct {
+type GetAttendancesByTeacherIdParams struct {
 	StartDate        time.Time
 	EndDate          time.Time
 	TeacherID        sql.NullInt64
 	UseTeacherFilter interface{}
-	ClassID          sql.NullInt64
-	UseClassFilter   interface{}
 }
 
-type GetAttendancesForTeacherSalaryRow struct {
+type GetAttendancesByTeacherIdRow struct {
 	AttendanceID          int64
 	Date                  time.Time
 	UsedStudentTokenQuota float64
@@ -578,22 +575,20 @@ type GetAttendancesForTeacherSalaryRow struct {
 	StudentLearningToken  StudentLearningToken
 }
 
-func (q *Queries) GetAttendancesForTeacherSalary(ctx context.Context, arg GetAttendancesForTeacherSalaryParams) ([]GetAttendancesForTeacherSalaryRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAttendancesForTeacherSalary,
+func (q *Queries) GetAttendancesByTeacherId(ctx context.Context, arg GetAttendancesByTeacherIdParams) ([]GetAttendancesByTeacherIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAttendancesByTeacherId,
 		arg.StartDate,
 		arg.EndDate,
 		arg.TeacherID,
 		arg.UseTeacherFilter,
-		arg.ClassID,
-		arg.UseClassFilter,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAttendancesForTeacherSalaryRow
+	var items []GetAttendancesByTeacherIdRow
 	for rows.Next() {
-		var i GetAttendancesForTeacherSalaryRow
+		var i GetAttendancesByTeacherIdRow
 		if err := rows.Scan(
 			&i.AttendanceID,
 			&i.Date,

@@ -23,11 +23,26 @@ type StudentEnrollmentInvoice struct {
 	TransportFeeValue int32 `json:"transportFeeValue"`
 }
 
-type TeacherSalaryInvoice struct {
-	Attendance entity.Attendance `json:"attendance"`
+type TeacherSalaryInvoiceItem struct {
+	entity.ClassInfo_Minimal
+	Students []Attendance_Student `json:"students"`
+}
+
+type Attendance_Student struct {
+	entity.StudentInfo_Minimal
+	StudentLearningTokens []Attendance_SLT `json:"studentLearningTokens"`
+}
+
+type Attendance_SLT struct {
+	entity.StudentLearningToken_Minimal
+	Attendances []AttendanceForInvoiceItem `json:"attendances"`
+}
+
+type AttendanceForInvoiceItem struct {
+	entity.AttendanceInfo_Minimal
 	// These 4 below fields are displayed in FE to simplify the calculation of PaidCourseFeeValue & PaidTransportFeeValue
-	CourseFeeFullValue            int32   `json:"courseFeeFullValue"`
-	TransportFeeFullValue         int32   `json:"transportFeeFullValue"`
+	GrossCourseFeeValue           int32   `json:"grossCourseFeeValue"`
+	GrossTransportFeeValue        int32   `json:"grossTransportFeeValue"`
 	CourseFeeSharingPercentage    float64 `json:"courseFeeSharingPercentage"`
 	TransportFeeSharingPercentage float64 `json:"transportFeeSharingPercentage"`
 }
@@ -53,7 +68,10 @@ type TeachingService interface {
 	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
 	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
-	GetTeacherSalaryInvoices(ctx context.Context, spec GetTeacherSalaryInvoicesSpec) ([]TeacherSalaryInvoice, error)
+	// GetTeacherSalaryInvoiceItems returns list of Attendance, sort ascendingly by date, grouped by StudentLearningToken, then by Student, and finally by Class.
+	//
+	// The result will be used for SubmitTeacherSalaries spec.
+	GetTeacherSalaryInvoiceItems(ctx context.Context, spec GetTeacherSalaryInvoiceItemsSpec) ([]TeacherSalaryInvoiceItem, error)
 	SubmitTeacherSalaries(ctx context.Context, specs []SubmitTeacherSalariesSpec) error
 	EditTeacherSalaries(ctx context.Context, specs []EditTeacherSalariesSpec) ([]entity.TeacherSalaryID, error)
 	RemoveTeacherSalaries(ctx context.Context, teacherSalaryIDs []entity.TeacherSalaryID) error
@@ -114,9 +132,8 @@ func (s EditAttendanceSpec) GetInt64ID() int64 {
 	return int64(s.AttendanceID)
 }
 
-type GetTeacherSalaryInvoicesSpec struct {
+type GetTeacherSalaryInvoiceItemsSpec struct {
 	TeacherID entity.TeacherID
-	ClassID   entity.ClassID
 	util.TimeSpec
 }
 

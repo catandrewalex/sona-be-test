@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"sonamusica-backend/accessor/relational_db"
@@ -449,7 +450,7 @@ func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.E
 
 		attendanceIDsInt := make([]int64, 0, len(rowResults))
 		for _, rowResult := range rowResults {
-			if util.Int32ToBool(rowResult.IsPaid) == true {
+			if util.Int32ToBool(rowResult.IsPaid) {
 				return errs.ErrModifyingPaidAttendance
 			}
 			attendanceIDs = append(attendanceIDs, entity.AttendanceID(rowResult.ID))
@@ -488,7 +489,7 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 
 		attendanceIDsInt := make([]int64, 0, len(rowResults))
 		for _, rowResult := range rowResults {
-			if util.Int32ToBool(rowResult.IsPaid) == true {
+			if util.Int32ToBool(rowResult.IsPaid) {
 				return errs.ErrModifyingPaidAttendance
 			}
 			deletedAttendanceIDs = append(deletedAttendanceIDs, entity.AttendanceID(rowResult.ID))
@@ -509,30 +510,118 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 	return deletedAttendanceIDs, nil
 }
 
-func (s teachingServiceImpl) GetTeacherSalaryInvoices(ctx context.Context, spec teaching.GetTeacherSalaryInvoicesSpec) ([]teaching.TeacherSalaryInvoice, error) {
-	getAttendancesForTeacherSalarySpec := entity.GetAttendancesForTeacherSalarySpec{
+func (s teachingServiceImpl) GetTeacherSalaryInvoiceItems(ctx context.Context, spec teaching.GetTeacherSalaryInvoiceItemsSpec) ([]teaching.TeacherSalaryInvoiceItem, error) {
+	getAttendancesByTeacherIdSpec := entity.GetAttendancesByTeacherIdSpec{
 		TeacherID: spec.TeacherID,
-		ClassID:   spec.ClassID,
 		TimeSpec:  spec.TimeSpec,
 	}
 
-	attendances, err := s.entityService.GetAttendancesForTeacherSalary(ctx, getAttendancesForTeacherSalarySpec)
+	attendances, err := s.entityService.GetAttendancesByTeacherId(ctx, getAttendancesByTeacherIdSpec)
 	if err != nil {
-		return []teaching.TeacherSalaryInvoice{}, fmt.Errorf("entityService.GetAttendances(): %v", err)
+		return []teaching.TeacherSalaryInvoiceItem{}, fmt.Errorf("entityService.GetAttendancesByTeacherId(): %v", err)
 	}
+	// sort the attendances ascendingly by date
+	sort.SliceStable(attendances, func(i, j int) bool {
+		return attendances[i].Date.Before(attendances[j].Date)
+	})
 
-	teacherSalaryInvoices := make([]teaching.TeacherSalaryInvoice, 0, len(attendances))
+	// group the Attendances by StudentLearningToken
+	sltIdToAttendances := make(map[entity.StudentLearningTokenID][]teaching.AttendanceForInvoiceItem)
+	sltIdToSLT := make(map[entity.StudentLearningTokenID]entity.StudentLearningToken_Minimal)
+	sltIdToStudent := make(map[entity.StudentLearningTokenID]entity.StudentInfo_Minimal)
+	studentIdToStudent := make(map[entity.StudentID]entity.StudentInfo_Minimal)
+	studentIdToClass := make(map[entity.StudentID]entity.ClassInfo_Minimal)
 	for _, attendance := range attendances {
-		teacherSalaryInvoices = append(teacherSalaryInvoices, teaching.TeacherSalaryInvoice{
-			Attendance:                    attendance,
-			CourseFeeFullValue:            int32(float64(attendance.StudentLearningToken.CourseFeeValue) * attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
-			TransportFeeFullValue:         int32(float64(attendance.StudentLearningToken.TransportFeeValue) * attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+		attendancesForInvoiceItem := teaching.AttendanceForInvoiceItem{
+			AttendanceInfo_Minimal: entity.AttendanceInfo_Minimal{
+				AttendanceID:          attendance.AttendanceID,
+				TeacherInfo:           attendance.TeacherInfo,
+				Date:                  attendance.Date,
+				UsedStudentTokenQuota: attendance.UsedStudentTokenQuota,
+				Duration:              attendance.Duration,
+				Note:                  attendance.Note,
+				IsPaid:                attendance.IsPaid,
+			},
+			GrossCourseFeeValue:           int32(float64(attendance.StudentLearningToken.CourseFeeValue) * attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			GrossTransportFeeValue:        int32(float64(attendance.StudentLearningToken.TransportFeeValue) * attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
 			CourseFeeSharingPercentage:    teaching.Default_CourseFeeSharingPercentage,
 			TransportFeeSharingPercentage: teaching.Default_TransportFeeSharingPercentage,
-		})
+		}
+
+		sltId := attendance.StudentLearningToken.StudentLearningTokenID
+		prevValues, ok := sltIdToAttendances[sltId]
+		if ok {
+			sltIdToAttendances[sltId] = append(prevValues, attendancesForInvoiceItem)
+		} else {
+			sltIdToAttendances[sltId] = []teaching.AttendanceForInvoiceItem{attendancesForInvoiceItem}
+		}
+		sltIdToSLT[sltId] = attendance.StudentLearningToken
+		sltIdToStudent[sltId] = *attendance.StudentInfo
+		studentIdToStudent[attendance.StudentInfo.StudentID] = *attendance.StudentInfo
+		studentIdToClass[attendance.StudentInfo.StudentID] = *attendance.ClassInfo
 	}
 
-	return teacherSalaryInvoices, nil
+	// then group the StudentLearningTokens by Student
+	studentIdToSLTs := make(map[entity.StudentID][]teaching.Attendance_SLT)
+	for sltId, attendancesForInvoiceItem := range sltIdToAttendances {
+		slt := sltIdToSLT[sltId]
+		attendance_SLT := teaching.Attendance_SLT{
+			StudentLearningToken_Minimal: slt,
+			Attendances:                  attendancesForInvoiceItem,
+		}
+
+		student := sltIdToStudent[sltId]
+		prevValues, ok := studentIdToSLTs[student.StudentID]
+		if ok {
+			studentIdToSLTs[student.StudentID] = append(prevValues, attendance_SLT)
+		} else {
+			studentIdToSLTs[student.StudentID] = []teaching.Attendance_SLT{attendance_SLT}
+		}
+	}
+
+	// then group the Students by Class, with SLTs per Student are sorted by ID (the SLT ID is automatically generated, so sort by ID == sort by date)
+	classIdToStudents := make(map[entity.ClassID][]teaching.Attendance_Student)
+	classIdToClass := make(map[entity.ClassID]entity.ClassInfo_Minimal)
+	for studentId, attendance_SLTs := range studentIdToSLTs {
+		sort.SliceStable(attendance_SLTs, func(i, j int) bool {
+			return attendance_SLTs[i].StudentLearningTokenID < attendance_SLTs[j].StudentLearningTokenID
+		})
+
+		student := studentIdToStudent[studentId]
+		class := studentIdToClass[studentId]
+		attendence_Student := teaching.Attendance_Student{
+			StudentInfo_Minimal:   student,
+			StudentLearningTokens: attendance_SLTs,
+		}
+
+		prevValues, ok := classIdToStudents[class.ClassID]
+		if ok {
+			classIdToStudents[class.ClassID] = append(prevValues, attendence_Student)
+		} else {
+			classIdToStudents[class.ClassID] = []teaching.Attendance_Student{attendence_Student}
+		}
+		classIdToClass[class.ClassID] = class
+	}
+
+	// construct the TeacherSalaryInvoiceItem, with Students per Class are sorted by Student name
+	teacherSalaryInvoiceItems := make([]teaching.TeacherSalaryInvoiceItem, 0, 1)
+	for classId, attendance_Students := range classIdToStudents {
+		sort.SliceStable(attendance_Students, func(i, j int) bool {
+			return attendance_Students[i].StudentInfo_Minimal.String() < attendance_Students[j].StudentInfo_Minimal.String()
+		})
+
+		class := classIdToClass[classId]
+		teacherSalaryInvoiceItems = append(teacherSalaryInvoiceItems, teaching.TeacherSalaryInvoiceItem{
+			ClassInfo_Minimal: class,
+			Students:          attendance_Students,
+		})
+	}
+	// finally, sort the TeacherSalaryInvoiceItem by Class name
+	sort.SliceStable(teacherSalaryInvoiceItems, func(i, j int) bool {
+		return teacherSalaryInvoiceItems[i].ClassInfo_Minimal.String() < teacherSalaryInvoiceItems[j].ClassInfo_Minimal.String()
+	})
+
+	return teacherSalaryInvoiceItems, nil
 }
 
 func (s teachingServiceImpl) SubmitTeacherSalaries(ctx context.Context, specs []teaching.SubmitTeacherSalariesSpec) error {
@@ -557,6 +646,9 @@ func (s teachingServiceImpl) SubmitTeacherSalaries(ctx context.Context, specs []
 			IsPaid: 1,
 			Ids:    affectedAttendancedIDsInt64,
 		})
+		if err != nil {
+			return fmt.Errorf("qtx.SetAttendancesIsPaidStatusByIds(): %v", err)
+		}
 
 		return nil
 	})

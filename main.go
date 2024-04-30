@@ -171,7 +171,7 @@ func main() {
 		authRouter.Post("/attendance/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
 		authRouter.Post("/attendance/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
 
-		authRouter.Get("/teacherSalaries/invoice/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalaryInvoicesHandler, "TeacherID"))
+		authRouter.Get("/teacherSalaries/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalaryInvoiceItemsHandler, "TeacherID"))
 		authRouter.Post("/teacherSalaries/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherSalariesHandler))
 		authRouter.Post("/teacherSalaries/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherSalariesHandler))
 		authRouter.Post("/teacherSalaries/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherSalariesHandler))
