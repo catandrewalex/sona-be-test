@@ -118,9 +118,9 @@ type StudentLearningToken_Minimal struct {
 
 type Attendance struct {
 	AttendanceID          AttendanceID                 `json:"attendanceId"`
-	ClassInfo             *ClassInfo_Minimal           `json:"class,omitempty"`
-	TeacherInfo           *TeacherInfo_Minimal         `json:"teacher,omitempty"`
-	StudentInfo           *StudentInfo_Minimal         `json:"student,omitempty"`
+	ClassInfo             ClassInfo_Minimal            `json:"class,omitempty"`
+	TeacherInfo           TeacherInfo_Minimal          `json:"teacher,omitempty"`
+	StudentInfo           StudentInfo_Minimal          `json:"student,omitempty"`
 	StudentLearningToken  StudentLearningToken_Minimal `json:"studentLearningToken"`
 	Date                  time.Time                    `json:"date"`
 	UsedStudentTokenQuota float64                      `json:"usedStudentTokenQuota"`
@@ -131,13 +131,13 @@ type Attendance struct {
 
 // AttendanceInfo_Minimal is a subset of struct Attendance that must have the same schema.
 type AttendanceInfo_Minimal struct {
-	AttendanceID          AttendanceID         `json:"attendanceId"`
-	TeacherInfo           *TeacherInfo_Minimal `json:"teacher,omitempty"`
-	Date                  time.Time            `json:"date"`
-	UsedStudentTokenQuota float64              `json:"usedStudentTokenQuota"`
-	Duration              int32                `json:"duration"`
-	Note                  string               `json:"note"`
-	IsPaid                bool                 `json:"isPaid"`
+	AttendanceID          AttendanceID        `json:"attendanceId"`
+	TeacherInfo           TeacherInfo_Minimal `json:"teacher,omitempty"`
+	Date                  time.Time           `json:"date"`
+	UsedStudentTokenQuota float64             `json:"usedStudentTokenQuota"`
+	Duration              int32               `json:"duration"`
+	Note                  string              `json:"note"`
+	IsPaid                bool                `json:"isPaid"`
 }
 
 type TeacherSalary struct {

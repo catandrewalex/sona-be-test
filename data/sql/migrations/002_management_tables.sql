@@ -107,14 +107,14 @@ CREATE TABLE attendance
   duration INT NOT NULL,
   note VARCHAR(255) NOT NULL DEFAULT '',
   is_paid TINYINT NOT NULL DEFAULT 0,
-  class_id BIGINT unsigned,
-  teacher_id BIGINT unsigned,
-  student_id BIGINT unsigned,
+  class_id BIGINT unsigned NOT NULL,
+  teacher_id BIGINT unsigned NOT NULL,
+  student_id BIGINT unsigned NOT NULL,
   token_id BIGINT unsigned NOT NULL,
   -- `attendance` stores historical records, and requires all existing used `attendance` to be deleted before deleting the parent entities.
-  FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE SET NULL,
-  FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE SET NULL,
-  FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE SET NULL,
+  FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+  FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   -- an `attendance` must have a `student_learning_token` for calculating `attendance` fee. If one wishes to delete a token ID, we force the `attendance` to migrate to use another token.
   FOREIGN KEY (token_id) REFERENCES student_learning_token(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   UNIQUE KEY `class_id--student_id--date` (`class_id`, `student_id`, `date`)

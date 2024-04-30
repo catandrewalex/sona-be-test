@@ -1335,10 +1335,10 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
-	classID := sql.NullInt64{Int64: int64(spec.ClassID), Valid: true}
+	classID := int64(spec.ClassID)
 	useClassFilter := spec.ClassID != entity.ClassID_None
 
-	studentID := sql.NullInt64{Int64: int64(spec.StudentID), Valid: true}
+	studentID := int64(spec.StudentID)
 	useStudentFilter := spec.StudentID != entity.StudentID_None
 
 	useUnpaidFilter := spec.UnpaidOnly
@@ -1382,13 +1382,12 @@ func (s entityServiceImpl) GetAttendancesByTeacherId(ctx context.Context, spec e
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
-	teacherID := sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true}
 	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
 
 	attendanceRows, err := s.mySQLQueries.GetAttendancesByTeacherId(ctx, mysql.GetAttendancesByTeacherIdParams{
 		StartDate:        timeFilter.StartDatetime,
 		EndDate:          timeFilter.EndDatetime,
-		TeacherID:        teacherID,
+		TeacherID:        int64(spec.TeacherID),
 		UseTeacherFilter: useTeacherFilter,
 	})
 	if err != nil {
@@ -1447,9 +1446,9 @@ func (s entityServiceImpl) InsertAttendances(ctx context.Context, specs []entity
 				UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 				Duration:              spec.Duration,
 				Note:                  spec.Note,
-				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
-				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
-				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
+				ClassID:               int64(spec.ClassID),
+				TeacherID:             int64(spec.TeacherID),
+				StudentID:             int64(spec.StudentID),
 				TokenID:               int64(spec.StudentLearningTokenID),
 			})
 			if err != nil {
@@ -1481,9 +1480,9 @@ func (s entityServiceImpl) UpdateAttendances(ctx context.Context, specs []entity
 				Duration:              spec.Duration,
 				Note:                  spec.Note,
 				IsPaid:                util.BoolToInt32(spec.IsPaid),
-				ClassID:               sql.NullInt64{Int64: int64(spec.ClassID), Valid: true},
-				TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
-				StudentID:             sql.NullInt64{Int64: int64(spec.StudentID), Valid: true},
+				ClassID:               int64(spec.ClassID),
+				TeacherID:             int64(spec.TeacherID),
+				StudentID:             int64(spec.StudentID),
 				TokenID:               int64(spec.StudentLearningTokenID),
 				ID:                    int64(spec.AttendanceID),
 			})
@@ -1522,7 +1521,7 @@ func (s entityServiceImpl) GetTeacherSalaries(ctx context.Context, pagination ut
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
-	teacherID := sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true}
+	teacherID := int64(spec.TeacherID)
 	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
 
 	teacherSalaryRows, err := s.mySQLQueries.GetTeacherSalaries(ctx, mysql.GetTeacherSalariesParams{

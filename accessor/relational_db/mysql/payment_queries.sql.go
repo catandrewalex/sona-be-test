@@ -88,7 +88,7 @@ WHERE
 `
 
 type CountTeacherSalariesParams struct {
-	TeacherID        sql.NullInt64
+	TeacherID        int64
 	UseTeacherFilter interface{}
 }
 
@@ -1168,7 +1168,7 @@ LIMIT ? OFFSET ?
 `
 
 type GetTeacherSalariesParams struct {
-	TeacherID        sql.NullInt64
+	TeacherID        int64
 	UseTeacherFilter interface{}
 	Limit            int32
 	Offset           int32
@@ -1180,10 +1180,10 @@ type GetTeacherSalariesRow struct {
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
 	Attendance            Attendance
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	Class                 Class
@@ -1301,10 +1301,10 @@ type GetTeacherSalariesByIdsRow struct {
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
 	Attendance            Attendance
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	Class                 Class
@@ -1466,10 +1466,10 @@ type GetTeacherSalaryByIdRow struct {
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
 	Attendance            Attendance
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	Class                 Class

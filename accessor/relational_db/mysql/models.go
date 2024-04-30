@@ -17,9 +17,9 @@ type Attendance struct {
 	Duration              int32
 	Note                  string
 	IsPaid                int32
-	ClassID               sql.NullInt64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
+	ClassID               int64
+	TeacherID             int64
+	StudentID             int64
 	TokenID               int64
 }
 

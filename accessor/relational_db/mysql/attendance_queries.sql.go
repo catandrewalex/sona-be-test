@@ -24,9 +24,9 @@ WHERE
 type CountAttendancesParams struct {
 	StartDate        time.Time
 	EndDate          time.Time
-	ClassID          sql.NullInt64
+	ClassID          int64
 	UseClassFilter   interface{}
-	StudentID        sql.NullInt64
+	StudentID        int64
 	UseStudentFilter interface{}
 	UsePaidFilter    interface{}
 }
@@ -109,7 +109,7 @@ type EditAttendancesParams struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	Ids                   []int64
 }
 
@@ -168,10 +168,10 @@ type GetAttendanceByIdRow struct {
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	ClassTeacherID        sql.NullInt64
@@ -298,9 +298,9 @@ LIMIT ? OFFSET ?
 type GetAttendancesParams struct {
 	StartDate        time.Time
 	EndDate          time.Time
-	ClassID          sql.NullInt64
+	ClassID          int64
 	UseClassFilter   interface{}
-	StudentID        sql.NullInt64
+	StudentID        int64
 	UseStudentFilter interface{}
 	UseUnpaidFilter  interface{}
 	Limit            int32
@@ -318,10 +318,10 @@ type GetAttendancesRow struct {
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	ClassTeacherID        sql.NullInt64
@@ -435,10 +435,10 @@ type GetAttendancesByIdsRow struct {
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	ClassTeacherID        sql.NullInt64
@@ -548,7 +548,7 @@ ORDER BY attendance.teacher_id, class.id, attendance.student_id, date, attendanc
 type GetAttendancesByTeacherIdParams struct {
 	StartDate        time.Time
 	EndDate          time.Time
-	TeacherID        sql.NullInt64
+	TeacherID        int64
 	UseTeacherFilter interface{}
 }
 
@@ -563,10 +563,10 @@ type GetAttendancesByTeacherIdRow struct {
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
-	TeacherID             sql.NullInt64
+	TeacherID             int64
 	TeacherUsername       sql.NullString
 	TeacherDetail         []byte
-	StudentID             sql.NullInt64
+	StudentID             int64
 	StudentUsername       sql.NullString
 	StudentDetail         []byte
 	ClassTeacherID        sql.NullInt64
@@ -654,9 +654,9 @@ type InsertAttendanceParams struct {
 	Duration              int32
 	Note                  string
 	IsPaid                int32
-	ClassID               sql.NullInt64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
+	ClassID               int64
+	TeacherID             int64
+	StudentID             int64
 	TokenID               int64
 }
 
@@ -716,9 +716,9 @@ type UpdateAttendanceParams struct {
 	Duration              int32
 	Note                  string
 	IsPaid                int32
-	ClassID               sql.NullInt64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
+	ClassID               int64
+	TeacherID             int64
+	StudentID             int64
 	TokenID               int64
 	ID                    int64
 }

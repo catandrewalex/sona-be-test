@@ -338,7 +338,7 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRow) []entity.Attendance {
 	attendances := make([]entity.Attendance, 0, len(attendanceRows))
 	for _, attendanceRow := range attendanceRows {
-		var classInfo *entity.ClassInfo_Minimal
+		var classInfo entity.ClassInfo_Minimal
 		classId := entity.ClassID(attendanceRow.Class.ID)
 		if classId != entity.ClassID(entity.ClassID_None) {
 			// attendance.teacher & attendance.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
@@ -354,7 +354,7 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 				}
 			}
 
-			classInfo = &entity.ClassInfo_Minimal{
+			classInfo = entity.ClassInfo_Minimal{
 				ClassID:             entity.ClassID(attendanceRow.Class.ID),
 				TeacherInfo_Minimal: classTeacherInfo,
 				Course: NewCoursesFromGetCoursesRow([]mysql.GetCoursesRow{
@@ -372,10 +372,10 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 		}
 
 		// attendance.teacher & attendance.class.teacher may differ, as the class-registered teacher may be absent, and is replaced by another teacher
-		var teacherInfo *entity.TeacherInfo_Minimal
-		teacherId := entity.TeacherID(attendanceRow.TeacherID.Int64)
-		if attendanceRow.TeacherID.Valid && teacherId != entity.TeacherID_None {
-			teacherInfo = &entity.TeacherInfo_Minimal{
+		var teacherInfo entity.TeacherInfo_Minimal
+		teacherId := entity.TeacherID(attendanceRow.TeacherID)
+		if teacherId != entity.TeacherID_None {
+			teacherInfo = entity.TeacherInfo_Minimal{
 				TeacherID: teacherId,
 				UserInfo_Minimal: identity.UserInfo_Minimal{
 					Username:   attendanceRow.TeacherUsername.String,
@@ -384,10 +384,10 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 			}
 		}
 
-		var studentInfo *entity.StudentInfo_Minimal
-		studentId := entity.StudentID(attendanceRow.StudentID.Int64)
-		if attendanceRow.StudentID.Valid && studentId != entity.StudentID_None {
-			studentInfo = &entity.StudentInfo_Minimal{
+		var studentInfo entity.StudentInfo_Minimal
+		studentId := entity.StudentID(attendanceRow.StudentID)
+		if studentId != entity.StudentID_None {
+			studentInfo = entity.StudentInfo_Minimal{
 				StudentID: studentId,
 				UserInfo_Minimal: identity.UserInfo_Minimal{
 					Username:   attendanceRow.StudentUsername.String,

@@ -458,7 +458,7 @@ func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.E
 		}
 
 		err = qtx.EditAttendances(newCtx, mysql.EditAttendancesParams{
-			TeacherID:             sql.NullInt64{Int64: int64(spec.TeacherID), Valid: true},
+			TeacherID:             int64(spec.TeacherID),
 			Date:                  spec.Date,
 			UsedStudentTokenQuota: spec.UsedStudentTokenQuota,
 			Duration:              spec.Duration,
@@ -556,9 +556,9 @@ func (s teachingServiceImpl) GetTeacherSalaryInvoiceItems(ctx context.Context, s
 			sltIdToAttendances[sltId] = []teaching.AttendanceForInvoiceItem{attendancesForInvoiceItem}
 		}
 		sltIdToSLT[sltId] = attendance.StudentLearningToken
-		sltIdToStudent[sltId] = *attendance.StudentInfo
-		studentIdToStudent[attendance.StudentInfo.StudentID] = *attendance.StudentInfo
-		studentIdToClass[attendance.StudentInfo.StudentID] = *attendance.ClassInfo
+		sltIdToStudent[sltId] = attendance.StudentInfo
+		studentIdToStudent[attendance.StudentInfo.StudentID] = attendance.StudentInfo
+		studentIdToClass[attendance.StudentInfo.StudentID] = attendance.ClassInfo
 	}
 
 	// then group the StudentLearningTokens by Student
