@@ -145,7 +145,7 @@ func main() {
 		authRouter.Put("/attendances", jsonSerdeWrapper.WrapFunc(backendService.UpdateAttendancesHandler))
 		authRouter.Delete("/attendances", jsonSerdeWrapper.WrapFunc(backendService.DeleteAttendancesHandler))
 
-		authRouter.Get("/teacherSalaries", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalariesHandler))
+		authRouter.Get("/teacherPayments", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentsHandler))
 	})
 
 	// Router group for staff-only (and above) endpoints
@@ -171,10 +171,10 @@ func main() {
 		authRouter.Post("/attendance/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
 		authRouter.Post("/attendance/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
 
-		authRouter.Get("/teacherSalaries/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherSalaryInvoiceItemsHandler, "TeacherID"))
-		authRouter.Post("/teacherSalaries/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherSalariesHandler))
-		authRouter.Post("/teacherSalaries/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherSalariesHandler))
-		authRouter.Post("/teacherSalaries/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherSalariesHandler))
+		authRouter.Get("/teacherPayments/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentInvoiceItemsHandler, "TeacherID"))
+		authRouter.Post("/teacherPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherPaymentsHandler))
+		authRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
+		authRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

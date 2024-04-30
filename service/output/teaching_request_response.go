@@ -249,20 +249,20 @@ func (r RemoveAttendanceRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-// ============================== TEACHER_SALARY ==============================
+// ============================== TEACHER_PAYMENT ==============================
 
-type GetTeacherSalaryInvoiceItemsRequest struct {
+type GetTeacherPaymentInvoiceItemsRequest struct {
 	TeacherID entity.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	TimeFilter
 }
-type GetTeacherSalaryInvoiceItemsResponse struct {
-	Data GetTeacherSalaryInvoiceItemsResult `json:"data"`
+type GetTeacherPaymentInvoiceItemsResponse struct {
+	Data GetTeacherPaymentInvoiceItemsResult `json:"data"`
 }
-type GetTeacherSalaryInvoiceItemsResult struct {
-	Results []teaching.TeacherSalaryInvoiceItem `json:"results"`
+type GetTeacherPaymentInvoiceItemsResult struct {
+	Results []teaching.TeacherPaymentInvoiceItem `json:"results"`
 }
 
-func (r GetTeacherSalaryInvoiceItemsRequest) Validate() errs.ValidationError {
+func (r GetTeacherPaymentInvoiceItemsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
@@ -274,19 +274,19 @@ func (r GetTeacherSalaryInvoiceItemsRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type SubmitTeacherSalariesRequest struct {
-	Data []SubmitTeacherSalariesRequestParam `json:"data"`
+type SubmitTeacherPaymentsRequest struct {
+	Data []SubmitTeacherPaymentsRequestParam `json:"data"`
 }
-type SubmitTeacherSalariesRequestParam struct {
+type SubmitTeacherPaymentsRequestParam struct {
 	AttendanceID          entity.AttendanceID `json:"attendanceId"`
 	PaidCourseFeeValue    int32               `json:"paidCourseFeeValue,omitempty"`
 	PaidTransportFeeValue int32               `json:"paidTransportFeeValue,omitempty"`
 }
-type SubmitTeacherSalariesResponse struct {
+type SubmitTeacherPaymentsResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (r SubmitTeacherSalariesRequest) Validate() errs.ValidationError {
+func (r SubmitTeacherPaymentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	for i, datum := range r.Data {
@@ -305,24 +305,24 @@ func (r SubmitTeacherSalariesRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type EditTeacherSalariesRequest struct {
-	Data []EditTeacherSalariesRequestParam `json:"data"`
+type EditTeacherPaymentsRequest struct {
+	Data []EditTeacherPaymentsRequestParam `json:"data"`
 }
-type EditTeacherSalariesRequestParam struct {
-	TeacherSalaryID       entity.TeacherSalaryID `json:"teacherSalaryId"`
-	PaidCourseFeeValue    int32                  `json:"paidCourseFeeValue,omitempty"`
-	PaidTransportFeeValue int32                  `json:"paidTransportFeeValue,omitempty"`
+type EditTeacherPaymentsRequestParam struct {
+	TeacherPaymentID      entity.TeacherPaymentID `json:"teacherPaymentId"`
+	PaidCourseFeeValue    int32                   `json:"paidCourseFeeValue,omitempty"`
+	PaidTransportFeeValue int32                   `json:"paidTransportFeeValue,omitempty"`
 }
-type EditTeacherSalariesResponse struct {
-	Data    EditTeacherSalariesResult `json:"data"`
+type EditTeacherPaymentsResponse struct {
+	Data    EditTeacherPaymentsResult `json:"data"`
 	Message string                    `json:"message,omitempty"`
 }
 
-type EditTeacherSalariesResult struct {
-	Results []entity.TeacherSalary `json:"results"`
+type EditTeacherPaymentsResult struct {
+	Results []entity.TeacherPayment `json:"results"`
 }
 
-func (r EditTeacherSalariesRequest) Validate() errs.ValidationError {
+func (r EditTeacherPaymentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	for i, datum := range r.Data {
@@ -340,16 +340,16 @@ func (r EditTeacherSalariesRequest) Validate() errs.ValidationError {
 	return nil
 }
 
-type RemoveTeacherSalariesRequest struct {
-	Data []RemoveTeacherSalariesRequestParam `json:"data"`
+type RemoveTeacherPaymentsRequest struct {
+	Data []RemoveTeacherPaymentsRequestParam `json:"data"`
 }
-type RemoveTeacherSalariesRequestParam struct {
-	TeacherSalaryID entity.TeacherSalaryID `json:"teacherSalaryId"`
+type RemoveTeacherPaymentsRequestParam struct {
+	TeacherPaymentID entity.TeacherPaymentID `json:"teacherPaymentId"`
 }
-type RemoveTeacherSalariesResponse struct {
+type RemoveTeacherPaymentsResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-func (r RemoveTeacherSalariesRequest) Validate() errs.ValidationError {
+func (r RemoveTeacherPaymentsRequest) Validate() errs.ValidationError {
 	return nil
 }

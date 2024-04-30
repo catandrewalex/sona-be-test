@@ -262,20 +262,20 @@ WHERE id = ?;
 DELETE FROM student_learning_token
 WHERE id IN (sqlc.slice('ids'));
 
-/* ============================== TEACHER_SALARY ============================== */
--- name: GetTeacherSalaryAttendanceIdsByIds :many
-SELECT attendance_id AS id FROM teacher_salary
-WHERE teacher_salary.id IN (sqlc.slice('teacher_salary_ids'));
+/* ============================== TEACHER_PAYMENT ============================== */
+-- name: GetTeacherPaymentAttendanceIdsByIds :many
+SELECT attendance_id AS id FROM teacher_payment
+WHERE teacher_payment.id IN (sqlc.slice('teacher_payment_ids'));
 
--- name: GetTeacherSalaryById :one
-SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+-- name: GetTeacherPaymentById :one
+SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     sqlc.embed(attendance),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
-FROM teacher_salary AS ts
+FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -292,15 +292,15 @@ FROM teacher_salary AS ts
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id = ? LIMIT 1;
 
--- name: GetTeacherSalariesByIds :many
-SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+-- name: GetTeacherPaymentsByIds :many
+SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     sqlc.embed(attendance),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
-FROM teacher_salary AS ts
+FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -317,15 +317,15 @@ FROM teacher_salary AS ts
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id IN (sqlc.slice('ids'));
 
--- name: GetTeacherSalaries :many
-SELECT ts.id AS teacher_salary_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+-- name: GetTeacherPayments :many
+SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     sqlc.embed(attendance),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
-FROM teacher_salary AS ts
+FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -345,36 +345,36 @@ WHERE
 ORDER BY attendance.teacher_id, class.id, student_id, ts.id
 LIMIT ? OFFSET ?;
 
--- name: CountTeacherSalariesByIds :one
-SELECT Count(id) AS total FROM teacher_salary
+-- name: CountTeacherPaymentsByIds :one
+SELECT Count(id) AS total FROM teacher_payment
 WHERE id IN (sqlc.slice('ids'));
 
--- name: CountTeacherSalaries :one
-SELECT Count(teacher_salary.id) AS total
-FROM teacher_salary
+-- name: CountTeacherPayments :one
+SELECT Count(teacher_payment.id) AS total
+FROM teacher_payment
     JOIN attendance ON attendance_id = attendance.id
 WHERE
     (attendance.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false);
 
--- name: InsertTeacherSalary :execlastid
-INSERT INTO teacher_salary (
+-- name: InsertTeacherPayment :execlastid
+INSERT INTO teacher_payment (
     attendance_id, paid_course_fee_value, paid_transport_fee_value
 ) VALUES (
     ?, ?, ?
 );
 
--- name: UpdateTeacherSalary :exec
-UPDATE teacher_salary SET attendance_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
+-- name: UpdateTeacherPayment :exec
+UPDATE teacher_payment SET attendance_id = ?, paid_course_fee_value = ?, paid_transport_fee_value = ?, added_at = ?
 WHERE id = ?;
 
--- name: EditTeacherSalary :exec
-UPDATE teacher_salary SET paid_course_fee_value = ?, paid_transport_fee_value = ?
+-- name: EditTeacherPayment :exec
+UPDATE teacher_payment SET paid_course_fee_value = ?, paid_transport_fee_value = ?
 WHERE id = ?;
 
--- name: DeleteTeacherSalaryById :exec
-DELETE FROM teacher_salary
+-- name: DeleteTeacherPaymentById :exec
+DELETE FROM teacher_payment
 WHERE id = ?;
 
--- name: DeleteTeacherSalariesByIds :exec
-DELETE FROM teacher_salary
+-- name: DeleteTeacherPaymentsByIds :exec
+DELETE FROM teacher_payment
 WHERE id IN (sqlc.slice('ids'));

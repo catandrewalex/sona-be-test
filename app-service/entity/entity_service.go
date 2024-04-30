@@ -140,12 +140,12 @@ type AttendanceInfo_Minimal struct {
 	IsPaid                bool                `json:"isPaid"`
 }
 
-type TeacherSalary struct {
-	TeacherSalaryID       TeacherSalaryID `json:"teacherSalaryId"`
-	Attendance            Attendance      `json:"attendance"`
-	PaidCourseFeeValue    int32           `json:"paidCourseFeeValue"`
-	PaidTransportFeeValue int32           `json:"paidTransportFeeValue"`
-	AddedAt               time.Time       `json:"addedAt"`
+type TeacherPayment struct {
+	TeacherPaymentID      TeacherPaymentID `json:"teacherPaymentId"`
+	Attendance            Attendance       `json:"attendance"`
+	PaidCourseFeeValue    int32            `json:"paidCourseFeeValue"`
+	PaidTransportFeeValue int32            `json:"paidTransportFeeValue"`
+	AddedAt               time.Time        `json:"addedAt"`
 
 	// These 2 fields value are derived from Attendance.[Course|Transport]Fee, Attendance.UsedStudentTokenQuota, and Default_OneCourseCycle
 	GrossCourseFeeValue    int32 `json:"grossCourseFeeValue"`
@@ -165,7 +165,7 @@ type EnrollmentPaymentID int64
 type StudentLearningTokenID int64
 type AttendanceID int64
 
-type TeacherSalaryID int64
+type TeacherPaymentID int64
 
 const TeacherID_None TeacherID = iota
 const StudentID_None StudentID = iota
@@ -180,7 +180,7 @@ const EnrollmentPaymentID_None EnrollmentPaymentID = iota
 const StudentLearningTokenID_None StudentLearningTokenID = iota
 const AttendanceID_None AttendanceID = iota
 
-const TeacherSalaryID_None AttendanceID = iota
+const TeacherPaymentID_None AttendanceID = iota
 
 type EntityService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
@@ -257,12 +257,12 @@ type EntityService interface {
 	UpdateAttendances(ctx context.Context, specs []UpdateAttendanceSpec) ([]AttendanceID, error)
 	DeleteAttendances(ctx context.Context, ids []AttendanceID) error
 
-	GetTeacherSalaries(ctx context.Context, pagination util.PaginationSpec, spec GetTeacherSalariesSpec) (GetTeacherSalariesResult, error)
-	GetTeacherSalaryById(ctx context.Context, id TeacherSalaryID) (TeacherSalary, error)
-	GetTeacherSalariesByIds(ctx context.Context, ids []TeacherSalaryID) ([]TeacherSalary, error)
-	InsertTeacherSalaries(ctx context.Context, specs []InsertTeacherSalarySpec) ([]TeacherSalaryID, error)
-	UpdateTeacherSalaries(ctx context.Context, specs []UpdateTeacherSalarySpec) ([]TeacherSalaryID, error)
-	DeleteTeacherSalaries(ctx context.Context, ids []TeacherSalaryID) error
+	GetTeacherPayments(ctx context.Context, pagination util.PaginationSpec, spec GetTeacherPaymentsSpec) (GetTeacherPaymentsResult, error)
+	GetTeacherPaymentById(ctx context.Context, id TeacherPaymentID) (TeacherPayment, error)
+	GetTeacherPaymentsByIds(ctx context.Context, ids []TeacherPaymentID) ([]TeacherPayment, error)
+	InsertTeacherPayments(ctx context.Context, specs []InsertTeacherPaymentSpec) ([]TeacherPaymentID, error)
+	UpdateTeacherPayments(ctx context.Context, specs []UpdateTeacherPaymentSpec) ([]TeacherPaymentID, error)
+	DeleteTeacherPayments(ctx context.Context, ids []TeacherPaymentID) error
 }
 
 // ============================== STUDENT & TEACHER ==============================
@@ -507,30 +507,30 @@ func (s UpdateAttendanceSpec) GetInt64ID() int64 {
 
 // ============================== TEACHER SALARY ==============================
 
-type GetTeacherSalariesSpec struct {
+type GetTeacherPaymentsSpec struct {
 	TeacherID TeacherID
 	util.TimeSpec
 }
 
-type GetTeacherSalariesResult struct {
-	TeacherSalaries  []TeacherSalary
+type GetTeacherPaymentsResult struct {
+	TeacherPayments  []TeacherPayment
 	PaginationResult util.PaginationResult
 }
 
-type InsertTeacherSalarySpec struct {
+type InsertTeacherPaymentSpec struct {
 	AttendanceID          AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 }
 
-type UpdateTeacherSalarySpec struct {
-	TeacherSalaryID       TeacherSalaryID
+type UpdateTeacherPaymentSpec struct {
+	TeacherPaymentID      TeacherPaymentID
 	AttendanceID          AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 	AddedAt               time.Time
 }
 
-func (s UpdateTeacherSalarySpec) GetInt64ID() int64 {
-	return int64(s.TeacherSalaryID)
+func (s UpdateTeacherPaymentSpec) GetInt64ID() int64 {
+	return int64(s.TeacherPaymentID)
 }

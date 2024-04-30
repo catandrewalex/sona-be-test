@@ -1514,7 +1514,7 @@ func (s entityServiceImpl) DeleteAttendances(ctx context.Context, ids []entity.A
 	return nil
 }
 
-func (s entityServiceImpl) GetTeacherSalaries(ctx context.Context, pagination util.PaginationSpec, spec entity.GetTeacherSalariesSpec) (entity.GetTeacherSalariesResult, error) {
+func (s entityServiceImpl) GetTeacherPayments(ctx context.Context, pagination util.PaginationSpec, spec entity.GetTeacherPaymentsSpec) (entity.GetTeacherPaymentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 
@@ -1524,128 +1524,128 @@ func (s entityServiceImpl) GetTeacherSalaries(ctx context.Context, pagination ut
 	teacherID := int64(spec.TeacherID)
 	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
 
-	teacherSalaryRows, err := s.mySQLQueries.GetTeacherSalaries(ctx, mysql.GetTeacherSalariesParams{
+	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPayments(ctx, mysql.GetTeacherPaymentsParams{
 		TeacherID:        teacherID,
 		UseTeacherFilter: useTeacherFilter,
 		Limit:            int32(limit),
 		Offset:           int32(offset),
 	})
 	if err != nil {
-		return entity.GetTeacherSalariesResult{}, fmt.Errorf("mySQLQueries.GetTeacherSalaries(): %w", err)
+		return entity.GetTeacherPaymentsResult{}, fmt.Errorf("mySQLQueries.GetTeacherPayments(): %w", err)
 	}
 
-	teacherSalaries := NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows)
+	teacherPayments := NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRows)
 
-	totalResults, err := s.mySQLQueries.CountTeacherSalaries(ctx, mysql.CountTeacherSalariesParams{
+	totalResults, err := s.mySQLQueries.CountTeacherPayments(ctx, mysql.CountTeacherPaymentsParams{
 		TeacherID:        teacherID,
 		UseTeacherFilter: useTeacherFilter,
 	})
 	if err != nil {
-		return entity.GetTeacherSalariesResult{}, fmt.Errorf("mySQLQueries.CountTeacherSalaries(): %w", err)
+		return entity.GetTeacherPaymentsResult{}, fmt.Errorf("mySQLQueries.CountTeacherPayments(): %w", err)
 	}
 
-	return entity.GetTeacherSalariesResult{
-		TeacherSalaries:  teacherSalaries,
+	return entity.GetTeacherPaymentsResult{
+		TeacherPayments:  teacherPayments,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
 }
 
-func (s entityServiceImpl) GetTeacherSalaryById(ctx context.Context, id entity.TeacherSalaryID) (entity.TeacherSalary, error) {
-	teacherSalaryRow, err := s.mySQLQueries.GetTeacherSalaryById(ctx, int64(id))
+func (s entityServiceImpl) GetTeacherPaymentById(ctx context.Context, id entity.TeacherPaymentID) (entity.TeacherPayment, error) {
+	teacherPaymentRow, err := s.mySQLQueries.GetTeacherPaymentById(ctx, int64(id))
 	if err != nil {
-		return entity.TeacherSalary{}, fmt.Errorf("mySQLQueries.GetTeacherSalaryById(): %w", err)
+		return entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentById(): %w", err)
 	}
 
-	teacherSalary := NewTeacherSalariesFromGetTeacherSalariesRow([]mysql.GetTeacherSalariesRow{teacherSalaryRow.ToGetTeacherSalariesRow()})[0]
+	teacherPayment := NewTeacherPaymentsFromGetTeacherPaymentsRow([]mysql.GetTeacherPaymentsRow{teacherPaymentRow.ToGetTeacherPaymentsRow()})[0]
 
-	return teacherSalary, nil
+	return teacherPayment, nil
 }
 
-func (s entityServiceImpl) GetTeacherSalariesByIds(ctx context.Context, ids []entity.TeacherSalaryID) ([]entity.TeacherSalary, error) {
+func (s entityServiceImpl) GetTeacherPaymentsByIds(ctx context.Context, ids []entity.TeacherPaymentID) ([]entity.TeacherPayment, error) {
 	idsInt := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		idsInt = append(idsInt, int64(id))
 	}
 
-	teacherSalaryRows, err := s.mySQLQueries.GetTeacherSalariesByIds(ctx, idsInt)
+	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPaymentsByIds(ctx, idsInt)
 	if err != nil {
-		return []entity.TeacherSalary{}, fmt.Errorf("mySQLQueries.GetTeacherSalariesByIds(): %w", err)
+		return []entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentsByIds(): %w", err)
 	}
 
-	teacherSalaryRowsConverted := make([]mysql.GetTeacherSalariesRow, 0, len(teacherSalaryRows))
-	for _, row := range teacherSalaryRows {
-		teacherSalaryRowsConverted = append(teacherSalaryRowsConverted, row.ToGetTeacherSalariesRow())
+	teacherPaymentRowsConverted := make([]mysql.GetTeacherPaymentsRow, 0, len(teacherPaymentRows))
+	for _, row := range teacherPaymentRows {
+		teacherPaymentRowsConverted = append(teacherPaymentRowsConverted, row.ToGetTeacherPaymentsRow())
 	}
 
-	teacherSalaries := NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRowsConverted)
+	teacherPayments := NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRowsConverted)
 
-	return teacherSalaries, nil
+	return teacherPayments, nil
 }
 
-func (s entityServiceImpl) InsertTeacherSalaries(ctx context.Context, specs []entity.InsertTeacherSalarySpec) ([]entity.TeacherSalaryID, error) {
-	teacherSalaryIDs := make([]entity.TeacherSalaryID, 0, len(specs))
+func (s entityServiceImpl) InsertTeacherPayments(ctx context.Context, specs []entity.InsertTeacherPaymentSpec) ([]entity.TeacherPaymentID, error) {
+	teacherPaymentIDs := make([]entity.TeacherPaymentID, 0, len(specs))
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			teacherSalaryID, err := qtx.InsertTeacherSalary(newCtx, mysql.InsertTeacherSalaryParams{
+			teacherPaymentID, err := qtx.InsertTeacherPayment(newCtx, mysql.InsertTeacherPaymentParams{
 				AttendanceID:          int64(spec.AttendanceID),
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
 				PaidTransportFeeValue: spec.PaidTransportFeeValue,
 			})
 			if err != nil {
-				return fmt.Errorf("qtx.InsertTeacherSalary(): %w", err)
+				return fmt.Errorf("qtx.InsertTeacherPayment(): %w", err)
 			}
-			teacherSalaryIDs = append(teacherSalaryIDs, entity.TeacherSalaryID(teacherSalaryID))
+			teacherPaymentIDs = append(teacherPaymentIDs, entity.TeacherPaymentID(teacherPaymentID))
 		}
 		return nil
 	})
 	if err != nil {
-		return []entity.TeacherSalaryID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+		return []entity.TeacherPaymentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	return teacherSalaryIDs, nil
+	return teacherPaymentIDs, nil
 }
 
-func (s entityServiceImpl) UpdateTeacherSalaries(ctx context.Context, specs []entity.UpdateTeacherSalarySpec) ([]entity.TeacherSalaryID, error) {
-	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherSalariesByIds)
+func (s entityServiceImpl) UpdateTeacherPayments(ctx context.Context, specs []entity.UpdateTeacherPaymentSpec) ([]entity.TeacherPaymentID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherPaymentsByIds)
 	if errV != nil {
-		return []entity.TeacherSalaryID{}, errV
+		return []entity.TeacherPaymentID{}, errV
 	}
 
-	teacherSalaryIDs := make([]entity.TeacherSalaryID, 0, len(specs))
+	teacherPaymentIDs := make([]entity.TeacherPaymentID, 0, len(specs))
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			err := qtx.UpdateTeacherSalary(newCtx, mysql.UpdateTeacherSalaryParams{
+			err := qtx.UpdateTeacherPayment(newCtx, mysql.UpdateTeacherPaymentParams{
 				AttendanceID:          int64(spec.AttendanceID),
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
 				PaidTransportFeeValue: spec.PaidTransportFeeValue,
 				AddedAt:               spec.AddedAt,
-				ID:                    int64(spec.TeacherSalaryID),
+				ID:                    int64(spec.TeacherPaymentID),
 			})
 			if err != nil {
-				return fmt.Errorf("qtx.UpdateTeacherSalary(): %w", err)
+				return fmt.Errorf("qtx.UpdateTeacherPayment(): %w", err)
 			}
-			teacherSalaryIDs = append(teacherSalaryIDs, spec.TeacherSalaryID)
+			teacherPaymentIDs = append(teacherPaymentIDs, spec.TeacherPaymentID)
 		}
 		return nil
 	})
 	if err != nil {
-		return []entity.TeacherSalaryID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+		return []entity.TeacherPaymentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	return teacherSalaryIDs, nil
+	return teacherPaymentIDs, nil
 }
 
-func (s entityServiceImpl) DeleteTeacherSalaries(ctx context.Context, ids []entity.TeacherSalaryID) error {
-	teacherSalaryIdsInt64 := make([]int64, 0, len(ids))
+func (s entityServiceImpl) DeleteTeacherPayments(ctx context.Context, ids []entity.TeacherPaymentID) error {
+	teacherPaymentIdsInt64 := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		teacherSalaryIdsInt64 = append(teacherSalaryIdsInt64, int64(id))
+		teacherPaymentIdsInt64 = append(teacherPaymentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteTeacherSalariesByIds(ctx, teacherSalaryIdsInt64)
+	err := s.mySQLQueries.DeleteTeacherPaymentsByIds(ctx, teacherPaymentIdsInt64)
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteTeacherSalariesByIds(): %w", err)
+		return fmt.Errorf("mySQLQueries.DeleteTeacherPaymentsByIds(): %w", err)
 	}
 
 	return nil

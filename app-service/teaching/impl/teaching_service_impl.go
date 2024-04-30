@@ -510,7 +510,7 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 	return deletedAttendanceIDs, nil
 }
 
-func (s teachingServiceImpl) GetTeacherSalaryInvoiceItems(ctx context.Context, spec teaching.GetTeacherSalaryInvoiceItemsSpec) ([]teaching.TeacherSalaryInvoiceItem, error) {
+func (s teachingServiceImpl) GetTeacherPaymentInvoiceItems(ctx context.Context, spec teaching.GetTeacherPaymentInvoiceItemsSpec) ([]teaching.TeacherPaymentInvoiceItem, error) {
 	getAttendancesByTeacherIdSpec := entity.GetAttendancesByTeacherIdSpec{
 		TeacherID: spec.TeacherID,
 		TimeSpec:  spec.TimeSpec,
@@ -518,7 +518,7 @@ func (s teachingServiceImpl) GetTeacherSalaryInvoiceItems(ctx context.Context, s
 
 	attendances, err := s.entityService.GetAttendancesByTeacherId(ctx, getAttendancesByTeacherIdSpec)
 	if err != nil {
-		return []teaching.TeacherSalaryInvoiceItem{}, fmt.Errorf("entityService.GetAttendancesByTeacherId(): %v", err)
+		return []teaching.TeacherPaymentInvoiceItem{}, fmt.Errorf("entityService.GetAttendancesByTeacherId(): %v", err)
 	}
 	// sort the attendances ascendingly by date
 	sort.SliceStable(attendances, func(i, j int) bool {
@@ -603,33 +603,33 @@ func (s teachingServiceImpl) GetTeacherSalaryInvoiceItems(ctx context.Context, s
 		classIdToClass[class.ClassID] = class
 	}
 
-	// construct the TeacherSalaryInvoiceItem, with Students per Class are sorted by Student name
-	teacherSalaryInvoiceItems := make([]teaching.TeacherSalaryInvoiceItem, 0, 1)
+	// construct the TeacherPaymentInvoiceItem, with Students per Class are sorted by Student name
+	teacherPaymentInvoiceItems := make([]teaching.TeacherPaymentInvoiceItem, 0, 1)
 	for classId, attendance_Students := range classIdToStudents {
 		sort.SliceStable(attendance_Students, func(i, j int) bool {
 			return attendance_Students[i].StudentInfo_Minimal.String() < attendance_Students[j].StudentInfo_Minimal.String()
 		})
 
 		class := classIdToClass[classId]
-		teacherSalaryInvoiceItems = append(teacherSalaryInvoiceItems, teaching.TeacherSalaryInvoiceItem{
+		teacherPaymentInvoiceItems = append(teacherPaymentInvoiceItems, teaching.TeacherPaymentInvoiceItem{
 			ClassInfo_Minimal: class,
 			Students:          attendance_Students,
 		})
 	}
-	// finally, sort the TeacherSalaryInvoiceItem by Class name
-	sort.SliceStable(teacherSalaryInvoiceItems, func(i, j int) bool {
-		return teacherSalaryInvoiceItems[i].ClassInfo_Minimal.String() < teacherSalaryInvoiceItems[j].ClassInfo_Minimal.String()
+	// finally, sort the TeacherPaymentInvoiceItem by Class name
+	sort.SliceStable(teacherPaymentInvoiceItems, func(i, j int) bool {
+		return teacherPaymentInvoiceItems[i].ClassInfo_Minimal.String() < teacherPaymentInvoiceItems[j].ClassInfo_Minimal.String()
 	})
 
-	return teacherSalaryInvoiceItems, nil
+	return teacherPaymentInvoiceItems, nil
 }
 
-func (s teachingServiceImpl) SubmitTeacherSalaries(ctx context.Context, specs []teaching.SubmitTeacherSalariesSpec) error {
+func (s teachingServiceImpl) SubmitTeacherPayments(ctx context.Context, specs []teaching.SubmitTeacherPaymentsSpec) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
-		insertSpecs := make([]entity.InsertTeacherSalarySpec, 0, len(specs))
+		insertSpecs := make([]entity.InsertTeacherPaymentSpec, 0, len(specs))
 		affectedAttendancedIDsInt64 := make([]int64, 0, len(specs))
 		for _, spec := range specs {
-			insertSpecs = append(insertSpecs, entity.InsertTeacherSalarySpec{
+			insertSpecs = append(insertSpecs, entity.InsertTeacherPaymentSpec{
 				AttendanceID:          spec.AttendanceID,
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
 				PaidTransportFeeValue: spec.PaidTransportFeeValue,
@@ -637,9 +637,9 @@ func (s teachingServiceImpl) SubmitTeacherSalaries(ctx context.Context, specs []
 			affectedAttendancedIDsInt64 = append(affectedAttendancedIDsInt64, int64(spec.AttendanceID))
 		}
 
-		_, err := s.entityService.InsertTeacherSalaries(newCtx, insertSpecs)
+		_, err := s.entityService.InsertTeacherPayments(newCtx, insertSpecs)
 		if err != nil {
-			return fmt.Errorf("entityService.InsertTeacherSalaries(): %w", err)
+			return fmt.Errorf("entityService.InsertTeacherPayments(): %w", err)
 		}
 
 		err = qtx.SetAttendancesIsPaidStatusByIds(newCtx, mysql.SetAttendancesIsPaidStatusByIdsParams{
@@ -659,50 +659,50 @@ func (s teachingServiceImpl) SubmitTeacherSalaries(ctx context.Context, specs []
 	return nil
 }
 
-func (s teachingServiceImpl) EditTeacherSalaries(ctx context.Context, specs []teaching.EditTeacherSalariesSpec) ([]entity.TeacherSalaryID, error) {
-	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherSalariesByIds)
+func (s teachingServiceImpl) EditTeacherPayments(ctx context.Context, specs []teaching.EditTeacherPaymentsSpec) ([]entity.TeacherPaymentID, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherPaymentsByIds)
 	if errV != nil {
-		return []entity.TeacherSalaryID{}, errV
+		return []entity.TeacherPaymentID{}, errV
 	}
 
-	teacherSalaryIDs := make([]entity.TeacherSalaryID, 0, len(specs))
+	teacherPaymentIDs := make([]entity.TeacherPaymentID, 0, len(specs))
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			teacherSalaryIDs = append(teacherSalaryIDs, spec.TeacherSalaryID)
-			err := qtx.EditTeacherSalary(newCtx, mysql.EditTeacherSalaryParams{
+			teacherPaymentIDs = append(teacherPaymentIDs, spec.TeacherPaymentID)
+			err := qtx.EditTeacherPayment(newCtx, mysql.EditTeacherPaymentParams{
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
 				PaidTransportFeeValue: spec.PaidTransportFeeValue,
-				ID:                    int64(spec.TeacherSalaryID),
+				ID:                    int64(spec.TeacherPaymentID),
 			})
 			if err != nil {
-				return fmt.Errorf("qtx.EditTeacherSalary(): %w", err)
+				return fmt.Errorf("qtx.EditTeacherPayment(): %w", err)
 			}
 		}
 
 		return nil
 	})
 	if err != nil {
-		return []entity.TeacherSalaryID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+		return []entity.TeacherPaymentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	return teacherSalaryIDs, nil
+	return teacherPaymentIDs, nil
 }
 
-func (s teachingServiceImpl) RemoveTeacherSalaries(ctx context.Context, teacherSalaryIDs []entity.TeacherSalaryID) error {
+func (s teachingServiceImpl) RemoveTeacherPayments(ctx context.Context, teacherPaymentIDs []entity.TeacherPaymentID) error {
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
-		teacherSalaryIDsint64 := make([]int64, 0, len(teacherSalaryIDs))
-		for _, teacherSalaryID := range teacherSalaryIDs {
-			teacherSalaryIDsint64 = append(teacherSalaryIDsint64, int64(teacherSalaryID))
+		teacherPaymentIDsint64 := make([]int64, 0, len(teacherPaymentIDs))
+		for _, teacherPaymentID := range teacherPaymentIDs {
+			teacherPaymentIDsint64 = append(teacherPaymentIDsint64, int64(teacherPaymentID))
 		}
-		affectedAttendancedIDsInt64, err := qtx.GetTeacherSalaryAttendanceIdsByIds(newCtx, teacherSalaryIDsint64)
+		affectedAttendancedIDsInt64, err := qtx.GetTeacherPaymentAttendanceIdsByIds(newCtx, teacherPaymentIDsint64)
 		if err != nil {
-			return fmt.Errorf("GetTeacherSalaryAttendanceIdsByIds(): %w", err)
+			return fmt.Errorf("GetTeacherPaymentAttendanceIdsByIds(): %w", err)
 		}
 
-		err = s.entityService.DeleteTeacherSalaries(newCtx, teacherSalaryIDs)
+		err = s.entityService.DeleteTeacherPayments(newCtx, teacherPaymentIDs)
 		if err != nil {
-			return fmt.Errorf("entityService.DeleteTeacherSalaries(): %w", err)
+			return fmt.Errorf("entityService.DeleteTeacherPayments(): %w", err)
 		}
 
 		err = qtx.SetAttendancesIsPaidStatusByIds(newCtx, mysql.SetAttendancesIsPaidStatusByIdsParams{

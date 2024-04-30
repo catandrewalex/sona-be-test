@@ -87,9 +87,9 @@ func (r GetAttendancesByTeacherIdRow) ToGetAttendancesRow() GetAttendancesRow {
 
 // ============================== ATTENDANCE ==============================
 
-func (r GetTeacherSalaryByIdRow) ToGetTeacherSalariesRow() GetTeacherSalariesRow {
-	return GetTeacherSalariesRow(r)
+func (r GetTeacherPaymentByIdRow) ToGetTeacherPaymentsRow() GetTeacherPaymentsRow {
+	return GetTeacherPaymentsRow(r)
 }
-func (r GetTeacherSalariesByIdsRow) ToGetTeacherSalariesRow() GetTeacherSalariesRow {
-	return GetTeacherSalariesRow(r)
+func (r GetTeacherPaymentsByIdsRow) ToGetTeacherPaymentsRow() GetTeacherPaymentsRow {
+	return GetTeacherPaymentsRow(r)
 }

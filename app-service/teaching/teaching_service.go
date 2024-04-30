@@ -23,7 +23,7 @@ type StudentEnrollmentInvoice struct {
 	TransportFeeValue int32 `json:"transportFeeValue"`
 }
 
-type TeacherSalaryInvoiceItem struct {
+type TeacherPaymentInvoiceItem struct {
 	entity.ClassInfo_Minimal
 	Students []Attendance_Student `json:"students"`
 }
@@ -68,13 +68,13 @@ type TeachingService interface {
 	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
 	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
-	// GetTeacherSalaryInvoiceItems returns list of Attendance, sort ascendingly by date, grouped by StudentLearningToken, then by Student, and finally by Class.
+	// GetTeacherPaymentInvoiceItems returns list of Attendance, sort ascendingly by date, grouped by StudentLearningToken, then by Student, and finally by Class.
 	//
-	// The result will be used for SubmitTeacherSalaries spec.
-	GetTeacherSalaryInvoiceItems(ctx context.Context, spec GetTeacherSalaryInvoiceItemsSpec) ([]TeacherSalaryInvoiceItem, error)
-	SubmitTeacherSalaries(ctx context.Context, specs []SubmitTeacherSalariesSpec) error
-	EditTeacherSalaries(ctx context.Context, specs []EditTeacherSalariesSpec) ([]entity.TeacherSalaryID, error)
-	RemoveTeacherSalaries(ctx context.Context, teacherSalaryIDs []entity.TeacherSalaryID) error
+	// The result will be used for SubmitTeacherPayments spec.
+	GetTeacherPaymentInvoiceItems(ctx context.Context, spec GetTeacherPaymentInvoiceItemsSpec) ([]TeacherPaymentInvoiceItem, error)
+	SubmitTeacherPayments(ctx context.Context, specs []SubmitTeacherPaymentsSpec) error
+	EditTeacherPayments(ctx context.Context, specs []EditTeacherPaymentsSpec) ([]entity.TeacherPaymentID, error)
+	RemoveTeacherPayments(ctx context.Context, teacherPaymentIDs []entity.TeacherPaymentID) error
 }
 
 type SubmitStudentEnrollmentPaymentSpec struct {
@@ -132,23 +132,23 @@ func (s EditAttendanceSpec) GetInt64ID() int64 {
 	return int64(s.AttendanceID)
 }
 
-type GetTeacherSalaryInvoiceItemsSpec struct {
+type GetTeacherPaymentInvoiceItemsSpec struct {
 	TeacherID entity.TeacherID
 	util.TimeSpec
 }
 
-type SubmitTeacherSalariesSpec struct {
+type SubmitTeacherPaymentsSpec struct {
 	AttendanceID          entity.AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 }
 
-type EditTeacherSalariesSpec struct {
-	TeacherSalaryID       entity.TeacherSalaryID
+type EditTeacherPaymentsSpec struct {
+	TeacherPaymentID      entity.TeacherPaymentID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
 }
 
-func (s EditTeacherSalariesSpec) GetInt64ID() int64 {
-	return int64(s.TeacherSalaryID)
+func (s EditTeacherPaymentsSpec) GetInt64ID() int64 {
+	return int64(s.TeacherPaymentID)
 }

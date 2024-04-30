@@ -86,7 +86,7 @@ type Teacher struct {
 	UserID int64
 }
 
-type TeacherSalary struct {
+type TeacherPayment struct {
 	ID                    int64
 	AttendanceID          int64
 	PaidCourseFeeValue    int32

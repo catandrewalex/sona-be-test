@@ -35,8 +35,8 @@ const (
 	MaxPage_GetAttendances           = Default_MaxPage
 	MaxResultsPerPage_GetAttendances = Default_MaxResultsPerPage
 
-	MaxPage_GetTeacherSalaries           = Default_MaxPage
-	MaxResultsPerPage_GetTeacherSalaries = Default_MaxResultsPerPage
+	MaxPage_GetTeacherPayments           = Default_MaxPage
+	MaxResultsPerPage_GetTeacherPayments = Default_MaxResultsPerPage
 )
 
 // ============================== INSTRUMENT ==============================
@@ -888,22 +888,22 @@ func (r DeleteAttendancesRequest) Validate() errs.ValidationError {
 
 // ============================== ATTENDANCE ==============================
 
-type GetTeacherSalariesRequest struct {
+type GetTeacherPaymentsRequest struct {
 	PaginationRequest
 	TimeFilter
 }
-type GetTeacherSalariesResponse struct {
-	Data    GetTeacherSalariesResult `json:"data"`
+type GetTeacherPaymentsResponse struct {
+	Data    GetTeacherPaymentsResult `json:"data"`
 	Message string                   `json:"message,omitempty"`
 }
-type GetTeacherSalariesResult struct {
-	Results []entity.TeacherSalary `json:"results"`
+type GetTeacherPaymentsResult struct {
+	Results []entity.TeacherPayment `json:"results"`
 	PaginationResponse
 }
 
-func (r GetTeacherSalariesRequest) Validate() errs.ValidationError {
+func (r GetTeacherPaymentsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeacherSalaries, MaxResultsPerPage_GetTeacherSalaries); validationErr != nil {
+	if validationErr := r.PaginationRequest.Validate(MaxPage_GetTeacherPayments, MaxResultsPerPage_GetTeacherPayments); validationErr != nil {
 		errorDetail = validationErr.GetErrorDetail()
 	}
 

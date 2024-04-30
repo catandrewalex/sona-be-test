@@ -418,11 +418,11 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 	return attendances
 }
 
-func NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows []mysql.GetTeacherSalariesRow) []entity.TeacherSalary {
-	teacherSalaries := make([]entity.TeacherSalary, 0, len(teacherSalaryRows))
-	for _, tsRow := range teacherSalaryRows {
-		teacherSalaries = append(teacherSalaries, entity.TeacherSalary{
-			TeacherSalaryID: entity.TeacherSalaryID(tsRow.TeacherSalaryID),
+func NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRows []mysql.GetTeacherPaymentsRow) []entity.TeacherPayment {
+	teacherPayments := make([]entity.TeacherPayment, 0, len(teacherPaymentRows))
+	for _, tsRow := range teacherPaymentRows {
+		teacherPayments = append(teacherPayments, entity.TeacherPayment{
+			TeacherPaymentID: entity.TeacherPaymentID(tsRow.TeacherPaymentID),
 			Attendance: NewAttendancesFromGetAttendancesRow([]mysql.GetAttendancesRow{
 				{
 					AttendanceID:          tsRow.Attendance.ID,
@@ -455,5 +455,5 @@ func NewTeacherSalariesFromGetTeacherSalariesRow(teacherSalaryRows []mysql.GetTe
 		})
 	}
 
-	return teacherSalaries
+	return teacherPayments
 }

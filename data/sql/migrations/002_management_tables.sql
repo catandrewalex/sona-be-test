@@ -120,13 +120,13 @@ CREATE TABLE attendance
   UNIQUE KEY `class_id--student_id--date` (`class_id`, `student_id`, `date`)
 );
 
-CREATE TABLE teacher_salary
+CREATE TABLE teacher_payment
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   attendance_id BIGINT unsigned NOT NULL UNIQUE,
   paid_course_fee_value INT NOT NULL,
   paid_transport_fee_value INT NOT NULL,
   added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  -- `teacher_salary` stores historical records of teacher payment, and must be deleted explicitly
+  -- `teacher_payment` stores historical records of teacher payment, and must be deleted explicitly
   FOREIGN KEY (attendance_id) REFERENCES attendance(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
