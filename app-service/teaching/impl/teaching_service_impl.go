@@ -91,11 +91,9 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 
 	lastDateBeforePenalty := util.MaxDateTime
 	if latestPaymentDate != nil {
-		lastDateBeforePenalty = time.Date(latestPaymentDate.(time.Time).Year(), latestPaymentDate.(time.Time).AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, time.UTC)
+		lastDateBeforePenalty = time.Date(latestPaymentDate.(time.Time).Year(), latestPaymentDate.(time.Time).AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, util.DefaultTimezone)
 	}
 	penaltyFeeValue := teaching.Default_PenaltyFeeValue * int32(time.Since(lastDateBeforePenalty).Hours()/24)
-	fmt.Printf("latestPaymentDate: %v\n", latestPaymentDate)
-	fmt.Printf("lastDateBeforePenalty: %v\n", lastDateBeforePenalty)
 
 	// calculate transport fee (splitted unionly across all class students)
 	splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
@@ -517,6 +515,8 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 func (s teachingServiceImpl) GetUnpaidTeachers(ctx context.Context, spec teaching.GetUnpaidTeachersSpec) (teaching.GetUnpaidTeachersResult, error) {
 	spec.Pagination.SetDefaultOnInvalidValues()
 	limit, offset := spec.Pagination.GetLimitAndOffset()
+
+	spec.TimeSpec.SetDefaultForZeroValues()
 
 	teacherRows, err := s.mySQLQueries.GetUnpaidTeachers(ctx, mysql.GetUnpaidTeachersParams{
 		StartDate: spec.StartDatetime,

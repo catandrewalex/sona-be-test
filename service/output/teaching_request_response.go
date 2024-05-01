@@ -253,6 +253,7 @@ func (r RemoveAttendanceRequest) Validate() errs.ValidationError {
 
 type GetUnpaidTeachersRequest struct {
 	YearMonthFilter
+	PaginationRequest
 }
 type GetUnpaidTeachersResponse struct {
 	Data GetUnpaidTeachersResult `json:"data"`

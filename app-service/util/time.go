@@ -9,6 +9,8 @@ import (
 var (
 	MinDateTime = time.Unix(-2208988800, 0) // Jan 1, 1900
 	MaxDateTime = MinDateTime.Add(1<<63 - 1)
+
+	DefaultTimezone = time.FixedZone("GMT+7", 7)
 )
 
 // type CustomTime_DateOnly struct {

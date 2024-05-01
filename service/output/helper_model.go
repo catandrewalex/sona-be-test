@@ -118,13 +118,13 @@ func (d YearMonthFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter
 	switch filterType {
 	case YearMonthFilterType_Standard:
 		timeFilter = TimeFilter{
-			StartDatetime: time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, time.UTC),
-			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
+			StartDatetime: time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, util.DefaultTimezone),
+			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 1, 23, 59, 59, 0, util.DefaultTimezone).AddDate(0, 1, -1),
 		}
 	case YearMonthFilterType_Salary:
 		timeFilter = TimeFilter{
-			StartDatetime: time.Date(d.Year, time.Month(d.Month), 26, 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0),
-			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 25, 0, 0, 0, 0, time.UTC),
+			StartDatetime: time.Date(d.Year, time.Month(d.Month), 26, 0, 0, 0, 0, util.DefaultTimezone).AddDate(0, -1, 0),
+			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 25, 23, 59, 59, 0, util.DefaultTimezone),
 		}
 	}
 	return timeFilter

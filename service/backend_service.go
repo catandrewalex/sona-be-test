@@ -1879,7 +1879,8 @@ func (s *BackendService) GetUnpaidTeachersHandler(ctx context.Context, req *outp
 	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
 
 	getUnpaidTeachersResult, err := s.teachingService.GetUnpaidTeachers(ctx, teaching.GetUnpaidTeachersSpec{
-		TimeSpec: util.TimeSpec(timeFilter),
+		Pagination: util.PaginationSpec(req.PaginationRequest),
+		TimeSpec:   util.TimeSpec(timeFilter),
 	})
 	if err != nil {
 		return nil, handleReadError(err, "teachingService.GetUnpaidTeachers()", "teacherPayment")
