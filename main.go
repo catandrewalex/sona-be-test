@@ -167,11 +167,13 @@ func main() {
 
 		authRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
 		authRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
+		// TODO: add sort ascending by attendance date
 		authRouter.Get("/classes/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
 		authRouter.Post("/classes/{ClassID}/attendance/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
 		authRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
 		authRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
 
+		authRouter.Get("/teacherPayments/unpaidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetUnpaidTeachersHandler))
 		authRouter.Get("/teacherPayments/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentInvoiceItemsHandler, "TeacherID"))
 		authRouter.Post("/teacherPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherPaymentsHandler))
 		authRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))

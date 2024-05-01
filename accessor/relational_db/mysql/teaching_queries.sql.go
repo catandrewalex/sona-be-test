@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"strings"
+	"time"
 )
 
 const activateClass = `-- name: ActivateClass :exec
@@ -299,6 +300,32 @@ func (q *Queries) CountTeachersByIds(ctx context.Context, ids []int64) (int64, e
 		sql = strings.Replace(sql, "/*SLICE:ids*/?", "NULL", 1)
 	}
 	row := q.db.QueryRowContext(ctx, sql, queryParams...)
+	var total int64
+	err := row.Scan(&total)
+	return total, err
+}
+
+const countUnpaidTeachers = `-- name: CountUnpaidTeachers :one
+WITH unpaid_teacher AS (
+    SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_unpaid_attendances
+    FROM attendance
+    WHERE
+        is_paid = 0
+        AND (attendance.date >= ? AND attendance.date <= ?)
+    GROUP BY teacher_id
+    HAVING total_unpaid_attendances > 0
+    ORDER BY total_unpaid_attendances DESC, teacher_id ASC
+)
+SELECT Count(teacher_id) AS total FROM unpaid_teacher
+`
+
+type CountUnpaidTeachersParams struct {
+	StartDate time.Time
+	EndDate   time.Time
+}
+
+func (q *Queries) CountUnpaidTeachers(ctx context.Context, arg CountUnpaidTeachersParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUnpaidTeachers, arg.StartDate, arg.EndDate)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
@@ -2362,6 +2389,77 @@ func (q *Queries) GetTeachersByIds(ctx context.Context, ids []int64) ([]GetTeach
 			&i.PrivilegeType,
 			&i.IsDeactivated,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUnpaidTeachers = `-- name: GetUnpaidTeachers :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_unpaid_attendances
+FROM teacher
+    JOIN user ON teacher.user_id = user.id
+    JOIN attendance ON teacher.id = attendance.teacher_id
+WHERE
+    attendance.is_paid = 0
+    AND (attendance.date >= ? AND attendance.date <= ?)
+GROUP BY teacher.id
+HAVING total_unpaid_attendances > 0
+ORDER BY total_unpaid_attendances DESC, teacher.id ASC
+LIMIT ? OFFSET ?
+`
+
+type GetUnpaidTeachersParams struct {
+	StartDate time.Time
+	EndDate   time.Time
+	Limit     int32
+	Offset    int32
+}
+
+type GetUnpaidTeachersRow struct {
+	ID                     int64
+	UserID                 int64
+	Username               string
+	Email                  sql.NullString
+	UserDetail             json.RawMessage
+	PrivilegeType          int32
+	IsDeactivated          int32
+	CreatedAt              sql.NullTime
+	TotalUnpaidAttendances interface{}
+}
+
+func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersParams) ([]GetUnpaidTeachersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUnpaidTeachers,
+		arg.StartDate,
+		arg.EndDate,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUnpaidTeachersRow
+	for rows.Next() {
+		var i GetUnpaidTeachersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Username,
+			&i.Email,
+			&i.UserDetail,
+			&i.PrivilegeType,
+			&i.IsDeactivated,
+			&i.CreatedAt,
+			&i.TotalUnpaidAttendances,
 		); err != nil {
 			return nil, err
 		}

@@ -38,6 +38,32 @@ WHERE id IN (sqlc.slice('ids'));
 DELETE FROM teacher
 WHERE user_id = ?;
 
+-- name: GetUnpaidTeachers :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_unpaid_attendances
+FROM teacher
+    JOIN user ON teacher.user_id = user.id
+    JOIN attendance ON teacher.id = attendance.teacher_id
+WHERE
+    attendance.is_paid = 0
+    AND (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
+GROUP BY teacher.id
+HAVING total_unpaid_attendances > 0
+ORDER BY total_unpaid_attendances DESC, teacher.id ASC
+LIMIT ? OFFSET ?;
+
+-- name: CountUnpaidTeachers :one
+WITH unpaid_teacher AS (
+    SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_unpaid_attendances
+    FROM attendance
+    WHERE
+        is_paid = 0
+        AND (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
+    GROUP BY teacher_id
+    HAVING total_unpaid_attendances > 0
+    ORDER BY total_unpaid_attendances DESC, teacher_id ASC
+)
+SELECT Count(teacher_id) AS total FROM unpaid_teacher;
+
 /* ============================== STUDENT ============================== */
 -- name: GetStudentById :one
 SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at

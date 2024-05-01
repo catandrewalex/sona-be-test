@@ -23,6 +23,11 @@ type StudentEnrollmentInvoice struct {
 	TransportFeeValue int32 `json:"transportFeeValue"`
 }
 
+type UnpaidTeacher struct {
+	entity.TeacherInfo_Minimal
+	TotalUnpaidAttendances int32 `json:"totalUnpaidAttendances"`
+}
+
 type TeacherPaymentInvoiceItem struct {
 	entity.ClassInfo_Minimal
 	Students []Attendance_Student `json:"students"`
@@ -68,6 +73,7 @@ type TeachingService interface {
 	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
 	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
+	GetUnpaidTeachers(ctx context.Context, spec GetUnpaidTeachersSpec) (GetUnpaidTeachersResult, error)
 	// GetTeacherPaymentInvoiceItems returns list of Attendance, sort ascendingly by date, grouped by StudentLearningToken, then by Student, and finally by Class.
 	//
 	// The result will be used for SubmitTeacherPayments spec.
@@ -130,6 +136,16 @@ type EditAttendanceSpec struct {
 
 func (s EditAttendanceSpec) GetInt64ID() int64 {
 	return int64(s.AttendanceID)
+}
+
+type GetUnpaidTeachersSpec struct {
+	Pagination util.PaginationSpec
+	util.TimeSpec
+}
+
+type GetUnpaidTeachersResult struct {
+	UnpaidTeachers   []UnpaidTeacher
+	PaginationResult util.PaginationResult
 }
 
 type GetTeacherPaymentInvoiceItemsSpec struct {

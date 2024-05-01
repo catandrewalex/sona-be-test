@@ -153,7 +153,7 @@ type GetAttendancesByClassIDRequest struct {
 	ClassID   entity.ClassID   `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	StudentID entity.StudentID `json:"studentId,omitempty"`
 	PaginationRequest
-	TimeFilter
+	YearMonthFilter
 }
 type GetAttendancesByClassIDResponse struct {
 	Data    GetAttendancesByClassIDResult `json:"data"`
@@ -168,7 +168,7 @@ type GetAttendancesByClassIDResult struct {
 func (r GetAttendancesByClassIDRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
-	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+	if validationErr := r.YearMonthFilter.Validate(); validationErr != nil {
 		for key, value := range validationErr.GetErrorDetail() {
 			errorDetail[key] = value
 		}
@@ -251,9 +251,36 @@ func (r RemoveAttendanceRequest) Validate() errs.ValidationError {
 
 // ============================== TEACHER_PAYMENT ==============================
 
+type GetUnpaidTeachersRequest struct {
+	YearMonthFilter
+}
+type GetUnpaidTeachersResponse struct {
+	Data GetUnpaidTeachersResult `json:"data"`
+}
+type GetUnpaidTeachersResult struct {
+	Results []teaching.UnpaidTeacher `json:"results"`
+	PaginationResponse
+}
+
+func (r GetUnpaidTeachersRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if validationErr := r.YearMonthFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
 type GetTeacherPaymentInvoiceItemsRequest struct {
 	TeacherID entity.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
-	TimeFilter
+	YearMonthFilter
 }
 type GetTeacherPaymentInvoiceItemsResponse struct {
 	Data GetTeacherPaymentInvoiceItemsResult `json:"data"`
@@ -265,10 +292,14 @@ type GetTeacherPaymentInvoiceItemsResult struct {
 func (r GetTeacherPaymentInvoiceItemsRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
-	if validationErr := r.TimeFilter.Validate(); validationErr != nil {
+	if validationErr := r.YearMonthFilter.Validate(); validationErr != nil {
 		for key, value := range validationErr.GetErrorDetail() {
 			errorDetail[key] = value
 		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
 	}
 
 	return nil

@@ -13,6 +13,13 @@ const (
 	Default_MaxResultsPerPage = 10000
 )
 
+type YearMonthFilterType string
+
+const (
+	YearMonthFilterType_Standard YearMonthFilterType = "STANDARD"
+	YearMonthFilterType_Salary   YearMonthFilterType = "SALARY"
+)
+
 type ErrorResponse struct {
 	Errors  map[string]string `json:"errors"`
 	Message string            `json:"message,omitempty"`
@@ -74,4 +81,51 @@ func (r TimeFilter) Validate() errs.ValidationError {
 	}
 
 	return nil
+}
+
+type YearMonthFilter struct {
+	Year  int `json:"year,omitempty"`
+	Month int `json:"month,omitempty"`
+}
+
+func (d YearMonthFilter) Validate() errs.ValidationError {
+	// we allow empty YearMonthFilter
+	if d.Year == 0 && d.Month == 0 {
+		return nil
+	}
+
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+	if d.Year < 1960 || d.Year > 2100 {
+		errorDetail["year"] = "year must be in between 1960-2100"
+	}
+	if d.Month < 1 || d.Month > 12 {
+		errorDetail["month"] = "month must be in between 1-12"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
+func (d YearMonthFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter {
+	if d.Year == 0 && d.Month == 0 {
+		return TimeFilter{}
+	}
+
+	timeFilter := TimeFilter{}
+	switch filterType {
+	case YearMonthFilterType_Standard:
+		timeFilter = TimeFilter{
+			StartDatetime: time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, time.UTC),
+			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
+		}
+	case YearMonthFilterType_Salary:
+		timeFilter = TimeFilter{
+			StartDatetime: time.Date(d.Year, time.Month(d.Month), 26, 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0),
+			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 25, 0, 0, 0, 0, time.UTC),
+		}
+	}
+	return timeFilter
 }

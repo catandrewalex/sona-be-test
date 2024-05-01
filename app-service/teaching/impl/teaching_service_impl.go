@@ -88,7 +88,11 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentId(): %w", err)
 		}
 	}
-	lastDateBeforePenalty := time.Date(latestPaymentDate.(time.Time).Year(), latestPaymentDate.(time.Time).AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, time.UTC)
+
+	lastDateBeforePenalty := util.MaxDateTime
+	if latestPaymentDate != nil {
+		lastDateBeforePenalty = time.Date(latestPaymentDate.(time.Time).Year(), latestPaymentDate.(time.Time).AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, time.UTC)
+	}
 	penaltyFeeValue := teaching.Default_PenaltyFeeValue * int32(time.Since(lastDateBeforePenalty).Hours()/24)
 	fmt.Printf("latestPaymentDate: %v\n", latestPaymentDate)
 	fmt.Printf("lastDateBeforePenalty: %v\n", lastDateBeforePenalty)
@@ -508,6 +512,36 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 	}
 
 	return deletedAttendanceIDs, nil
+}
+
+func (s teachingServiceImpl) GetUnpaidTeachers(ctx context.Context, spec teaching.GetUnpaidTeachersSpec) (teaching.GetUnpaidTeachersResult, error) {
+	spec.Pagination.SetDefaultOnInvalidValues()
+	limit, offset := spec.Pagination.GetLimitAndOffset()
+
+	teacherRows, err := s.mySQLQueries.GetUnpaidTeachers(ctx, mysql.GetUnpaidTeachersParams{
+		StartDate: spec.StartDatetime,
+		EndDate:   spec.EndDatetime,
+		Limit:     int32(limit),
+		Offset:    int32(offset),
+	})
+	if err != nil {
+		return teaching.GetUnpaidTeachersResult{}, fmt.Errorf("mySQLQueries.GetUnpaidTeachers(): %w", err)
+	}
+
+	unpaidTeachers := NewUnpaidTeachersFromGetUnpaidTeachersRow(teacherRows)
+
+	totalResults, err := s.mySQLQueries.CountUnpaidTeachers(ctx, mysql.CountUnpaidTeachersParams{
+		StartDate: spec.StartDatetime,
+		EndDate:   spec.EndDatetime,
+	})
+	if err != nil {
+		return teaching.GetUnpaidTeachersResult{}, fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
+	}
+
+	return teaching.GetUnpaidTeachersResult{
+		UnpaidTeachers:   unpaidTeachers,
+		PaginationResult: *util.NewPaginationResult(int(totalResults), spec.Pagination.ResultsPerPage, spec.Pagination.Page),
+	}, nil
 }
 
 func (s teachingServiceImpl) GetTeacherPaymentInvoiceItems(ctx context.Context, spec teaching.GetTeacherPaymentInvoiceItemsSpec) ([]teaching.TeacherPaymentInvoiceItem, error) {

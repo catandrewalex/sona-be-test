@@ -1748,11 +1748,13 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 		return nil, errV
 	}
 
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+
 	spec := teaching.GetAttendancesByClassIDSpec{
 		ClassID:        req.ClassID,
 		StudentID:      req.StudentID,
 		PaginationSpec: util.PaginationSpec(req.PaginationRequest),
-		TimeSpec:       util.TimeSpec(req.TimeFilter),
+		TimeSpec:       util.TimeSpec(timeFilter),
 	}
 	getAttendancesResult, err := s.teachingService.GetAttendancesByClassID(ctx, spec)
 	if err != nil {
@@ -1869,14 +1871,40 @@ func (s *BackendService) RemoveAttendanceHandler(ctx context.Context, req *outpu
 	}, nil
 }
 
+func (s *BackendService) GetUnpaidTeachersHandler(ctx context.Context, req *output.GetUnpaidTeachersRequest) (*output.GetUnpaidTeachersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+
+	getUnpaidTeachersResult, err := s.teachingService.GetUnpaidTeachers(ctx, teaching.GetUnpaidTeachersSpec{
+		TimeSpec: util.TimeSpec(timeFilter),
+	})
+	if err != nil {
+		return nil, handleReadError(err, "teachingService.GetUnpaidTeachers()", "teacherPayment")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getUnpaidTeachersResult.PaginationResult)
+
+	return &output.GetUnpaidTeachersResponse{
+		Data: output.GetUnpaidTeachersResult{
+			Results:            getUnpaidTeachersResult.UnpaidTeachers,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
 func (s *BackendService) GetTeacherPaymentInvoiceItemsHandler(ctx context.Context, req *output.GetTeacherPaymentInvoiceItemsRequest) (*output.GetTeacherPaymentInvoiceItemsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
 
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+
 	invoices, err := s.teachingService.GetTeacherPaymentInvoiceItems(ctx, teaching.GetTeacherPaymentInvoiceItemsSpec{
 		TeacherID: req.TeacherID,
-		TimeSpec:  util.TimeSpec(req.TimeFilter),
+		TimeSpec:  util.TimeSpec(timeFilter),
 	})
 	if err != nil {
 		return nil, handleReadError(err, "teachingService.GetTeacherPaymentInvoices()", "teacherPayment")
