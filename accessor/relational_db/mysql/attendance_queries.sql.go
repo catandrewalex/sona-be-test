@@ -28,7 +28,7 @@ type CountAttendancesParams struct {
 	UseClassFilter   interface{}
 	StudentID        int64
 	UseStudentFilter interface{}
-	UsePaidFilter    interface{}
+	UseUnpaidFilter  interface{}
 }
 
 func (q *Queries) CountAttendances(ctx context.Context, arg CountAttendancesParams) (int64, error) {
@@ -39,7 +39,7 @@ func (q *Queries) CountAttendances(ctx context.Context, arg CountAttendancesPara
 		arg.UseClassFilter,
 		arg.StudentID,
 		arg.UseStudentFilter,
-		arg.UsePaidFilter,
+		arg.UseUnpaidFilter,
 	)
 	var total int64
 	err := row.Scan(&total)

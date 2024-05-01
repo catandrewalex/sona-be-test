@@ -122,7 +122,7 @@ WHERE
     (date >= sqlc.arg('startDate') AND date <= sqlc.arg('endDate'))
     AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false)
     AND (student_id = sqlc.arg('student_id') OR sqlc.arg('use_student_filter') = false)
-    AND (is_paid = 0 OR sqlc.arg('use_paid_filter') = false);
+    AND (is_paid = 0 OR sqlc.arg('use_unpaid_filter') = false);
 
 -- name: CountAttendancesByIds :one
 SELECT Count(id) AS total FROM attendance

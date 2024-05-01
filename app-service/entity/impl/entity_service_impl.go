@@ -1367,6 +1367,7 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 		UseClassFilter:   useClassFilter,
 		StudentID:        studentID,
 		UseStudentFilter: useStudentFilter,
+		UseUnpaidFilter:  useUnpaidFilter,
 	})
 	if err != nil {
 		return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.CountAttendances(): %w", err)
