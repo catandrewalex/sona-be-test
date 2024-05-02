@@ -403,8 +403,10 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 			StudentInfo:  studentInfo,
 			StudentLearningToken: entity.StudentLearningToken_Minimal{
 				StudentLearningTokenID: entity.StudentLearningTokenID(attendanceRow.StudentLearningToken.ID),
+				Quota:                  attendanceRow.StudentLearningToken.Quota,
 				CourseFeeValue:         attendanceRow.StudentLearningToken.CourseFeeValue,
 				TransportFeeValue:      attendanceRow.StudentLearningToken.TransportFeeValue,
+				CreatedAt:              attendanceRow.StudentLearningToken.CreatedAt,
 				LastUpdatedAt:          attendanceRow.StudentLearningToken.LastUpdatedAt,
 			},
 			Date:                  attendanceRow.Date,

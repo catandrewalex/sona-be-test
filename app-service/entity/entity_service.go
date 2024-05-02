@@ -111,8 +111,10 @@ type StudentLearningToken struct {
 // StudentLearningToken_Minimal is a subset of struct StudentLearningToken that must have the same schema.
 type StudentLearningToken_Minimal struct {
 	StudentLearningTokenID StudentLearningTokenID `json:"studentLearningTokenId"`
+	Quota                  float64                `json:"quota"`
 	CourseFeeValue         int32                  `json:"courseFeeValue"`
 	TransportFeeValue      int32                  `json:"transportFeeValue"`
+	CreatedAt              time.Time              `json:"createdAt"`
 	LastUpdatedAt          time.Time              `json:"lastUpdatedAt"`
 }
 
