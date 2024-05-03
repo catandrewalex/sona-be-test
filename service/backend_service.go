@@ -1996,6 +1996,23 @@ func (s *BackendService) RemoveTeacherPaymentsHandler(ctx context.Context, req *
 	}, nil
 }
 
+func (s *BackendService) GetUserProfile(ctx context.Context, req *output.GetUserProfileRequest) (*output.GetUserProfileResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	authInfo := network.GetAuthInfo(ctx)
+
+	user, err := s.identityService.GetUserById(ctx, authInfo.UserID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetUserProfileById()", "user")
+	}
+
+	return &output.GetUserProfileResponse{
+		Data: user,
+	}, nil
+}
+
 // handleReadUpsertError combines handleReadError & handleUpsertError.
 func handleReadUpsertError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {

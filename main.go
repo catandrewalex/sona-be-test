@@ -153,7 +153,6 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
 
-		authRouter.Get("/users/{UserID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "UserID"))
 		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
@@ -179,6 +178,14 @@ func main() {
 		authRouter.Post("/teacherPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherPaymentsHandler))
 		authRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
 		authRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
+	})
+
+	// Router group for member endpoints
+	baseRouter.Group(func(authRouter chi.Router) {
+		authRouter.Use(backendService.AuthenticationMiddleware)
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
+
+		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

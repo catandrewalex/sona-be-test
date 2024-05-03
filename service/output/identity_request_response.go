@@ -66,6 +66,16 @@ func (r ResetPasswordRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type GetUserProfileRequest struct{}
+type GetUserProfileResponse struct {
+	Data    identity.User `json:"data"`
+	Message string        `json:"message,omitempty"`
+}
+
+func (r GetUserProfileRequest) Validate() errs.ValidationError {
+	return nil
+}
+
 type GetUsersRequest struct {
 	PaginationRequest
 	Filter             identity.GetUsersFilter `json:"filter,omitempty"`
