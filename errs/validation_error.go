@@ -33,17 +33,17 @@ type Validatable interface {
 // This validator returns HTTPError, thus is expected to be used on controller layer.
 func ValidateHTTPRequest(req Validatable, allowZeroValues bool) HTTPError {
 	if req == nil {
-		return NewHTTPError(http.StatusBadRequest, fmt.Errorf("nil request body"), map[string]string{ClientMessageKey_NonField: "request body must not be empty"}, "")
+		return NewHTTPError(http.StatusBadRequest, fmt.Errorf("nil request body"), map[string]string{ClientMessageKey_NonField: "request body must not be empty"}, "Invalid values. Please recheck the data you're submitting.")
 	}
 
 	if !allowZeroValues {
 		if errV := validateZeroValues(req); errV != nil {
-			return NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("validateZeroValues(): %v", errV), errV.GetErrorDetail(), "")
+			return NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("validateZeroValues(): %v", errV), errV.GetErrorDetail(), "Invalid values. Please recheck the data you're submitting.")
 		}
 	}
 
 	if errV := req.Validate(); errV != nil {
-		return NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("req.Validate(): %v", errV), errV.GetErrorDetail(), "")
+		return NewHTTPError(http.StatusUnprocessableEntity, fmt.Errorf("req.Validate(): %v", errV), errV.GetErrorDetail(), "Invalid values. Please recheck the data you're submitting.")
 	}
 
 	return nil

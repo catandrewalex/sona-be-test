@@ -386,7 +386,7 @@ func (s identityServiceImpl) ResetPassword(ctx context.Context, spec identity.Re
 
 	mainClaims := claims.(*auth.MainJWTClaims)
 	if mainClaims.PurposeType != auth.JWTTokenPurposeType_ResetPassword {
-		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("invalid JWT token purpose"), nil, "Invalid reset password token")
+		return errs.NewHTTPError(http.StatusForbidden, fmt.Errorf("invalid JWT token purpose"), nil, "Invalid reset password token.")
 	}
 
 	err = s.UpdateUserPassword(ctx, identity.UpdateUserPasswordSpec{
