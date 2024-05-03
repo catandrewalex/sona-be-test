@@ -230,15 +230,17 @@ WITH ref_attendance AS (
     FROM attendance
     WHERE attendance.id = ?
 )
-SELECT attendance.id AS id, attendance.is_paid AS is_paid
+SELECT attendance.id AS id, attendance.is_paid AS is_paid, attendance.token_id, attendance.used_student_token_quota
 FROM attendance
     JOIN ref_attendance ON attendance.class_id = ref_attendance.class_id AND attendance.date = ref_attendance.date
 ORDER by attendance.id
 `
 
 type GetAttendanceIdsOfSameClassAndDateRow struct {
-	ID     int64
-	IsPaid int32
+	ID                    int64
+	IsPaid                int32
+	TokenID               int64
+	UsedStudentTokenQuota float64
 }
 
 // ============================== ATTENDANCE ==============================
@@ -251,7 +253,12 @@ func (q *Queries) GetAttendanceIdsOfSameClassAndDate(ctx context.Context, id int
 	var items []GetAttendanceIdsOfSameClassAndDateRow
 	for rows.Next() {
 		var i GetAttendanceIdsOfSameClassAndDateRow
-		if err := rows.Scan(&i.ID, &i.IsPaid); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.IsPaid,
+			&i.TokenID,
+			&i.UsedStudentTokenQuota,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -451,12 +451,15 @@ func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.E
 		}
 
 		attendanceIDsInt := make([]int64, 0, len(rowResults))
+		sltIDIntToUsedQuota := make(map[int64]float64, len(rowResults))
 		for _, rowResult := range rowResults {
 			if util.Int32ToBool(rowResult.IsPaid) {
 				return errs.ErrModifyingPaidAttendance
 			}
 			attendanceIDs = append(attendanceIDs, entity.AttendanceID(rowResult.ID))
 			attendanceIDsInt = append(attendanceIDsInt, rowResult.ID)
+
+			sltIDIntToUsedQuota[rowResult.TokenID] = rowResult.UsedStudentTokenQuota
 		}
 
 		err = qtx.EditAttendances(newCtx, mysql.EditAttendancesParams{
@@ -469,6 +472,17 @@ func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.E
 		})
 		if err != nil {
 			return fmt.Errorf("qtx.EditAttendances(): %w", err)
+		}
+
+		for sltIDInt, usedQuota := range sltIDIntToUsedQuota {
+			quotaChange := float64(usedQuota - spec.UsedStudentTokenQuota)
+			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+				Quota: quotaChange,
+				ID:    sltIDInt,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+			}
 		}
 
 		return nil
@@ -490,17 +504,31 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 		}
 
 		attendanceIDsInt := make([]int64, 0, len(rowResults))
+		sltIDIntToUsedQuota := make(map[int64]float64, len(rowResults))
 		for _, rowResult := range rowResults {
 			if util.Int32ToBool(rowResult.IsPaid) {
 				return errs.ErrModifyingPaidAttendance
 			}
 			deletedAttendanceIDs = append(deletedAttendanceIDs, entity.AttendanceID(rowResult.ID))
 			attendanceIDsInt = append(attendanceIDsInt, rowResult.ID)
+
+			sltIDIntToUsedQuota[rowResult.TokenID] = rowResult.UsedStudentTokenQuota
 		}
 
 		err = qtx.DeleteAttendancesByIds(newCtx, attendanceIDsInt)
 		if err != nil {
 			return fmt.Errorf("qtx.DeleteAttendancesByIds(): %w", err)
+		}
+
+		for sltIDInt, usedQuota := range sltIDIntToUsedQuota {
+			quotaChange := usedQuota
+			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+				Quota: quotaChange,
+				ID:    sltIDInt,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+			}
 		}
 
 		return nil

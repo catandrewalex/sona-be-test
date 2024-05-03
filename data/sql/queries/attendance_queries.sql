@@ -5,7 +5,7 @@ WITH ref_attendance AS (
     FROM attendance
     WHERE attendance.id = ?
 )
-SELECT attendance.id AS id, attendance.is_paid AS is_paid
+SELECT attendance.id AS id, attendance.is_paid AS is_paid, attendance.token_id, attendance.used_student_token_quota
 FROM attendance
     JOIN ref_attendance ON attendance.class_id = ref_attendance.class_id AND attendance.date = ref_attendance.date
 ORDER by attendance.id;
