@@ -59,12 +59,11 @@ WHERE
 ORDER BY ep.id
 LIMIT ? OFFSET ?;
 
--- name: GetLatestEnrollmentPaymentDateByStudentId :one
-SELECT MAX(payment_date) AS penalty_date
-FROM enrollment_payment AS ep
-    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
-WHERE se.student_id = ?
-GROUP BY se.student_id LIMIT 1;
+-- name: GetLatestEnrollmentPaymentDateByStudentEnrollmentId :one
+SELECT MAX(payment_date) AS last_payment_date
+FROM enrollment_payment
+WHERE enrollment_id = ?
+GROUP BY enrollment_id LIMIT 1;
 
 -- name: GetEnrollmentPaymentsDescendingDate :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,

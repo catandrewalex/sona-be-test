@@ -17,10 +17,12 @@ const (
 )
 
 type StudentEnrollmentInvoice struct {
-	BalanceTopUp      int32 `json:"balanceTopUp"`
-	PenaltyFeeValue   int32 `json:"penaltyFeeValue"`
-	CourseFeeValue    int32 `json:"courseFeeValue"`
-	TransportFeeValue int32 `json:"transportFeeValue"`
+	BalanceTopUp      int32      `json:"balanceTopUp"`
+	PenaltyFeeValue   int32      `json:"penaltyFeeValue"`
+	CourseFeeValue    int32      `json:"courseFeeValue"`
+	TransportFeeValue int32      `json:"transportFeeValue"`
+	LastPaymentDate   *time.Time `json:"lastPaymentDate,omitempty"`
+	DaysLate          int32      `json:"daysLate"`
 }
 
 type UnpaidTeacher struct {

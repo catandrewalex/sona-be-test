@@ -82,18 +82,25 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 	}
 
 	// calculate Course Fee Penalty (e.g. due to late payment)
-	latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentId(ctx, int64(studentEnrollmentID))
+	latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx, sql.NullInt64{Int64: int64(studentEnrollmentID), Valid: true})
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
-			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentId(): %w", err)
+			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(): %w", err)
 		}
 	}
 
+	var lastPaymentDate *time.Time = nil
 	lastDateBeforePenalty := util.MaxDateTime
 	if latestPaymentDate != nil {
-		lastDateBeforePenalty = time.Date(latestPaymentDate.(time.Time).Year(), latestPaymentDate.(time.Time).AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, util.DefaultTimezone)
+		temp := latestPaymentDate.(time.Time)
+		lastPaymentDate = &temp
+		lastDateBeforePenalty = time.Date(lastPaymentDate.Year(), lastPaymentDate.AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, util.DefaultTimezone)
 	}
-	penaltyFeeValue := teaching.Default_PenaltyFeeValue * int32(time.Since(lastDateBeforePenalty).Hours()/24)
+	daysLate := int32(time.Since(lastDateBeforePenalty).Hours() / 24)
+	var penaltyFeeValue int32 = 0
+	if daysLate > 0 {
+		penaltyFeeValue = teaching.Default_PenaltyFeeValue * daysLate
+	}
 
 	// calculate transport fee (splitted unionly across all class students)
 	splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
@@ -110,6 +117,8 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 		PenaltyFeeValue:   penaltyFeeValue,
 		CourseFeeValue:    courseFeeValue,
 		TransportFeeValue: splittedTransportFee,
+		LastPaymentDate:   lastPaymentDate,
+		DaysLate:          daysLate,
 	}, nil
 }
 

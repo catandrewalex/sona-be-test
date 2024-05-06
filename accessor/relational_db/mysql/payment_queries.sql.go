@@ -700,19 +700,18 @@ func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg G
 	return items, nil
 }
 
-const getLatestEnrollmentPaymentDateByStudentId = `-- name: GetLatestEnrollmentPaymentDateByStudentId :one
-SELECT MAX(payment_date) AS penalty_date
-FROM enrollment_payment AS ep
-    JOIN student_enrollment AS se ON ep.enrollment_id = se.id
-WHERE se.student_id = ?
-GROUP BY se.student_id LIMIT 1
+const getLatestEnrollmentPaymentDateByStudentEnrollmentId = `-- name: GetLatestEnrollmentPaymentDateByStudentEnrollmentId :one
+SELECT MAX(payment_date) AS last_payment_date
+FROM enrollment_payment
+WHERE enrollment_id = ?
+GROUP BY enrollment_id LIMIT 1
 `
 
-func (q *Queries) GetLatestEnrollmentPaymentDateByStudentId(ctx context.Context, studentID int64) (interface{}, error) {
-	row := q.db.QueryRowContext(ctx, getLatestEnrollmentPaymentDateByStudentId, studentID)
-	var penalty_date interface{}
-	err := row.Scan(&penalty_date)
-	return penalty_date, err
+func (q *Queries) GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx context.Context, enrollmentID sql.NullInt64) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getLatestEnrollmentPaymentDateByStudentEnrollmentId, enrollmentID)
+	var last_payment_date interface{}
+	err := row.Scan(&last_payment_date)
+	return last_payment_date, err
 }
 
 const getSLTByEnrollmentIdAndCourseFeeAndTransportFee = `-- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
