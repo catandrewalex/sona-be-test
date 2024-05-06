@@ -1474,7 +1474,7 @@ func (s *BackendService) GetAttendancesHandler(ctx context.Context, req *output.
 	getAttendancesSpec := entity.GetAttendancesSpec{
 		TimeSpec: util.TimeSpec(req.TimeFilter),
 	}
-	getAttendancesResult, err := s.entityService.GetAttendances(ctx, paginationSpec, getAttendancesSpec)
+	getAttendancesResult, err := s.entityService.GetAttendances(ctx, paginationSpec, getAttendancesSpec, false)
 	if err != nil {
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetAttendances(): %w", err), nil, "Failed to get courses")
 	}

@@ -251,7 +251,7 @@ type EntityService interface {
 	UpdateStudentLearningTokens(ctx context.Context, specs []UpdateStudentLearningTokenSpec) ([]StudentLearningTokenID, error)
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 
-	GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec GetAttendancesSpec) (GetAttendancesResult, error)
+	GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec GetAttendancesSpec, sortRecent bool) (GetAttendancesResult, error)
 	GetAttendancesByTeacherId(ctx context.Context, spec GetAttendancesByTeacherIdSpec) ([]Attendance, error)
 	GetAttendanceById(ctx context.Context, id AttendanceID) (Attendance, error)
 	GetAttendancesByIds(ctx context.Context, ids []AttendanceID) ([]Attendance, error)

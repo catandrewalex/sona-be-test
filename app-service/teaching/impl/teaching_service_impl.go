@@ -332,7 +332,7 @@ func (s teachingServiceImpl) GetAttendancesByClassID(ctx context.Context, spec t
 		StudentID: spec.StudentID,
 		TimeSpec:  spec.TimeSpec,
 	}
-	getAttendancesResult, err := s.entityService.GetAttendances(ctx, spec.PaginationSpec, getAttendancesSpec)
+	getAttendancesResult, err := s.entityService.GetAttendances(ctx, spec.PaginationSpec, getAttendancesSpec, true)
 	if err != nil {
 		return teaching.GetAttendancesByClassIDResult{}, fmt.Errorf("entityService.GetAttendances(): %v", err)
 	}

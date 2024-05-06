@@ -644,6 +644,7 @@ type GetEnrollmentPaymentsDescendingDateRow struct {
 	ClassTeacherDetail   []byte
 }
 
+// GetEnrollmentPaymentsDescendingDate is a copy of GetEnrollmentPayments, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query is not mature enough, so that we need to do this.
 func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg GetEnrollmentPaymentsDescendingDateParams) ([]GetEnrollmentPaymentsDescendingDateRow, error) {
 	rows, err := q.db.QueryContext(ctx, getEnrollmentPaymentsDescendingDate,
 		arg.StartDate,

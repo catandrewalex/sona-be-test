@@ -84,6 +84,9 @@ func (r GetAttendancesByIdsRow) ToGetAttendancesRow() GetAttendancesRow {
 func (r GetAttendancesByTeacherIdRow) ToGetAttendancesRow() GetAttendancesRow {
 	return GetAttendancesRow(r)
 }
+func (r GetAttendancesDescendingDateRow) ToGetAttendancesRow() GetAttendancesRow {
+	return GetAttendancesRow(r)
+}
 
 // ============================== ATTENDANCE ==============================
 

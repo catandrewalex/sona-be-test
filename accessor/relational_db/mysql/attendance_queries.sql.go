@@ -647,6 +647,142 @@ func (q *Queries) GetAttendancesByTeacherId(ctx context.Context, arg GetAttendan
 	return items, nil
 }
 
+const getAttendancesDescendingDate = `-- name: GetAttendancesDescendingDate :many
+SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+FROM attendance
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+
+    LEFT JOIN class on attendance.class_id = class.id
+    LEFT JOIN course ON course_id = course.id
+    LEFT JOIN instrument ON course.instrument_id = instrument.id
+    LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+WHERE
+    (attendance.date >= ? AND attendance.date <= ?)
+    AND (class_id = ? OR ? = false)
+    AND (student_id = ? OR ? = false)
+    AND (is_paid = 0 OR ? = false)
+ORDER BY attendance.date DESC, class.id ASC
+LIMIT ? OFFSET ?
+`
+
+type GetAttendancesDescendingDateParams struct {
+	StartDate        time.Time
+	EndDate          time.Time
+	ClassID          int64
+	UseClassFilter   interface{}
+	StudentID        int64
+	UseStudentFilter interface{}
+	UseUnpaidFilter  interface{}
+	Limit            int32
+	Offset           int32
+}
+
+type GetAttendancesDescendingDateRow struct {
+	AttendanceID          int64
+	Date                  time.Time
+	UsedStudentTokenQuota float64
+	Duration              int32
+	Note                  string
+	IsPaid                int32
+	Class                 Class
+	Course                Course
+	Instrument            Instrument
+	Grade                 Grade
+	TeacherID             int64
+	TeacherUsername       sql.NullString
+	TeacherDetail         []byte
+	StudentID             int64
+	StudentUsername       sql.NullString
+	StudentDetail         []byte
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
+	StudentLearningToken  StudentLearningToken
+}
+
+// GetAttendancesDescendingDate is a copy of GetAttendances, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query is not mature enough, so that we need to do this.
+func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAttendancesDescendingDateParams) ([]GetAttendancesDescendingDateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAttendancesDescendingDate,
+		arg.StartDate,
+		arg.EndDate,
+		arg.ClassID,
+		arg.UseClassFilter,
+		arg.StudentID,
+		arg.UseStudentFilter,
+		arg.UseUnpaidFilter,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAttendancesDescendingDateRow
+	for rows.Next() {
+		var i GetAttendancesDescendingDateRow
+		if err := rows.Scan(
+			&i.AttendanceID,
+			&i.Date,
+			&i.UsedStudentTokenQuota,
+			&i.Duration,
+			&i.Note,
+			&i.IsPaid,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+			&i.TeacherID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.StudentID,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
+			&i.StudentLearningToken.ID,
+			&i.StudentLearningToken.Quota,
+			&i.StudentLearningToken.CourseFeeValue,
+			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CreatedAt,
+			&i.StudentLearningToken.LastUpdatedAt,
+			&i.StudentLearningToken.EnrollmentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertAttendance = `-- name: InsertAttendance :execlastid
 INSERT INTO attendance (
     date, used_student_token_quota, duration, note, is_paid, class_id, teacher_id, student_id, token_id

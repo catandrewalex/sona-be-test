@@ -1058,7 +1058,7 @@ func (s entityServiceImpl) GetEnrollmentPayments(ctx context.Context, pagination
 	timeFilter.SetDefaultForZeroValues()
 	enrollmentPayments := make([]entity.EnrollmentPayment, 0)
 
-	if !sortRecent { // sqlc dynamic query is so bad that we need to do this :(
+	if !sortRecent { // TODO: find alternative: currently sqlc dynamic query is so bad that we need to do this :(
 		enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPayments(ctx, mysql.GetEnrollmentPaymentsParams{
 			StartDate: timeFilter.StartDatetime,
 			EndDate:   timeFilter.EndDatetime,
@@ -1328,7 +1328,7 @@ func (s entityServiceImpl) DeleteStudentLearningTokens(ctx context.Context, ids 
 	return nil
 }
 
-func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec entity.GetAttendancesSpec) (entity.GetAttendancesResult, error) {
+func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec entity.GetAttendancesSpec, sortRecent bool) (entity.GetAttendancesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
 
@@ -1343,22 +1343,48 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 
 	useUnpaidFilter := spec.UnpaidOnly
 
-	attendanceRows, err := s.mySQLQueries.GetAttendances(ctx, mysql.GetAttendancesParams{
-		StartDate:        timeFilter.StartDatetime,
-		EndDate:          timeFilter.EndDatetime,
-		ClassID:          classID,
-		UseClassFilter:   useClassFilter,
-		StudentID:        studentID,
-		UseStudentFilter: useStudentFilter,
-		UseUnpaidFilter:  useUnpaidFilter,
-		Limit:            int32(limit),
-		Offset:           int32(offset),
-	})
-	if err != nil {
-		return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.GetAttendances(): %w", err)
-	}
+	var attendances []entity.Attendance
+	if !sortRecent { // TODO: find alternative: currently sqlc dynamic query is so bad that we need to do this :(
+		attendanceRows, err := s.mySQLQueries.GetAttendances(ctx, mysql.GetAttendancesParams{
+			StartDate:        timeFilter.StartDatetime,
+			EndDate:          timeFilter.EndDatetime,
+			ClassID:          classID,
+			UseClassFilter:   useClassFilter,
+			StudentID:        studentID,
+			UseStudentFilter: useStudentFilter,
+			UseUnpaidFilter:  useUnpaidFilter,
+			Limit:            int32(limit),
+			Offset:           int32(offset),
+		})
+		if err != nil {
+			return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.GetAttendances(): %w", err)
+		}
 
-	attendances := NewAttendancesFromGetAttendancesRow(attendanceRows)
+		attendances = NewAttendancesFromGetAttendancesRow(attendanceRows)
+
+	} else {
+		attendanceRows, err := s.mySQLQueries.GetAttendancesDescendingDate(ctx, mysql.GetAttendancesDescendingDateParams{
+			StartDate:        timeFilter.StartDatetime,
+			EndDate:          timeFilter.EndDatetime,
+			ClassID:          classID,
+			UseClassFilter:   useClassFilter,
+			StudentID:        studentID,
+			UseStudentFilter: useStudentFilter,
+			UseUnpaidFilter:  useUnpaidFilter,
+			Limit:            int32(limit),
+			Offset:           int32(offset),
+		})
+		if err != nil {
+			return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.GetAttendancesDescendingDate(): %w", err)
+		}
+
+		attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
+		for _, row := range attendanceRows {
+			attendanceRowsConverted = append(attendanceRowsConverted, row.ToGetAttendancesRow())
+		}
+
+		attendances = NewAttendancesFromGetAttendancesRow(attendanceRowsConverted)
+	}
 
 	totalResults, err := s.mySQLQueries.CountAttendances(ctx, mysql.CountAttendancesParams{
 		StartDate:        timeFilter.StartDatetime,
