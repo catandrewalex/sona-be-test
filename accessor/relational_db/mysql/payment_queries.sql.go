@@ -727,6 +727,55 @@ func (q *Queries) GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx contex
 	return last_payment_date, err
 }
 
+const getSLTByClassIdForAttendanceInfo = `-- name: GetSLTByClassIdForAttendanceInfo :many
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, se.student_id AS student_id
+FROM student_learning_token AS slt
+    JOIN student_enrollment AS se ON slt.enrollment_id = se.id
+WHERE se.class_id = ?
+ORDER BY last_updated_at DESC, slt.id DESC
+`
+
+type GetSLTByClassIdForAttendanceInfoRow struct {
+	StudentLearningTokenID int64
+	Quota                  float64
+	CourseFeeValue         int32
+	TransportFeeValue      int32
+	CreatedAt              time.Time
+	LastUpdatedAt          time.Time
+	StudentID              int64
+}
+
+func (q *Queries) GetSLTByClassIdForAttendanceInfo(ctx context.Context, classID int64) ([]GetSLTByClassIdForAttendanceInfoRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSLTByClassIdForAttendanceInfo, classID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSLTByClassIdForAttendanceInfoRow
+	for rows.Next() {
+		var i GetSLTByClassIdForAttendanceInfoRow
+		if err := rows.Scan(
+			&i.StudentLearningTokenID,
+			&i.Quota,
+			&i.CourseFeeValue,
+			&i.TransportFeeValue,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.StudentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSLTByEnrollmentIdAndCourseFeeAndTransportFee = `-- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
 SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?

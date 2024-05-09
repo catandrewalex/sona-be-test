@@ -683,6 +683,23 @@ func (r GetStudentLearningTokensRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type GetStudentLearningTokensByClassIDRequest struct {
+	ClassID entity.ClassID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+}
+type GetStudentLearningTokensByClassIDResponse struct {
+	Data    []GetStudentLearningTokensByClassIDResult `json:"data"`
+	Message string                                    `json:"message,omitempty"`
+}
+
+type GetStudentLearningTokensByClassIDResult struct {
+	StudentID             entity.StudentID                      `json:"studentId"`
+	StudentLearningTokens []entity.StudentLearningToken_Minimal `json:"studentLearningTokens"`
+}
+
+func (r GetStudentLearningTokensByClassIDRequest) Validate() errs.ValidationError {
+	return nil
+}
+
 type GetStudentLearningTokenRequest struct {
 	StudentLearningTokenID entity.StudentLearningTokenID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }

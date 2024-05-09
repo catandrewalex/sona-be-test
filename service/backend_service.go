@@ -1743,6 +1743,26 @@ func (s *BackendService) SearchClass(ctx context.Context, req *output.SearchClas
 	}, nil
 }
 
+func (s *BackendService) GetStudentLearningTokensByClassIDHandler(ctx context.Context, req *output.GetStudentLearningTokensByClassIDRequest) (*output.GetStudentLearningTokensByClassIDResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getStudentLearningTokensResults, err := s.teachingService.GetSLTsByClassID(ctx, req.ClassID)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetSLTsByClassID(): %w", err), nil, "Failed to get courses")
+	}
+
+	data := make([]output.GetStudentLearningTokensByClassIDResult, 0, len(getStudentLearningTokensResults))
+	for _, getSLTResults := range getStudentLearningTokensResults {
+		data = append(data, output.GetStudentLearningTokensByClassIDResult(getSLTResults))
+	}
+
+	return &output.GetStudentLearningTokensByClassIDResponse{
+		Data: data,
+	}, nil
+}
+
 func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req *output.GetAttendancesByClassIDRequest) (*output.GetAttendancesByClassIDResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV

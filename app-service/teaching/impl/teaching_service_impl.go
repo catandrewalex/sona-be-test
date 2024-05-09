@@ -326,6 +326,44 @@ func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.Sear
 	return getClassResult.Classes, nil
 }
 
+func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]teaching.GetSLTsByClassIDResult, error) {
+	studentLearningTokenRows, err := s.mySQLQueries.GetSLTByClassIdForAttendanceInfo(ctx, int64(classID))
+	if err != nil {
+		return []teaching.GetSLTsByClassIDResult{}, fmt.Errorf("mySQLQueries.GetSLTByClassIdForAttendanceInfo(): %w", err)
+	}
+
+	studentIdToSlts := make(map[entity.StudentID][]entity.StudentLearningToken_Minimal, 1)
+	for _, sltRow := range studentLearningTokenRows {
+		studentId := entity.StudentID(sltRow.StudentID)
+		// TODO: refactor this, as this in a non-standard way of converting mysql's rows into Entity's struct. Check existing result_constructor.go(s) for reference.
+		slt := entity.StudentLearningToken_Minimal{
+			StudentLearningTokenID: entity.StudentLearningTokenID(sltRow.StudentLearningTokenID),
+			Quota:                  sltRow.Quota,
+			CourseFeeValue:         sltRow.CourseFeeValue,
+			TransportFeeValue:      sltRow.TransportFeeValue,
+			CreatedAt:              sltRow.CreatedAt,
+			LastUpdatedAt:          sltRow.LastUpdatedAt,
+		}
+
+		currSLTs, ok := studentIdToSlts[studentId]
+		if !ok {
+			studentIdToSlts[studentId] = []entity.StudentLearningToken_Minimal{slt}
+		} else {
+			studentIdToSlts[studentId] = append(currSLTs, slt)
+		}
+	}
+
+	getSLTsByClassIDResults := make([]teaching.GetSLTsByClassIDResult, 0, len(studentIdToSlts))
+	for studentId, slts := range studentIdToSlts {
+		getSLTsByClassIDResults = append(getSLTsByClassIDResults, teaching.GetSLTsByClassIDResult{
+			StudentID:             studentId,
+			StudentLearningTokens: slts,
+		})
+	}
+
+	return getSLTsByClassIDResults, nil
+}
+
 func (s teachingServiceImpl) GetAttendancesByClassID(ctx context.Context, spec teaching.GetAttendancesByClassIDSpec) (teaching.GetAttendancesByClassIDResult, error) {
 	getAttendancesSpec := entity.GetAttendancesSpec{
 		ClassID:   spec.ClassID,

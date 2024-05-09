@@ -67,6 +67,7 @@ type TeachingService interface {
 
 	SearchClass(ctx context.Context, spec SearchClassSpec) ([]entity.Class, error)
 
+	GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]GetSLTsByClassIDResult, error)
 	GetAttendancesByClassID(ctx context.Context, spec GetAttendancesByClassIDSpec) (GetAttendancesByClassIDResult, error)
 	// AddAttendance creates attendance(s) based on spec, duplicated for every students who enroll in the class.
 	//
@@ -104,6 +105,11 @@ type SearchClassSpec struct {
 	TeacherID entity.TeacherID
 	StudentID entity.StudentID
 	CourseID  entity.CourseID
+}
+
+type GetSLTsByClassIDResult struct {
+	StudentID             entity.StudentID
+	StudentLearningTokens []entity.StudentLearningToken_Minimal
 }
 
 type GetAttendancesByClassIDSpec struct {
