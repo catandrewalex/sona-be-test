@@ -1461,7 +1461,7 @@ func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (GetStud
 const getStudentEnrollmentById = `-- name: GetStudentEnrollmentById :one
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
@@ -1473,6 +1473,7 @@ FROM student_enrollment AS se
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE se.is_deleted = 0 AND se.id = ?
 `
 
@@ -1482,6 +1483,7 @@ type GetStudentEnrollmentByIdRow struct {
 	StudentUsername      string
 	StudentDetail        json.RawMessage
 	Class                Class
+	TeacherSpecialFee    sql.NullInt32
 	Course               Course
 	Instrument           Instrument
 	Grade                Grade
@@ -1504,6 +1506,7 @@ func (q *Queries) GetStudentEnrollmentById(ctx context.Context, id int64) (GetSt
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
 		&i.Class.IsDeactivated,
+		&i.TeacherSpecialFee,
 		&i.Course.ID,
 		&i.Course.DefaultFee,
 		&i.Course.DefaultDurationMinute,
@@ -1523,7 +1526,7 @@ func (q *Queries) GetStudentEnrollmentById(ctx context.Context, id int64) (GetSt
 const getStudentEnrollments = `-- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
@@ -1535,6 +1538,7 @@ FROM student_enrollment AS se
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE se.is_deleted = 0
 ORDER BY se.id
 LIMIT ? OFFSET ?
@@ -1551,6 +1555,7 @@ type GetStudentEnrollmentsRow struct {
 	StudentUsername      string
 	StudentDetail        json.RawMessage
 	Class                Class
+	TeacherSpecialFee    sql.NullInt32
 	Course               Course
 	Instrument           Instrument
 	Grade                Grade
@@ -1578,6 +1583,7 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrol
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
@@ -1607,7 +1613,7 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrol
 const getStudentEnrollmentsByClassId = `-- name: GetStudentEnrollmentsByClassId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
@@ -1619,6 +1625,7 @@ FROM student_enrollment AS se
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE se.is_deleted = 0 AND class_id = ?
 `
 
@@ -1628,6 +1635,7 @@ type GetStudentEnrollmentsByClassIdRow struct {
 	StudentUsername      string
 	StudentDetail        json.RawMessage
 	Class                Class
+	TeacherSpecialFee    sql.NullInt32
 	Course               Course
 	Instrument           Instrument
 	Grade                Grade
@@ -1655,6 +1663,7 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
@@ -1684,7 +1693,7 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 const getStudentEnrollmentsByIds = `-- name: GetStudentEnrollmentsByIds :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
@@ -1696,6 +1705,7 @@ FROM student_enrollment AS se
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE se.is_deleted = 0 AND se.id IN (/*SLICE:ids*/?)
 `
 
@@ -1705,6 +1715,7 @@ type GetStudentEnrollmentsByIdsRow struct {
 	StudentUsername      string
 	StudentDetail        json.RawMessage
 	Class                Class
+	TeacherSpecialFee    sql.NullInt32
 	Course               Course
 	Instrument           Instrument
 	Grade                Grade
@@ -1742,6 +1753,7 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
@@ -1771,7 +1783,7 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 const getStudentEnrollmentsByStudentId = `-- name: GetStudentEnrollmentsByStudentId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN user AS user_student ON se.student_id = user_student.id
@@ -1783,6 +1795,7 @@ FROM student_enrollment AS se
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE se.is_deleted = 0 AND student_id = ?
 `
 
@@ -1792,6 +1805,7 @@ type GetStudentEnrollmentsByStudentIdRow struct {
 	StudentUsername      string
 	StudentDetail        json.RawMessage
 	Class                Class
+	TeacherSpecialFee    sql.NullInt32
 	Course               Course
 	Instrument           Instrument
 	Grade                Grade
@@ -1819,6 +1833,7 @@ func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentI
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,

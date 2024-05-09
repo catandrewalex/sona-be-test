@@ -2,7 +2,7 @@
 -- name: GetEnrollmentPaymentById :one
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -16,12 +16,13 @@ FROM enrollment_payment AS ep
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE ep.id = ? LIMIT 1;
 
 -- name: GetEnrollmentPaymentsByIds :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -35,12 +36,13 @@ FROM enrollment_payment AS ep
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE ep.id IN (sqlc.slice('ids'));
 
 -- name: GetEnrollmentPayments :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -54,6 +56,7 @@ FROM enrollment_payment AS ep
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE
     ep.payment_date >= sqlc.arg('startDate') AND ep.payment_date <= sqlc.arg('endDate')
 ORDER BY ep.id
@@ -69,7 +72,7 @@ GROUP BY enrollment_id LIMIT 1;
 -- GetEnrollmentPaymentsDescendingDate is a copy of GetEnrollmentPayments, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query is not mature enough, so that we need to do this.
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -83,6 +86,7 @@ FROM enrollment_payment AS ep
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE
     ep.payment_date >= sqlc.arg('startDate') AND ep.payment_date <= sqlc.arg('endDate')
 ORDER BY ep.payment_date DESC, ep.id DESC
@@ -162,7 +166,7 @@ WHERE id = ?;
 -- name: GetStudentLearningTokenById :one
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -175,12 +179,13 @@ FROM student_learning_token AS slt
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE slt.id = ? LIMIT 1;
 
 -- name: GetStudentLearningTokensByIds :many
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -193,12 +198,13 @@ FROM student_learning_token AS slt
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE slt.id IN (sqlc.slice('ids'));
 
 -- name: GetStudentLearningTokensByEnrollmentId :many
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -211,12 +217,13 @@ FROM student_learning_token AS slt
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE slt.enrollment_id = ?;
 
 -- name: GetStudentLearningTokens :many
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -229,6 +236,7 @@ FROM student_learning_token AS slt
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 ORDER BY slt.id
 LIMIT ? OFFSET ?;
 
@@ -272,7 +280,7 @@ SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     sqlc.embed(attendance),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
 FROM teacher_payment AS ts
@@ -288,6 +296,7 @@ FROM teacher_payment AS ts
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id = ? LIMIT 1;
@@ -297,7 +306,7 @@ SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     sqlc.embed(attendance),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
 FROM teacher_payment AS ts
@@ -313,6 +322,7 @@ FROM teacher_payment AS ts
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE ts.id IN (sqlc.slice('ids'));
@@ -322,7 +332,7 @@ SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     sqlc.embed(attendance),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     sqlc.embed(slt)
 FROM teacher_payment AS ts
@@ -338,6 +348,7 @@ FROM teacher_payment AS ts
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE

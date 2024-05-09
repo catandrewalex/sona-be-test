@@ -59,7 +59,7 @@ type Class struct {
 	StudentInfos_Minimal []StudentInfo_Minimal `json:"students"`
 	Course               Course                `json:"course"`
 	TransportFee         int32                 `json:"transportFee"`
-	TeacherSpecialFee    int32                 `json:"teacherSpecialFee,omitempty"` // this is only populated on when the class' teacher has a special fee
+	TeacherSpecialFee    int32                 `json:"teacherSpecialFee,omitempty"` // this is only populated when the class' teacher has a special fee
 	IsDeactivated        bool                  `json:"isDeactivated"`
 }
 
@@ -69,6 +69,7 @@ type ClassInfo_Minimal struct {
 	TeacherInfo_Minimal *TeacherInfo_Minimal `json:"teacher,omitempty"` // class without teacher is a valid class
 	Course              Course               `json:"course"`
 	TransportFee        int32                `json:"transportFee"`
+	TeacherSpecialFee   int32                `json:"teacherSpecialFee,omitempty"` // this is only populated when the class' teacher has a special fee
 	IsDeactivated       bool                 `json:"isDeactivated"`
 }
 

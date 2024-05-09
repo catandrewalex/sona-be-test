@@ -16,7 +16,7 @@ WHERE id IN (sqlc.slice('ids'));
 
 -- name: GetAttendancesByTeacherId :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -33,6 +33,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
@@ -43,7 +44,7 @@ ORDER BY attendance.teacher_id, class.id, attendance.student_id, date, attendanc
 
 -- name: GetAttendanceById :one
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -60,13 +61,14 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id = ? LIMIT 1;
 
 -- name: GetAttendancesByIds :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -83,13 +85,14 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id IN (sqlc.slice('ids'));
 
 -- name: GetAttendances :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -106,6 +109,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
@@ -119,7 +123,7 @@ LIMIT ? OFFSET ?;
 -- name: GetAttendancesDescendingDate :many
 -- GetAttendancesDescendingDate is a copy of GetAttendances, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query is not mature enough, so that we need to do this.
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    sqlc.embed(class), sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
+    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -136,6 +140,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE

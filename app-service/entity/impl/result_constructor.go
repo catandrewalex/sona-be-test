@@ -193,8 +193,9 @@ func NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows []m
 						DefaultDurationMinute: studentEnrollmentRow.Course.DefaultDurationMinute,
 					},
 				})[0],
-				TransportFee:  studentEnrollmentRow.Class.TransportFee,
-				IsDeactivated: util.Int32ToBool(studentEnrollmentRow.Class.IsDeactivated),
+				TransportFee:      studentEnrollmentRow.Class.TransportFee,
+				TeacherSpecialFee: studentEnrollmentRow.TeacherSpecialFee.Int32,
+				IsDeactivated:     util.Int32ToBool(studentEnrollmentRow.Class.IsDeactivated),
 			},
 		})
 	}
@@ -268,8 +269,9 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 							DefaultDurationMinute: enrollmentPaymentRow.Course.DefaultDurationMinute,
 						},
 					})[0],
-					TransportFee:  enrollmentPaymentRow.Class.TransportFee,
-					IsDeactivated: util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
+					TransportFee:      enrollmentPaymentRow.Class.TransportFee,
+					TeacherSpecialFee: enrollmentPaymentRow.TeacherSpecialFee.Int32,
+					IsDeactivated:     util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
 				},
 			},
 			PaymentDate:       enrollmentPaymentRow.PaymentDate,
@@ -321,8 +323,9 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 							DefaultDurationMinute: sltRow.Course.DefaultDurationMinute,
 						},
 					})[0],
-					TransportFee:  sltRow.Class.TransportFee,
-					IsDeactivated: util.Int32ToBool(sltRow.Class.IsDeactivated),
+					TransportFee:      sltRow.Class.TransportFee,
+					TeacherSpecialFee: sltRow.TeacherSpecialFee.Int32,
+					IsDeactivated:     util.Int32ToBool(sltRow.Class.IsDeactivated),
 				},
 			},
 			Quota:             sltRow.Quota,
@@ -367,8 +370,9 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 						DefaultDurationMinute: attendanceRow.Course.DefaultDurationMinute,
 					},
 				})[0],
-				TransportFee:  attendanceRow.Class.TransportFee,
-				IsDeactivated: util.Int32ToBool(attendanceRow.Class.IsDeactivated),
+				TransportFee:      attendanceRow.Class.TransportFee,
+				TeacherSpecialFee: attendanceRow.TeacherSpecialFee.Int32,
+				IsDeactivated:     util.Int32ToBool(attendanceRow.Class.IsDeactivated),
 			}
 		}
 

@@ -135,7 +135,7 @@ func (q *Queries) EditAttendances(ctx context.Context, arg EditAttendancesParams
 
 const getAttendanceById = `-- name: GetAttendanceById :one
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -152,6 +152,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id = ? LIMIT 1
@@ -165,6 +166,7 @@ type GetAttendanceByIdRow struct {
 	Note                  string
 	IsPaid                int32
 	Class                 Class
+	TeacherSpecialFee     sql.NullInt32
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
@@ -195,6 +197,7 @@ func (q *Queries) GetAttendanceById(ctx context.Context, id int64) (GetAttendanc
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
 		&i.Class.IsDeactivated,
+		&i.TeacherSpecialFee,
 		&i.Course.ID,
 		&i.Course.DefaultFee,
 		&i.Course.DefaultDurationMinute,
@@ -274,7 +277,7 @@ func (q *Queries) GetAttendanceIdsOfSameClassAndDate(ctx context.Context, id int
 
 const getAttendances = `-- name: GetAttendances :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -291,6 +294,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
@@ -322,6 +326,7 @@ type GetAttendancesRow struct {
 	Note                  string
 	IsPaid                int32
 	Class                 Class
+	TeacherSpecialFee     sql.NullInt32
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
@@ -368,6 +373,7 @@ func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) 
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
@@ -409,7 +415,7 @@ func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) 
 
 const getAttendancesByIds = `-- name: GetAttendancesByIds :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -426,6 +432,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id IN (/*SLICE:ids*/?)
@@ -439,6 +446,7 @@ type GetAttendancesByIdsRow struct {
 	Note                  string
 	IsPaid                int32
 	Class                 Class
+	TeacherSpecialFee     sql.NullInt32
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
@@ -485,6 +493,7 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
@@ -526,7 +535,7 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 
 const getAttendancesByTeacherId = `-- name: GetAttendancesByTeacherId :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -543,6 +552,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
@@ -567,6 +577,7 @@ type GetAttendancesByTeacherIdRow struct {
 	Note                  string
 	IsPaid                int32
 	Class                 Class
+	TeacherSpecialFee     sql.NullInt32
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
@@ -608,6 +619,7 @@ func (q *Queries) GetAttendancesByTeacherId(ctx context.Context, arg GetAttendan
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
@@ -649,7 +661,7 @@ func (q *Queries) GetAttendancesByTeacherId(ctx context.Context, arg GetAttendan
 
 const getAttendancesDescendingDate = `-- name: GetAttendancesDescendingDate :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
@@ -666,6 +678,7 @@ FROM attendance
     
     LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
@@ -697,6 +710,7 @@ type GetAttendancesDescendingDateRow struct {
 	Note                  string
 	IsPaid                int32
 	Class                 Class
+	TeacherSpecialFee     sql.NullInt32
 	Course                Course
 	Instrument            Instrument
 	Grade                 Grade
@@ -744,6 +758,7 @@ func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAtten
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
 			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
 			&i.Course.ID,
 			&i.Course.DefaultFee,
 			&i.Course.DefaultDurationMinute,
