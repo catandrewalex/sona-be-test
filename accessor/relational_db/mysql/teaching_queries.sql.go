@@ -612,13 +612,13 @@ func (q *Queries) EnableStudentEnrollment(ctx context.Context, id int64) error {
 }
 
 const getClassById = `-- name: GetClassById :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
 FROM class
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
@@ -626,6 +626,7 @@ FROM class
 
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
@@ -647,6 +648,7 @@ type GetClassByIdRow struct {
 	StudentDetail         []byte
 	DefaultFee            int32
 	DefaultDurationMinute int32
+	TeacherSpecialFee     sql.NullInt32
 }
 
 func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow, error) {
@@ -675,6 +677,7 @@ func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow
 			&i.StudentDetail,
 			&i.DefaultFee,
 			&i.DefaultDurationMinute,
+			&i.TeacherSpecialFee,
 		); err != nil {
 			return nil, err
 		}
@@ -713,18 +716,18 @@ WITH class_paginated AS (
         LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
     WHERE
         class.is_deactivated IN (/*SLICE:isDeactivateds*/?)
-        AND (teacher_id = ? OR ? = false)
+        AND (class.teacher_id = ? OR ? = false)
         AND (student_enrollment.student_id = ? OR ? = false)
-        AND (course_id = ? OR ? = false)
+        AND (class.course_id = ? OR ? = false)
     LIMIT ? OFFSET ?
 )
-SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, class_paginated.course_id AS course_id, class_paginated.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
 FROM class_paginated
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
@@ -732,6 +735,7 @@ FROM class_paginated
 
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class_paginated.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
@@ -765,6 +769,7 @@ type GetClassesRow struct {
 	StudentDetail         []byte
 	DefaultFee            int32
 	DefaultDurationMinute int32
+	TeacherSpecialFee     sql.NullInt32
 }
 
 func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetClassesRow, error) {
@@ -811,6 +816,7 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 			&i.StudentDetail,
 			&i.DefaultFee,
 			&i.DefaultDurationMinute,
+			&i.TeacherSpecialFee,
 		); err != nil {
 			return nil, err
 		}
@@ -826,13 +832,13 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 }
 
 const getClassesByIds = `-- name: GetClassesByIds :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
 FROM class
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
@@ -840,6 +846,7 @@ FROM class
 
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
@@ -862,6 +869,7 @@ type GetClassesByIdsRow struct {
 	StudentDetail         []byte
 	DefaultFee            int32
 	DefaultDurationMinute int32
+	TeacherSpecialFee     sql.NullInt32
 }
 
 func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClassesByIdsRow, error) {
@@ -900,6 +908,7 @@ func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClasse
 			&i.StudentDetail,
 			&i.DefaultFee,
 			&i.DefaultDurationMinute,
+			&i.TeacherSpecialFee,
 		); err != nil {
 			return nil, err
 		}

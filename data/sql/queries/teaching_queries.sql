@@ -255,18 +255,18 @@ WITH class_paginated AS (
         LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
     WHERE
         class.is_deactivated IN (sqlc.slice('isDeactivateds'))
-        AND (teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
+        AND (class.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
         AND (student_enrollment.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
-        AND (course_id = sqlc.narg('course_id') OR sqlc.arg('use_course_filter') = false)
+        AND (class.course_id = sqlc.narg('course_id') OR sqlc.arg('use_course_filter') = false)
     LIMIT ? OFFSET ?
 )
-SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, class_paginated.course_id AS course_id, class_paginated.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
 FROM class_paginated
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
@@ -274,6 +274,7 @@ FROM class_paginated
 
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class_paginated.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
@@ -307,13 +308,13 @@ SELECT class.id AS class_id, Count(student_enrollment.id) AS total_students
     GROUP BY class.id;
 
 -- name: GetClassesByIds :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
 FROM class
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
@@ -321,6 +322,7 @@ FROM class
 
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id
@@ -328,13 +330,13 @@ WHERE class.id in (sqlc.slice('ids'))
 ORDER BY class.id;
 
 -- name: GetClassById :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, course_id, teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
     user_student.username AS student_username,
     user_student.user_detail AS student_detail,
-    course.default_fee, course.default_duration_minute
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
 FROM class
     JOIN course ON course_id = course.id
     JOIN instrument ON course.instrument_id = instrument.id
@@ -342,6 +344,7 @@ FROM class
 
     LEFT JOIN teacher ON teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     LEFT JOIN user AS user_student ON se.student_id = user_student.id

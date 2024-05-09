@@ -134,6 +134,7 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []entity.Class
 				StudentInfos_Minimal: studentInfos,
 				Course:               course,
 				TransportFee:         classRow.TransportFee,
+				TeacherSpecialFee:    classRow.TeacherSpecialFee.Int32,
 				IsDeactivated:        util.Int32ToBool(classRow.IsDeactivated),
 			})
 			prevClassId = classId
