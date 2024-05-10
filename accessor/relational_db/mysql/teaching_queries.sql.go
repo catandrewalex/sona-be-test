@@ -305,27 +305,28 @@ func (q *Queries) CountTeachersByIds(ctx context.Context, ids []int64) (int64, e
 	return total, err
 }
 
-const countUnpaidTeachers = `-- name: CountUnpaidTeachers :one
+const countTeachersForPayments = `-- name: CountTeachersForPayments :one
 WITH unpaid_teacher AS (
-    SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_unpaid_attendances
+    SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
     FROM attendance
     WHERE
-        is_paid = 0
+        is_paid = ?
         AND (attendance.date >= ? AND attendance.date <= ?)
     GROUP BY teacher_id
-    HAVING total_unpaid_attendances > 0
-    ORDER BY total_unpaid_attendances DESC, teacher_id ASC
+    HAVING total_attendances > 0
+    ORDER BY total_attendances DESC, teacher_id ASC
 )
 SELECT Count(teacher_id) AS total FROM unpaid_teacher
 `
 
-type CountUnpaidTeachersParams struct {
+type CountTeachersForPaymentsParams struct {
+	IsPaid    int32
 	StartDate time.Time
 	EndDate   time.Time
 }
 
-func (q *Queries) CountUnpaidTeachers(ctx context.Context, arg CountUnpaidTeachersParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUnpaidTeachers, arg.StartDate, arg.EndDate)
+func (q *Queries) CountTeachersForPayments(ctx context.Context, arg CountTeachersForPaymentsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTeachersForPayments, arg.IsPaid, arg.StartDate, arg.EndDate)
 	var total int64
 	err := row.Scan(&total)
 	return total, err
@@ -2427,41 +2428,43 @@ func (q *Queries) GetTeachersByIds(ctx context.Context, ids []int64) ([]GetTeach
 	return items, nil
 }
 
-const getUnpaidTeachers = `-- name: GetUnpaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_unpaid_attendances
+const getTeachersForPayments = `-- name: GetTeachersForPayments :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
 WHERE
-    attendance.is_paid = 0
+    attendance.is_paid = ?
     AND (attendance.date >= ? AND attendance.date <= ?)
 GROUP BY teacher.id
-HAVING total_unpaid_attendances > 0
-ORDER BY total_unpaid_attendances DESC, teacher.id ASC
+HAVING total_attendances > 0
+ORDER BY total_attendances DESC, teacher.id ASC
 LIMIT ? OFFSET ?
 `
 
-type GetUnpaidTeachersParams struct {
+type GetTeachersForPaymentsParams struct {
+	IsPaid    int32
 	StartDate time.Time
 	EndDate   time.Time
 	Limit     int32
 	Offset    int32
 }
 
-type GetUnpaidTeachersRow struct {
-	ID                     int64
-	UserID                 int64
-	Username               string
-	Email                  sql.NullString
-	UserDetail             json.RawMessage
-	PrivilegeType          int32
-	IsDeactivated          int32
-	CreatedAt              sql.NullTime
-	TotalUnpaidAttendances interface{}
+type GetTeachersForPaymentsRow struct {
+	ID               int64
+	UserID           int64
+	Username         string
+	Email            sql.NullString
+	UserDetail       json.RawMessage
+	PrivilegeType    int32
+	IsDeactivated    int32
+	CreatedAt        sql.NullTime
+	TotalAttendances interface{}
 }
 
-func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersParams) ([]GetUnpaidTeachersRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUnpaidTeachers,
+func (q *Queries) GetTeachersForPayments(ctx context.Context, arg GetTeachersForPaymentsParams) ([]GetTeachersForPaymentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTeachersForPayments,
+		arg.IsPaid,
 		arg.StartDate,
 		arg.EndDate,
 		arg.Limit,
@@ -2471,9 +2474,9 @@ func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetUnpaidTeachersRow
+	var items []GetTeachersForPaymentsRow
 	for rows.Next() {
-		var i GetUnpaidTeachersRow
+		var i GetTeachersForPaymentsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -2483,7 +2486,7 @@ func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersPa
 			&i.PrivilegeType,
 			&i.IsDeactivated,
 			&i.CreatedAt,
-			&i.TotalUnpaidAttendances,
+			&i.TotalAttendances,
 		); err != nil {
 			return nil, err
 		}

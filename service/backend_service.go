@@ -1895,19 +1895,46 @@ func (s *BackendService) GetUnpaidTeachersHandler(ctx context.Context, req *outp
 
 	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
 
-	getUnpaidTeachersResult, err := s.teachingService.GetUnpaidTeachers(ctx, teaching.GetUnpaidTeachersSpec{
+	getUnpaidTeachersResult, err := s.teachingService.GetTeachersForPayment(ctx, teaching.GetTeachersForPaymentSpec{
+		IsPaid:     false,
 		Pagination: util.PaginationSpec(req.PaginationRequest),
 		TimeSpec:   util.TimeSpec(timeFilter),
 	})
 	if err != nil {
-		return nil, handleReadError(err, "teachingService.GetUnpaidTeachers()", "teacherPayment")
+		return nil, handleReadError(err, "teachingService.GetTeachersForPayment(IsPaid=false)", "teacherPayment")
 	}
 
 	paginationResponse := output.NewPaginationResponse(getUnpaidTeachersResult.PaginationResult)
 
 	return &output.GetUnpaidTeachersResponse{
 		Data: output.GetUnpaidTeachersResult{
-			Results:            getUnpaidTeachersResult.UnpaidTeachers,
+			Results:            getUnpaidTeachersResult.TeachersForPayment,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetPaidTeachersHandler(ctx context.Context, req *output.GetPaidTeachersRequest) (*output.GetPaidTeachersResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+
+	getPaidTeachersResult, err := s.teachingService.GetTeachersForPayment(ctx, teaching.GetTeachersForPaymentSpec{
+		IsPaid:     true,
+		Pagination: util.PaginationSpec(req.PaginationRequest),
+		TimeSpec:   util.TimeSpec(timeFilter),
+	})
+	if err != nil {
+		return nil, handleReadError(err, "teachingService.GetTeachersForPayment(IsPaid=true)", "teacherPayment")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getPaidTeachersResult.PaginationResult)
+
+	return &output.GetPaidTeachersResponse{
+		Data: output.GetPaidTeachersResult{
+			Results:            getPaidTeachersResult.TeachersForPayment,
 			PaginationResponse: paginationResponse,
 		},
 	}, nil
@@ -1956,6 +1983,39 @@ func (s *BackendService) SubmitTeacherPaymentsHandler(ctx context.Context, req *
 
 	return &output.SubmitTeacherPaymentsResponse{
 		Message: "Successfully submitted TeacherPayments",
+	}, nil
+}
+
+func (s *BackendService) ModifyTeacherPaymentsHandler(ctx context.Context, req *output.ModifyTeacherPaymentsRequest) (*output.ModifyTeacherPaymentsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.ModifyTeacherPaymentsSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.ModifyTeacherPaymentsSpec{
+			TeacherPaymentID:      param.TeacherPaymentID,
+			PaidCourseFeeValue:    param.PaidCourseFeeValue,
+			PaidTransportFeeValue: param.PaidTransportFeeValue,
+		})
+	}
+
+	modifyTeacherPaymentsResult, err := s.teachingService.ModifyTeacherPayments(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "teachingService.ModifyTeacherPayments()", "teacherPayment")
+	}
+	mainLog.Info("TeacherPayments edited: teacherPaymentIDs='%v'; removed: teacherPaymentIDs='%v'", modifyTeacherPaymentsResult.EditedTeacherPaymentIDs, modifyTeacherPaymentsResult.DeletedTeacherPaymentIDs)
+
+	teacherPayments, err := s.entityService.GetTeacherPaymentsByIds(ctx, modifyTeacherPaymentsResult.EditedTeacherPaymentIDs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetTeacherPaymentsByIds: %v", err), nil, "")
+	}
+
+	return &output.ModifyTeacherPaymentsResponse{
+		Data: output.ModifyTeacherPaymentsResult{
+			Results: teacherPayments,
+		},
+		Message: "Successfully edited teacherPayment",
 	}, nil
 }
 

@@ -7,10 +7,10 @@ import (
 	"sonamusica-backend/app-service/teaching"
 )
 
-func NewUnpaidTeachersFromGetUnpaidTeachersRow(teacherRows []mysql.GetUnpaidTeachersRow) []teaching.UnpaidTeacher {
-	teachers := make([]teaching.UnpaidTeacher, 0, len(teacherRows))
+func NewTeacherForPaymentsFromGetTeachersForPaymentsRow(teacherRows []mysql.GetTeachersForPaymentsRow) []teaching.TeacherForPayment {
+	teachers := make([]teaching.TeacherForPayment, 0, len(teacherRows))
 	for _, teacherRow := range teacherRows {
-		teachers = append(teachers, teaching.UnpaidTeacher{
+		teachers = append(teachers, teaching.TeacherForPayment{
 			TeacherInfo_Minimal: entity.TeacherInfo_Minimal{
 				TeacherID: entity.TeacherID(teacherRow.ID),
 				UserInfo_Minimal: identity.UserInfo_Minimal{
@@ -18,7 +18,7 @@ func NewUnpaidTeachersFromGetUnpaidTeachersRow(teacherRows []mysql.GetUnpaidTeac
 					UserDetail: identity.UnmarshalUserDetail(teacherRow.UserDetail, mainLog),
 				},
 			},
-			TotalUnpaidAttendances: int32(teacherRow.TotalUnpaidAttendances.(float64)),
+			TotalAttendances: int32(teacherRow.TotalAttendances.(float64)),
 		})
 	}
 

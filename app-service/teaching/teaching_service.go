@@ -30,9 +30,9 @@ type StudentIDToSLTs struct {
 	StudentLearningTokens []entity.StudentLearningToken_Minimal `json:"studentLearningTokens"`
 }
 
-type UnpaidTeacher struct {
+type TeacherForPayment struct {
 	entity.TeacherInfo_Minimal
-	TotalUnpaidAttendances int32 `json:"totalUnpaidAttendances"`
+	TotalAttendances int32 `json:"totalAttendances"`
 }
 
 type TeacherPaymentInvoiceItem struct {
@@ -81,12 +81,13 @@ type TeachingService interface {
 	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
 	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
-	GetUnpaidTeachers(ctx context.Context, spec GetUnpaidTeachersSpec) (GetUnpaidTeachersResult, error)
+	GetTeachersForPayment(ctx context.Context, spec GetTeachersForPaymentSpec) (GetTeachersForPaymentResult, error)
 	// GetTeacherPaymentInvoiceItems returns list of Attendance, sort ascendingly by date, grouped by StudentLearningToken, then by Student, and finally by Class.
 	//
 	// The result will be used for SubmitTeacherPayments spec.
 	GetTeacherPaymentInvoiceItems(ctx context.Context, spec GetTeacherPaymentInvoiceItemsSpec) ([]TeacherPaymentInvoiceItem, error)
 	SubmitTeacherPayments(ctx context.Context, specs []SubmitTeacherPaymentsSpec) error
+	ModifyTeacherPayments(ctx context.Context, specs []ModifyTeacherPaymentsSpec) (ModifyTeacherPaymentsResult, error)
 	EditTeacherPayments(ctx context.Context, specs []EditTeacherPaymentsSpec) ([]entity.TeacherPaymentID, error)
 	RemoveTeacherPayments(ctx context.Context, teacherPaymentIDs []entity.TeacherPaymentID) error
 }
@@ -146,14 +147,15 @@ func (s EditAttendanceSpec) GetInt64ID() int64 {
 	return int64(s.AttendanceID)
 }
 
-type GetUnpaidTeachersSpec struct {
+type GetTeachersForPaymentSpec struct {
+	IsPaid     bool
 	Pagination util.PaginationSpec
 	util.TimeSpec
 }
 
-type GetUnpaidTeachersResult struct {
-	UnpaidTeachers   []UnpaidTeacher
-	PaginationResult util.PaginationResult
+type GetTeachersForPaymentResult struct {
+	TeachersForPayment []TeacherForPayment
+	PaginationResult   util.PaginationResult
 }
 
 type GetTeacherPaymentInvoiceItemsSpec struct {
@@ -165,6 +167,22 @@ type SubmitTeacherPaymentsSpec struct {
 	AttendanceID          entity.AttendanceID
 	PaidCourseFeeValue    int32
 	PaidTransportFeeValue int32
+}
+
+type ModifyTeacherPaymentsSpec struct {
+	TeacherPaymentID      entity.TeacherPaymentID
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+	IsDeleted             bool
+}
+
+func (s ModifyTeacherPaymentsSpec) GetInt64ID() int64 {
+	return int64(s.TeacherPaymentID)
+}
+
+type ModifyTeacherPaymentsResult struct {
+	EditedTeacherPaymentIDs  []entity.TeacherPaymentID
+	DeletedTeacherPaymentIDs []entity.TeacherPaymentID
 }
 
 type EditTeacherPaymentsSpec struct {

@@ -587,35 +587,36 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 	return deletedAttendanceIDs, nil
 }
 
-func (s teachingServiceImpl) GetUnpaidTeachers(ctx context.Context, spec teaching.GetUnpaidTeachersSpec) (teaching.GetUnpaidTeachersResult, error) {
+func (s teachingServiceImpl) GetTeachersForPayment(ctx context.Context, spec teaching.GetTeachersForPaymentSpec) (teaching.GetTeachersForPaymentResult, error) {
 	spec.Pagination.SetDefaultOnInvalidValues()
 	limit, offset := spec.Pagination.GetLimitAndOffset()
 
 	spec.TimeSpec.SetDefaultForZeroValues()
 
-	teacherRows, err := s.mySQLQueries.GetUnpaidTeachers(ctx, mysql.GetUnpaidTeachersParams{
+	teacherRows, err := s.mySQLQueries.GetTeachersForPayments(ctx, mysql.GetTeachersForPaymentsParams{
+		IsPaid:    util.BoolToInt32(spec.IsPaid),
 		StartDate: spec.StartDatetime,
 		EndDate:   spec.EndDatetime,
 		Limit:     int32(limit),
 		Offset:    int32(offset),
 	})
 	if err != nil {
-		return teaching.GetUnpaidTeachersResult{}, fmt.Errorf("mySQLQueries.GetUnpaidTeachers(): %w", err)
+		return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.GetTeachersForPayments(): %w", err)
 	}
 
-	unpaidTeachers := NewUnpaidTeachersFromGetUnpaidTeachersRow(teacherRows)
+	teachersForPayments := NewTeacherForPaymentsFromGetTeachersForPaymentsRow(teacherRows)
 
-	totalResults, err := s.mySQLQueries.CountUnpaidTeachers(ctx, mysql.CountUnpaidTeachersParams{
+	totalResults, err := s.mySQLQueries.CountTeachersForPayments(ctx, mysql.CountTeachersForPaymentsParams{
 		StartDate: spec.StartDatetime,
 		EndDate:   spec.EndDatetime,
 	})
 	if err != nil {
-		return teaching.GetUnpaidTeachersResult{}, fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
+		return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.CountTeachersForPayments(): %w", err)
 	}
 
-	return teaching.GetUnpaidTeachersResult{
-		UnpaidTeachers:   unpaidTeachers,
-		PaginationResult: *util.NewPaginationResult(int(totalResults), spec.Pagination.ResultsPerPage, spec.Pagination.Page),
+	return teaching.GetTeachersForPaymentResult{
+		TeachersForPayment: teachersForPayments,
+		PaginationResult:   *util.NewPaginationResult(int(totalResults), spec.Pagination.ResultsPerPage, spec.Pagination.Page),
 	}, nil
 }
 
@@ -766,6 +767,52 @@ func (s teachingServiceImpl) SubmitTeacherPayments(ctx context.Context, specs []
 	}
 
 	return nil
+}
+
+func (s teachingServiceImpl) ModifyTeacherPayments(ctx context.Context, specs []teaching.ModifyTeacherPaymentsSpec) (teaching.ModifyTeacherPaymentsResult, error) {
+	errV := util.ValidateUpdateSpecs(ctx, specs, s.mySQLQueries.CountTeacherPaymentsByIds)
+	if errV != nil {
+		return teaching.ModifyTeacherPaymentsResult{}, errV
+	}
+
+	editedTeacherPaymentIDs := make([]entity.TeacherPaymentID, 0)
+
+	editTeacherPaymentsSpecs := make([]teaching.EditTeacherPaymentsSpec, 0, len(specs)/2)
+	removedTeacherPaymentIDs := make([]entity.TeacherPaymentID, 0, len(specs)/2)
+	for _, spec := range specs {
+		if !spec.IsDeleted {
+			editTeacherPaymentsSpecs = append(editTeacherPaymentsSpecs, teaching.EditTeacherPaymentsSpec{
+				TeacherPaymentID:      spec.TeacherPaymentID,
+				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
+				PaidTransportFeeValue: spec.PaidCourseFeeValue,
+			})
+		} else {
+			removedTeacherPaymentIDs = append(removedTeacherPaymentIDs, spec.TeacherPaymentID)
+		}
+	}
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		editedTeacherPaymentIDs, err = s.EditTeacherPayments(newCtx, editTeacherPaymentsSpecs)
+		if err != nil {
+			return fmt.Errorf("EditTeacherPayments(): %w", err)
+		}
+
+		err = s.RemoveTeacherPayments(newCtx, removedTeacherPaymentIDs)
+		if err != nil {
+			return fmt.Errorf("RemoveTeacherPayments(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return teaching.ModifyTeacherPaymentsResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return teaching.ModifyTeacherPaymentsResult{
+		EditedTeacherPaymentIDs:  editedTeacherPaymentIDs,
+		DeletedTeacherPaymentIDs: removedTeacherPaymentIDs,
+	}, nil
 }
 
 func (s teachingServiceImpl) EditTeacherPayments(ctx context.Context, specs []teaching.EditTeacherPaymentsSpec) ([]entity.TeacherPaymentID, error) {

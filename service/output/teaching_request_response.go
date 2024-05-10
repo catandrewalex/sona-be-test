@@ -259,11 +259,39 @@ type GetUnpaidTeachersResponse struct {
 	Data GetUnpaidTeachersResult `json:"data"`
 }
 type GetUnpaidTeachersResult struct {
-	Results []teaching.UnpaidTeacher `json:"results"`
+	Results []teaching.TeacherForPayment `json:"results"`
 	PaginationResponse
 }
 
 func (r GetUnpaidTeachersRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if validationErr := r.YearMonthFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
+type GetPaidTeachersRequest struct {
+	YearMonthFilter
+	PaginationRequest
+}
+type GetPaidTeachersResponse struct {
+	Data GetPaidTeachersResult `json:"data"`
+}
+type GetPaidTeachersResult struct {
+	Results []teaching.TeacherForPayment `json:"results"`
+	PaginationResponse
+}
+
+func (r GetPaidTeachersRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
 
 	if validationErr := r.YearMonthFilter.Validate(); validationErr != nil {
@@ -334,6 +362,42 @@ func (r SubmitTeacherPaymentsRequest) Validate() errs.ValidationError {
 		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
 	}
 
+	return nil
+}
+
+type ModifyTeacherPaymentsRequest struct {
+	Data []ModifyTeacherPaymentsRequestParam `json:"data"`
+}
+type ModifyTeacherPaymentsRequestParam struct {
+	TeacherPaymentID      entity.TeacherPaymentID `json:"teacherPaymentId"`
+	PaidCourseFeeValue    int32                   `json:"paidCourseFeeValue,omitempty"`
+	PaidTransportFeeValue int32                   `json:"paidTransportFeeValue,omitempty"`
+	IsDeleted             bool                    `json:"isDeleted,omitempty"`
+}
+type ModifyTeacherPaymentsResponse struct {
+	Data    ModifyTeacherPaymentsResult `json:"data"`
+	Message string                      `json:"message,omitempty"`
+}
+
+type ModifyTeacherPaymentsResult struct {
+	Results []entity.TeacherPayment `json:"results"`
+}
+
+func (r ModifyTeacherPaymentsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.PaidCourseFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.paidCourseFeeValue", i)] = "paidCourseFeeValue must be >= 0"
+		}
+		if datum.PaidTransportFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.paidTransportFeeValue", i)] = "paidTransportFeeValue must be >= 0"
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
 	return nil
 }
 
