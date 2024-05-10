@@ -146,22 +146,31 @@ WITH slt_min_max AS (
     -- each record will be unique if all non-latest SLTs has 0 quota; OR duplicated (2 records) if there exists non-latest SLT with quota > 0
 )
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
-    -- we have 2 SLT option, pick the earliest
-    se.student_id AS student_id, MIN(createDateWithNonZeroQuota_or_maxCreateDate)
+    se.student_id AS student_id
 FROM student_learning_token AS slt
-    JOIN slt_min_max ON (
-        slt.enrollment_id = slt_min_max.enrollment_id
-        AND created_at = createDateWithNonZeroQuota_or_maxCreateDate
+    JOIN (
+        -- we have 1-2 SLT option per enrollment_id from `slt_min_max`, pick the earliest
+        SELECT enrollment_id, MIN(createDateWithNonZeroQuota_or_maxCreateDate) AS earliestCreateDateWithNonZeroQuota
+        FROM slt_min_max
+        GROUP BY enrollment_id
+    ) AS slt_min ON (
+        slt.enrollment_id = slt_min.enrollment_id
+        AND created_at = earliestCreateDateWithNonZeroQuota
     )
 
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-WHERE slt.enrollment_id IN (sqlc.slice('student_enrollment_ids'))
--- grouping by slt.id is actually not necessary as slt.id is also a primary key. But, somehow SQL with "sql_mode=only_full_group_by" rejects the query if we don't aggregate by slt.id
-GROUP BY slt.enrollment_id, slt.id;
+WHERE slt.enrollment_id IN (sqlc.slice('student_enrollment_ids'));
 
 -- name: IncrementSLTQuotaById :exec
 UPDATE student_learning_token SET quota = quota + ?
 WHERE id = ?;
+
+-- name: GetSLTByClassIdForAttendanceInfo :many
+SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, se.student_id AS student_id
+FROM student_learning_token AS slt
+    JOIN student_enrollment AS se ON slt.enrollment_id = se.id
+WHERE se.class_id = ?
+ORDER BY created_at DESC, slt.id DESC;
 
 -- name: GetStudentLearningTokenById :one
 SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,

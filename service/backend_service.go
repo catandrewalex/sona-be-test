@@ -1753,13 +1753,10 @@ func (s *BackendService) GetStudentLearningTokensByClassIDHandler(ctx context.Co
 		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetSLTsByClassID(): %w", err), nil, "Failed to get courses")
 	}
 
-	data := make([]output.GetStudentLearningTokensByClassIDResult, 0, len(getStudentLearningTokensResults))
-	for _, getSLTResults := range getStudentLearningTokensResults {
-		data = append(data, output.GetStudentLearningTokensByClassIDResult(getSLTResults))
-	}
-
 	return &output.GetStudentLearningTokensByClassIDResponse{
-		Data: data,
+		Data: output.GetStudentLearningTokensByClassIDResult{
+			Results: getStudentLearningTokensResults,
+		},
 	}, nil
 }
 

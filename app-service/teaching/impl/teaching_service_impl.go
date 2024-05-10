@@ -326,10 +326,10 @@ func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.Sear
 	return getClassResult.Classes, nil
 }
 
-func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]teaching.GetSLTsByClassIDResult, error) {
+func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]teaching.StudentIDToSLTs, error) {
 	studentLearningTokenRows, err := s.mySQLQueries.GetSLTByClassIdForAttendanceInfo(ctx, int64(classID))
 	if err != nil {
-		return []teaching.GetSLTsByClassIDResult{}, fmt.Errorf("mySQLQueries.GetSLTByClassIdForAttendanceInfo(): %w", err)
+		return []teaching.StudentIDToSLTs{}, fmt.Errorf("mySQLQueries.GetSLTByClassIdForAttendanceInfo(): %w", err)
 	}
 
 	studentIdToSlts := make(map[entity.StudentID][]entity.StudentLearningToken_Minimal, 1)
@@ -353,9 +353,9 @@ func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entit
 		}
 	}
 
-	getSLTsByClassIDResults := make([]teaching.GetSLTsByClassIDResult, 0, len(studentIdToSlts))
+	getSLTsByClassIDResults := make([]teaching.StudentIDToSLTs, 0, len(studentIdToSlts))
 	for studentId, slts := range studentIdToSlts {
-		getSLTsByClassIDResults = append(getSLTsByClassIDResults, teaching.GetSLTsByClassIDResult{
+		getSLTsByClassIDResults = append(getSLTsByClassIDResults, teaching.StudentIDToSLTs{
 			StudentID:             studentId,
 			StudentLearningTokens: slts,
 		})

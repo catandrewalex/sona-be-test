@@ -3,6 +3,7 @@ package output
 import (
 	"fmt"
 	"sonamusica-backend/app-service/entity"
+	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/errs"
 	"time"
 )
@@ -687,13 +688,12 @@ type GetStudentLearningTokensByClassIDRequest struct {
 	ClassID entity.ClassID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 }
 type GetStudentLearningTokensByClassIDResponse struct {
-	Data    []GetStudentLearningTokensByClassIDResult `json:"data"`
-	Message string                                    `json:"message,omitempty"`
+	Data    GetStudentLearningTokensByClassIDResult `json:"data"`
+	Message string                                  `json:"message,omitempty"`
 }
 
 type GetStudentLearningTokensByClassIDResult struct {
-	StudentID             entity.StudentID                      `json:"studentId"`
-	StudentLearningTokens []entity.StudentLearningToken_Minimal `json:"studentLearningTokens"`
+	Results []teaching.StudentIDToSLTs `json:"results"`
 }
 
 func (r GetStudentLearningTokensByClassIDRequest) Validate() errs.ValidationError {
