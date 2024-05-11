@@ -184,7 +184,7 @@ const EnrollmentPaymentID_None EnrollmentPaymentID = iota
 const StudentLearningTokenID_None StudentLearningTokenID = iota
 const AttendanceID_None AttendanceID = iota
 
-const TeacherPaymentID_None AttendanceID = iota
+const TeacherPaymentID_None TeacherPaymentID = iota
 
 type EntityService interface {
 	GetTeachers(ctx context.Context, pagination util.PaginationSpec) (GetTeachersResult, error)
@@ -254,7 +254,8 @@ type EntityService interface {
 	DeleteStudentLearningTokens(ctx context.Context, ids []StudentLearningTokenID) error
 
 	GetAttendances(ctx context.Context, pagination util.PaginationSpec, spec GetAttendancesSpec, sortRecent bool) (GetAttendancesResult, error)
-	GetAttendancesByTeacherId(ctx context.Context, spec GetAttendancesByTeacherIdSpec) ([]Attendance, error)
+	// GetUnpaidAttendancesByTeacherId is specifically used for creating TeacherPaymentInvoice, thus have different filtering & sorting rule.
+	GetUnpaidAttendancesByTeacherId(ctx context.Context, spec GetUnpaidAttendancesByTeacherIdSpec) ([]Attendance, error)
 	GetAttendanceById(ctx context.Context, id AttendanceID) (Attendance, error)
 	GetAttendancesByIds(ctx context.Context, ids []AttendanceID) ([]Attendance, error)
 	InsertAttendances(ctx context.Context, specs []InsertAttendanceSpec) ([]AttendanceID, error)
@@ -262,6 +263,8 @@ type EntityService interface {
 	DeleteAttendances(ctx context.Context, ids []AttendanceID) error
 
 	GetTeacherPayments(ctx context.Context, pagination util.PaginationSpec, spec GetTeacherPaymentsSpec) (GetTeacherPaymentsResult, error)
+	// GetTeacherPaymentsByTeacherId is specifically used for creating TeacherPaymentInvoice, thus have different filtering & sorting rule.
+	GetTeacherPaymentsByTeacherId(ctx context.Context, spec GetTeacherPaymentsByTeacherIdSpec) ([]TeacherPayment, error)
 	GetTeacherPaymentById(ctx context.Context, id TeacherPaymentID) (TeacherPayment, error)
 	GetTeacherPaymentsByIds(ctx context.Context, ids []TeacherPaymentID) ([]TeacherPayment, error)
 	InsertTeacherPayments(ctx context.Context, specs []InsertTeacherPaymentSpec) ([]TeacherPaymentID, error)
@@ -471,7 +474,7 @@ type GetAttendancesSpec struct {
 	util.TimeSpec
 }
 
-type GetAttendancesByTeacherIdSpec struct {
+type GetUnpaidAttendancesByTeacherIdSpec struct {
 	TeacherID TeacherID
 	util.TimeSpec
 }
@@ -519,6 +522,11 @@ type GetTeacherPaymentsSpec struct {
 type GetTeacherPaymentsResult struct {
 	TeacherPayments  []TeacherPayment
 	PaginationResult util.PaginationResult
+}
+
+type GetTeacherPaymentsByTeacherIdSpec struct {
+	TeacherID          TeacherID
+	AttendanceTimeSpec util.TimeSpec
 }
 
 type InsertTeacherPaymentSpec struct {

@@ -81,18 +81,21 @@ func (r GetAttendanceByIdRow) ToGetAttendancesRow() GetAttendancesRow {
 func (r GetAttendancesByIdsRow) ToGetAttendancesRow() GetAttendancesRow {
 	return GetAttendancesRow(r)
 }
-func (r GetAttendancesByTeacherIdRow) ToGetAttendancesRow() GetAttendancesRow {
+func (r GetUnpaidAttendancesByTeacherIdRow) ToGetAttendancesRow() GetAttendancesRow {
 	return GetAttendancesRow(r)
 }
 func (r GetAttendancesDescendingDateRow) ToGetAttendancesRow() GetAttendancesRow {
 	return GetAttendancesRow(r)
 }
 
-// ============================== ATTENDANCE ==============================
+// ============================== TEACHER_PAYMENT ==============================
 
 func (r GetTeacherPaymentByIdRow) ToGetTeacherPaymentsRow() GetTeacherPaymentsRow {
 	return GetTeacherPaymentsRow(r)
 }
 func (r GetTeacherPaymentsByIdsRow) ToGetTeacherPaymentsRow() GetTeacherPaymentsRow {
+	return GetTeacherPaymentsRow(r)
+}
+func (r GetTeacherPaymentsByTeacherIdRow) ToGetTeacherPaymentsRow() GetTeacherPaymentsRow {
 	return GetTeacherPaymentsRow(r)
 }

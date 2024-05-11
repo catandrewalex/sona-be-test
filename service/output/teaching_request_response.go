@@ -334,6 +334,33 @@ func (r GetTeacherPaymentInvoiceItemsRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type GetTeacherPaymentsAsInvoiceItemsRequest struct {
+	TeacherID entity.TeacherID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
+	YearMonthFilter
+}
+type GetTeacherPaymentsAsInvoiceItemsResponse struct {
+	Data GetTeacherPaymentsAsInvoiceItemsResult `json:"data"`
+}
+type GetTeacherPaymentsAsInvoiceItemsResult struct {
+	Results []teaching.TeacherPaymentInvoiceItem `json:"results"`
+}
+
+func (r GetTeacherPaymentsAsInvoiceItemsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	if validationErr := r.YearMonthFilter.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
 type SubmitTeacherPaymentsRequest struct {
 	Data []SubmitTeacherPaymentsRequestParam `json:"data"`
 }

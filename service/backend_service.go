@@ -1947,17 +1947,39 @@ func (s *BackendService) GetTeacherPaymentInvoiceItemsHandler(ctx context.Contex
 
 	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
 
-	invoices, err := s.teachingService.GetTeacherPaymentInvoiceItems(ctx, teaching.GetTeacherPaymentInvoiceItemsSpec{
+	invoiceItems, err := s.teachingService.GetTeacherPaymentInvoiceItems(ctx, teaching.GetTeacherPaymentInvoiceItemsSpec{
 		TeacherID: req.TeacherID,
 		TimeSpec:  util.TimeSpec(timeFilter),
 	})
 	if err != nil {
-		return nil, handleReadError(err, "teachingService.GetTeacherPaymentInvoices()", "teacherPayment")
+		return nil, handleReadError(err, "teachingService.GetTeacherPaymentInvoiceItems()", "teacherPayment")
 	}
 
 	return &output.GetTeacherPaymentInvoiceItemsResponse{
 		Data: output.GetTeacherPaymentInvoiceItemsResult{
-			Results: invoices,
+			Results: invoiceItems,
+		},
+	}, nil
+}
+
+func (s *BackendService) GetTeacherPaymentsAsInvoiceItemsHandler(ctx context.Context, req *output.GetTeacherPaymentsAsInvoiceItemsRequest) (*output.GetTeacherPaymentsAsInvoiceItemsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	attendanceTimeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+
+	invoiceItems, err := s.teachingService.GetExistingTeacherPaymentInvoiceItems(ctx, teaching.GetExistingTeacherPaymentInvoiceItemsSpec{
+		TeacherID:          req.TeacherID,
+		AttendanceTimeSpec: util.TimeSpec(attendanceTimeFilter),
+	})
+	if err != nil {
+		return nil, handleReadError(err, "teachingService.GetExistingTeacherPaymentInvoiceItems()", "teacherPayment")
+	}
+
+	return &output.GetTeacherPaymentsAsInvoiceItemsResponse{
+		Data: output.GetTeacherPaymentsAsInvoiceItemsResult{
+			Results: invoiceItems,
 		},
 	}, nil
 }
@@ -1997,6 +2019,7 @@ func (s *BackendService) ModifyTeacherPaymentsHandler(ctx context.Context, req *
 			TeacherPaymentID:      param.TeacherPaymentID,
 			PaidCourseFeeValue:    param.PaidCourseFeeValue,
 			PaidTransportFeeValue: param.PaidTransportFeeValue,
+			IsDeleted:             param.IsDeleted,
 		})
 	}
 
@@ -2015,7 +2038,7 @@ func (s *BackendService) ModifyTeacherPaymentsHandler(ctx context.Context, req *
 		Data: output.ModifyTeacherPaymentsResult{
 			Results: teacherPayments,
 		},
-		Message: "Successfully edited teacherPayment",
+		Message: "Successfully modified teacherPayment",
 	}, nil
 }
 

@@ -655,7 +655,7 @@ type GetEnrollmentPaymentsDescendingDateRow struct {
 	ClassTeacherDetail   []byte
 }
 
-// GetEnrollmentPaymentsDescendingDate is a copy of GetEnrollmentPayments, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query is not mature enough, so that we need to do this.
+// GetEnrollmentPaymentsDescendingDate is a copy of GetEnrollmentPayments, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query which is mature enough, so that we need to do this.
 func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg GetEnrollmentPaymentsDescendingDateParams) ([]GetEnrollmentPaymentsDescendingDateRow, error) {
 	rows, err := q.db.QueryContext(ctx, getEnrollmentPaymentsDescendingDate,
 		arg.StartDate,
@@ -1378,12 +1378,15 @@ FROM teacher_payment AS ts
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
-    (attendance.teacher_id = ? OR ? = false)
-ORDER BY attendance.teacher_id, class.id, student_id, ts.id
+    (ts.added_at >= ? AND ts.added_at <= ?)
+    AND (attendance.teacher_id = ? OR ? = false)
+ORDER BY ts.id
 LIMIT ? OFFSET ?
 `
 
 type GetTeacherPaymentsParams struct {
+	StartDate        time.Time
+	EndDate          time.Time
 	TeacherID        int64
 	UseTeacherFilter interface{}
 	Limit            int32
@@ -1415,6 +1418,8 @@ type GetTeacherPaymentsRow struct {
 
 func (q *Queries) GetTeacherPayments(ctx context.Context, arg GetTeacherPaymentsParams) ([]GetTeacherPaymentsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getTeacherPayments,
+		arg.StartDate,
+		arg.EndDate,
 		arg.TeacherID,
 		arg.UseTeacherFilter,
 		arg.Limit,
@@ -1556,6 +1561,134 @@ func (q *Queries) GetTeacherPaymentsByIds(ctx context.Context, ids []int64) ([]G
 	var items []GetTeacherPaymentsByIdsRow
 	for rows.Next() {
 		var i GetTeacherPaymentsByIdsRow
+		if err := rows.Scan(
+			&i.TeacherPaymentID,
+			&i.PaidCourseFeeValue,
+			&i.PaidTransportFeeValue,
+			&i.AddedAt,
+			&i.Attendance.ID,
+			&i.Attendance.Date,
+			&i.Attendance.UsedStudentTokenQuota,
+			&i.Attendance.Duration,
+			&i.Attendance.Note,
+			&i.Attendance.IsPaid,
+			&i.Attendance.ClassID,
+			&i.Attendance.TeacherID,
+			&i.Attendance.StudentID,
+			&i.Attendance.TokenID,
+			&i.TeacherID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.StudentID,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.Class.ID,
+			&i.Class.TransportFee,
+			&i.Class.TeacherID,
+			&i.Class.CourseID,
+			&i.Class.IsDeactivated,
+			&i.TeacherSpecialFee,
+			&i.Course.ID,
+			&i.Course.DefaultFee,
+			&i.Course.DefaultDurationMinute,
+			&i.Course.InstrumentID,
+			&i.Course.GradeID,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+			&i.ClassTeacherID,
+			&i.ClassTeacherUsername,
+			&i.ClassTeacherDetail,
+			&i.StudentLearningToken.ID,
+			&i.StudentLearningToken.Quota,
+			&i.StudentLearningToken.CourseFeeValue,
+			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CreatedAt,
+			&i.StudentLearningToken.LastUpdatedAt,
+			&i.StudentLearningToken.EnrollmentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTeacherPaymentsByTeacherId = `-- name: GetTeacherPaymentsByTeacherId :many
+SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+    attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
+    attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
+    attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+FROM teacher_payment AS ts
+    JOIN attendance ON attendance_id = attendance.id
+    LEFT JOIN teacher ON attendance.teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+
+    LEFT JOIN class ON attendance.class_id = class.id
+    LEFT JOIN course ON class.course_id = course.id
+    LEFT JOIN instrument ON course.instrument_id = instrument.id
+    LEFT JOIN grade ON course.grade_id = grade.id
+    
+    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
+    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
+    
+    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+WHERE
+    (attendance.date >= ? AND attendance.date <= ?)
+    AND attendance.teacher_id = ?
+ORDER BY attendance.date DESC, ts.id ASC
+`
+
+type GetTeacherPaymentsByTeacherIdParams struct {
+	AttendanceStartDate time.Time
+	AttendanceEndDate   time.Time
+	TeacherID           int64
+}
+
+type GetTeacherPaymentsByTeacherIdRow struct {
+	TeacherPaymentID      int64
+	PaidCourseFeeValue    int32
+	PaidTransportFeeValue int32
+	AddedAt               time.Time
+	Attendance            Attendance
+	TeacherID             int64
+	TeacherUsername       sql.NullString
+	TeacherDetail         []byte
+	StudentID             int64
+	StudentUsername       sql.NullString
+	StudentDetail         []byte
+	Class                 Class
+	TeacherSpecialFee     sql.NullInt32
+	Course                Course
+	Instrument            Instrument
+	Grade                 Grade
+	ClassTeacherID        sql.NullInt64
+	ClassTeacherUsername  sql.NullString
+	ClassTeacherDetail    []byte
+	StudentLearningToken  StudentLearningToken
+}
+
+func (q *Queries) GetTeacherPaymentsByTeacherId(ctx context.Context, arg GetTeacherPaymentsByTeacherIdParams) ([]GetTeacherPaymentsByTeacherIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTeacherPaymentsByTeacherId, arg.AttendanceStartDate, arg.AttendanceEndDate, arg.TeacherID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTeacherPaymentsByTeacherIdRow
+	for rows.Next() {
+		var i GetTeacherPaymentsByTeacherIdRow
 		if err := rows.Scan(
 			&i.TeacherPaymentID,
 			&i.PaidCourseFeeValue,

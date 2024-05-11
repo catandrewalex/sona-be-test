@@ -1405,20 +1405,17 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 	}, nil
 }
 
-func (s entityServiceImpl) GetAttendancesByTeacherId(ctx context.Context, spec entity.GetAttendancesByTeacherIdSpec) ([]entity.Attendance, error) {
+func (s entityServiceImpl) GetUnpaidAttendancesByTeacherId(ctx context.Context, spec entity.GetUnpaidAttendancesByTeacherIdSpec) ([]entity.Attendance, error) {
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
-	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
-
-	attendanceRows, err := s.mySQLQueries.GetAttendancesByTeacherId(ctx, mysql.GetAttendancesByTeacherIdParams{
-		StartDate:        timeFilter.StartDatetime,
-		EndDate:          timeFilter.EndDatetime,
-		TeacherID:        int64(spec.TeacherID),
-		UseTeacherFilter: useTeacherFilter,
+	attendanceRows, err := s.mySQLQueries.GetUnpaidAttendancesByTeacherId(ctx, mysql.GetUnpaidAttendancesByTeacherIdParams{
+		StartDate: timeFilter.StartDatetime,
+		EndDate:   timeFilter.EndDatetime,
+		TeacherID: int64(spec.TeacherID),
 	})
 	if err != nil {
-		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendancesByTeacherId(): %w", err)
+		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetUnpaidAttendancesByTeacherId(): %w", err)
 	}
 
 	attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
@@ -1552,6 +1549,8 @@ func (s entityServiceImpl) GetTeacherPayments(ctx context.Context, pagination ut
 	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
 
 	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPayments(ctx, mysql.GetTeacherPaymentsParams{
+		StartDate:        timeFilter.StartDatetime,
+		EndDate:          timeFilter.EndDatetime,
 		TeacherID:        teacherID,
 		UseTeacherFilter: useTeacherFilter,
 		Limit:            int32(limit),
@@ -1575,6 +1574,31 @@ func (s entityServiceImpl) GetTeacherPayments(ctx context.Context, pagination ut
 		TeacherPayments:  teacherPayments,
 		PaginationResult: *util.NewPaginationResult(int(totalResults), pagination.ResultsPerPage, pagination.Page),
 	}, nil
+}
+
+func (s entityServiceImpl) GetTeacherPaymentsByTeacherId(ctx context.Context, spec entity.GetTeacherPaymentsByTeacherIdSpec) ([]entity.TeacherPayment, error) {
+	attendanceTimeFilter := spec.AttendanceTimeSpec
+	attendanceTimeFilter.SetDefaultForZeroValues()
+
+	teacherID := int64(spec.TeacherID)
+
+	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPaymentsByTeacherId(ctx, mysql.GetTeacherPaymentsByTeacherIdParams{
+		AttendanceStartDate: attendanceTimeFilter.StartDatetime,
+		AttendanceEndDate:   attendanceTimeFilter.EndDatetime,
+		TeacherID:           teacherID,
+	})
+	if err != nil {
+		return []entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentsByTeacherId(): %w", err)
+	}
+
+	teacherPaymentRowsConverted := make([]mysql.GetTeacherPaymentsRow, 0, len(teacherPaymentRows))
+	for _, row := range teacherPaymentRows {
+		teacherPaymentRowsConverted = append(teacherPaymentRowsConverted, row.ToGetTeacherPaymentsRow())
+	}
+
+	teacherPayments := NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRowsConverted)
+
+	return teacherPayments, nil
 }
 
 func (s entityServiceImpl) GetTeacherPaymentById(ctx context.Context, id entity.TeacherPaymentID) (entity.TeacherPayment, error) {

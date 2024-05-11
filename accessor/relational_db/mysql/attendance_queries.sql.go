@@ -302,7 +302,7 @@ WHERE
     AND (class_id = ? OR ? = false)
     AND (student_id = ? OR ? = false)
     AND (is_paid = 0 OR ? = false)
-ORDER BY class.id
+ORDER BY attendance.id
 LIMIT ? OFFSET ?
 `
 
@@ -533,7 +533,7 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 	return items, nil
 }
 
-const getAttendancesByTeacherId = `-- name: GetAttendancesByTeacherId :many
+const getAttendancesDescendingDate = `-- name: GetAttendancesDescendingDate :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
@@ -557,19 +557,26 @@ FROM attendance
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= ? AND attendance.date <= ?)
-    AND (attendance.teacher_id = ? OR ? = false)
-    AND is_paid = 0
-ORDER BY attendance.teacher_id, class.id, attendance.student_id, date, attendance.id
+    AND (class_id = ? OR ? = false)
+    AND (student_id = ? OR ? = false)
+    AND (is_paid = 0 OR ? = false)
+ORDER BY attendance.date DESC, attendance.id ASC
+LIMIT ? OFFSET ?
 `
 
-type GetAttendancesByTeacherIdParams struct {
+type GetAttendancesDescendingDateParams struct {
 	StartDate        time.Time
 	EndDate          time.Time
-	TeacherID        int64
-	UseTeacherFilter interface{}
+	ClassID          int64
+	UseClassFilter   interface{}
+	StudentID        int64
+	UseStudentFilter interface{}
+	UseUnpaidFilter  interface{}
+	Limit            int32
+	Offset           int32
 }
 
-type GetAttendancesByTeacherIdRow struct {
+type GetAttendancesDescendingDateRow struct {
 	AttendanceID          int64
 	Date                  time.Time
 	UsedStudentTokenQuota float64
@@ -593,20 +600,26 @@ type GetAttendancesByTeacherIdRow struct {
 	StudentLearningToken  StudentLearningToken
 }
 
-func (q *Queries) GetAttendancesByTeacherId(ctx context.Context, arg GetAttendancesByTeacherIdParams) ([]GetAttendancesByTeacherIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAttendancesByTeacherId,
+// GetAttendancesDescendingDate is a copy of GetAttendances, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query which is mature enough, so that we need to do this.
+func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAttendancesDescendingDateParams) ([]GetAttendancesDescendingDateRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAttendancesDescendingDate,
 		arg.StartDate,
 		arg.EndDate,
-		arg.TeacherID,
-		arg.UseTeacherFilter,
+		arg.ClassID,
+		arg.UseClassFilter,
+		arg.StudentID,
+		arg.UseStudentFilter,
+		arg.UseUnpaidFilter,
+		arg.Limit,
+		arg.Offset,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAttendancesByTeacherIdRow
+	var items []GetAttendancesDescendingDateRow
 	for rows.Next() {
-		var i GetAttendancesByTeacherIdRow
+		var i GetAttendancesDescendingDateRow
 		if err := rows.Scan(
 			&i.AttendanceID,
 			&i.Date,
@@ -659,7 +672,7 @@ func (q *Queries) GetAttendancesByTeacherId(ctx context.Context, arg GetAttendan
 	return items, nil
 }
 
-const getAttendancesDescendingDate = `-- name: GetAttendancesDescendingDate :many
+const getUnpaidAttendancesByTeacherId = `-- name: GetUnpaidAttendancesByTeacherId :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
@@ -683,26 +696,18 @@ FROM attendance
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= ? AND attendance.date <= ?)
-    AND (class_id = ? OR ? = false)
-    AND (student_id = ? OR ? = false)
-    AND (is_paid = 0 OR ? = false)
-ORDER BY attendance.date DESC, class.id ASC
-LIMIT ? OFFSET ?
+    AND attendance.teacher_id = ?
+    AND is_paid = 0
+ORDER BY date DESC, attendance.id ASC
 `
 
-type GetAttendancesDescendingDateParams struct {
-	StartDate        time.Time
-	EndDate          time.Time
-	ClassID          int64
-	UseClassFilter   interface{}
-	StudentID        int64
-	UseStudentFilter interface{}
-	UseUnpaidFilter  interface{}
-	Limit            int32
-	Offset           int32
+type GetUnpaidAttendancesByTeacherIdParams struct {
+	StartDate time.Time
+	EndDate   time.Time
+	TeacherID int64
 }
 
-type GetAttendancesDescendingDateRow struct {
+type GetUnpaidAttendancesByTeacherIdRow struct {
 	AttendanceID          int64
 	Date                  time.Time
 	UsedStudentTokenQuota float64
@@ -726,26 +731,15 @@ type GetAttendancesDescendingDateRow struct {
 	StudentLearningToken  StudentLearningToken
 }
 
-// GetAttendancesDescendingDate is a copy of GetAttendances, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query is not mature enough, so that we need to do this.
-func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAttendancesDescendingDateParams) ([]GetAttendancesDescendingDateRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAttendancesDescendingDate,
-		arg.StartDate,
-		arg.EndDate,
-		arg.ClassID,
-		arg.UseClassFilter,
-		arg.StudentID,
-		arg.UseStudentFilter,
-		arg.UseUnpaidFilter,
-		arg.Limit,
-		arg.Offset,
-	)
+func (q *Queries) GetUnpaidAttendancesByTeacherId(ctx context.Context, arg GetUnpaidAttendancesByTeacherIdParams) ([]GetUnpaidAttendancesByTeacherIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUnpaidAttendancesByTeacherId, arg.StartDate, arg.EndDate, arg.TeacherID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAttendancesDescendingDateRow
+	var items []GetUnpaidAttendancesByTeacherIdRow
 	for rows.Next() {
-		var i GetAttendancesDescendingDateRow
+		var i GetUnpaidAttendancesByTeacherIdRow
 		if err := rows.Scan(
 			&i.AttendanceID,
 			&i.Date,

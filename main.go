@@ -173,10 +173,13 @@ func main() {
 		authRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
 		authRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
 
-		authRouter.Get("/teacherPayments/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentInvoiceItemsHandler, "TeacherID"))
 		authRouter.Get("/teacherPayments/unpaidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetUnpaidTeachersHandler))
 		authRouter.Get("/teacherPayments/paidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetPaidTeachersHandler))
+		// TODO: improve naming for these 2 similar endpoints, as both return TeacherPaymentInvoiceItem.
+		// But, for getting existing TeacherPayment as TeacherPaymentInvoiceItem, the URL doesn't seem to represent it.
 		authRouter.Get("/teacherPayments/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentInvoiceItemsHandler, "TeacherID"))
+		authRouter.Get("/teacherPayments/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentsAsInvoiceItemsHandler, "TeacherID"))
+
 		authRouter.Post("/teacherPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherPaymentsHandler))
 		authRouter.Post("/teacherPayments/modify", jsonSerdeWrapper.WrapFunc(backendService.ModifyTeacherPaymentsHandler))
 		// TODO: delete these /edit & /remove. /modify already handles both of the operations
