@@ -278,10 +278,10 @@ func CreateTeacherPaymentInvoiceItems(tpiisRaw []teacherPaymentInvoiceItemRaw) [
 
 		var courseFeeSharingPercentage float64 = Default_CourseFeeSharingPercentage
 		var transportFeeSharingPercentage float64 = Default_TransportFeeSharingPercentage
-		if teacherPaymentInvoiceItemRaw.GrossCourseFeeValue > 0 {
+		if teacherPaymentInvoiceItemRaw.PaidCourseFeeValue > 0 && teacherPaymentInvoiceItemRaw.GrossCourseFeeValue > 0 {
 			courseFeeSharingPercentage = float64(teacherPaymentInvoiceItemRaw.PaidCourseFeeValue) / float64(teacherPaymentInvoiceItemRaw.GrossCourseFeeValue)
 		}
-		if teacherPaymentInvoiceItemRaw.GrossTransportFeeValue > 0 {
+		if teacherPaymentInvoiceItemRaw.PaidTransportFeeValue > 0 && teacherPaymentInvoiceItemRaw.GrossTransportFeeValue > 0 {
 			courseFeeSharingPercentage = float64(teacherPaymentInvoiceItemRaw.PaidTransportFeeValue) / float64(teacherPaymentInvoiceItemRaw.GrossTransportFeeValue)
 		}
 
