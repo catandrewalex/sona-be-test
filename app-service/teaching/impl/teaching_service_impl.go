@@ -703,7 +703,7 @@ func (s teachingServiceImpl) ModifyTeacherPayments(ctx context.Context, specs []
 			editTeacherPaymentsSpecs = append(editTeacherPaymentsSpecs, teaching.EditTeacherPaymentsSpec{
 				TeacherPaymentID:      spec.TeacherPaymentID,
 				PaidCourseFeeValue:    spec.PaidCourseFeeValue,
-				PaidTransportFeeValue: spec.PaidCourseFeeValue,
+				PaidTransportFeeValue: spec.PaidTransportFeeValue,
 			})
 		} else {
 			removedTeacherPaymentIDs = append(removedTeacherPaymentIDs, spec.TeacherPaymentID)
