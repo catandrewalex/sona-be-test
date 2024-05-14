@@ -277,7 +277,8 @@ FROM class_paginated
     LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class_paginated.id = se.class_id AND se.is_deleted=0)
-    LEFT JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student ON se.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 ORDER BY class_paginated.id;
 
 -- name: CountClassesByIds :one
@@ -325,7 +326,8 @@ FROM class
     LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
-    LEFT JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student ON se.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 WHERE class.id in (sqlc.slice('ids'))
 ORDER BY class.id;
 
@@ -347,7 +349,8 @@ FROM class
     LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
     LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
-    LEFT JOIN user AS user_student ON se.student_id = user_student.id
+    LEFT JOIN student ON se.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 WHERE class.id = ?;
 
 -- name: InsertClass :execlastid
