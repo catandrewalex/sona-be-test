@@ -1468,7 +1468,8 @@ SELECT se.id AS student_enrollment_id,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -1533,7 +1534,8 @@ SELECT se.id AS student_enrollment_id,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -1620,7 +1622,8 @@ SELECT se.id AS student_enrollment_id,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -1700,7 +1703,8 @@ SELECT se.id AS student_enrollment_id,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -1790,7 +1794,8 @@ SELECT se.id AS student_enrollment_id,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id

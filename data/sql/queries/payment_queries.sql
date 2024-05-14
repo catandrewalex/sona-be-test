@@ -7,7 +7,8 @@ SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
 
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -27,7 +28,8 @@ SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
 
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -47,7 +49,8 @@ SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
 
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -77,7 +80,8 @@ SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
 
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -179,7 +183,8 @@ SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_f
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -198,7 +203,8 @@ SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_f
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -217,7 +223,8 @@ SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_f
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -236,7 +243,8 @@ SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_f
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON class.course_id = course.id
@@ -296,7 +304,8 @@ FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
@@ -325,7 +334,8 @@ FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
@@ -351,7 +361,8 @@ FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id
@@ -377,7 +388,8 @@ FROM teacher_payment AS ts
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class ON attendance.class_id = class.id
     LEFT JOIN course ON class.course_id = course.id

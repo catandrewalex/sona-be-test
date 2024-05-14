@@ -24,7 +24,8 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class on attendance.class_id = class.id
     LEFT JOIN course ON course_id = course.id
@@ -52,7 +53,8 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class on attendance.class_id = class.id
     LEFT JOIN course ON course_id = course.id
@@ -76,7 +78,8 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class on attendance.class_id = class.id
     LEFT JOIN course ON course_id = course.id
@@ -100,7 +103,8 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class on attendance.class_id = class.id
     LEFT JOIN course ON course_id = course.id
@@ -131,7 +135,8 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
-    LEFT JOIN user AS user_student ON attendance.student_id = user_student.id
+    LEFT JOIN student ON attendance.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
 
     LEFT JOIN class on attendance.class_id = class.id
     LEFT JOIN course ON course_id = course.id

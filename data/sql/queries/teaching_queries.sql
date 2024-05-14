@@ -395,7 +395,8 @@ SELECT se.id AS student_enrollment_id,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -413,7 +414,8 @@ SELECT se.id AS student_enrollment_id,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -431,7 +433,8 @@ SELECT se.id AS student_enrollment_id,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -449,7 +452,8 @@ SELECT se.id AS student_enrollment_id,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
@@ -467,7 +471,8 @@ SELECT se.id AS student_enrollment_id,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
-    JOIN user AS user_student ON se.student_id = user_student.id
+    JOIN student ON se.student_id = student.id
+    JOIN user AS user_student ON student.user_id = user_student.id
     
     JOIN class on se.class_id = class.id
     JOIN course ON course_id = course.id
