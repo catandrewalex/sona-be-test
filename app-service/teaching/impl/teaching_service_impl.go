@@ -630,8 +630,9 @@ func (s teachingServiceImpl) GetTeacherPaymentInvoiceItems(ctx context.Context, 
 		return []teaching.TeacherPaymentInvoiceItem{}, fmt.Errorf("entityService.GetUnpaidAttendancesByTeacherId(): %v", err)
 	}
 
-	teacherPaymentInvoiceItemsRaw := teaching.CreateTeacherPaymentInvoiceItemsRawFromAttendances(attendances)
-	teacherPaymentInvoiceItems := teaching.CreateTeacherPaymentInvoiceItems(teacherPaymentInvoiceItemsRaw)
+	tpiiBuilder := teaching.NewTeacherPaymentInvoiceItemBuilder()
+	tpiiBuilder.AddAttendances(attendances)
+	teacherPaymentInvoiceItems := tpiiBuilder.Build()
 
 	return teacherPaymentInvoiceItems, nil
 }
@@ -647,8 +648,9 @@ func (s teachingServiceImpl) GetExistingTeacherPaymentInvoiceItems(ctx context.C
 		return []teaching.TeacherPaymentInvoiceItem{}, fmt.Errorf("entityService.GetTeacherPaymentsByTeacherId(): %v", err)
 	}
 
-	teacherPaymentInvoiceItemsRaw := teaching.CreateTeacherPaymentInvoiceItemRawFromTeacherPayment(teacherPayments)
-	teacherPaymentInvoiceItems := teaching.CreateTeacherPaymentInvoiceItems(teacherPaymentInvoiceItemsRaw)
+	tpiiBuilder := teaching.NewTeacherPaymentInvoiceItemBuilder()
+	tpiiBuilder.AddTeacherPayments(teacherPayments)
+	teacherPaymentInvoiceItems := tpiiBuilder.Build()
 
 	return teacherPaymentInvoiceItems, nil
 }

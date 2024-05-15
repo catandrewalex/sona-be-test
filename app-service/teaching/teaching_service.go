@@ -2,7 +2,6 @@ package teaching
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	"sonamusica-backend/app-service/entity"
@@ -36,6 +35,9 @@ type TeacherForPayment struct {
 	TotalAttendances int32 `json:"totalAttendances"`
 }
 
+// TeacherPaymentInvoiceItem is an "Attendance"/"TeacherPayment" which is reshaped (grouped-by in multi-level) for a rendering requirement in FE's TeacherPayment page.
+//
+// All information inside this nested struct is literally extracted from "Attendance"/"TeacherPayment".
 type TeacherPaymentInvoiceItem struct {
 	entity.ClassInfo_Minimal
 	Students []tpii_Student `json:"students"`
@@ -207,177 +209,4 @@ type EditTeacherPaymentsSpec struct {
 
 func (s EditTeacherPaymentsSpec) GetInt64ID() int64 {
 	return int64(s.TeacherPaymentID)
-}
-
-// ============================== HELPER STRUCTS & CONSTRUCTORS ==============================
-
-func calculateGrossCourseAndTransportFeeValue(attendance entity.Attendance) (int32, int32) {
-	grossCourseFeeValue := int32(float64(attendance.StudentLearningToken.CourseFeeValue) * attendance.UsedStudentTokenQuota / float64(Default_OneCourseCycle))
-	grossTransportFeeValue := int32(float64(attendance.StudentLearningToken.TransportFeeValue) * attendance.UsedStudentTokenQuota / float64(Default_OneCourseCycle))
-	return grossCourseFeeValue, grossTransportFeeValue
-}
-
-// teacherPaymentInvoiceItemRaw is an intermediate struct to facilitate the creation of TeacherPaymentInvoiceItem,
-// which currently can come from 2 different but very similar structs: "Attendance" and "TeacherPayment".
-type teacherPaymentInvoiceItemRaw struct {
-	Attendance             entity.Attendance
-	GrossCourseFeeValue    int32
-	GrossTransportFeeValue int32
-
-	// these below 4 fields may be zero value, if this struct is constructed from "Attendance"
-	TeacherPaymentID      entity.TeacherPaymentID
-	PaidCourseFeeValue    int32
-	PaidTransportFeeValue int32
-	AddedAt               time.Time
-}
-
-func CreateTeacherPaymentInvoiceItemsRawFromAttendances(attendances []entity.Attendance) []teacherPaymentInvoiceItemRaw {
-	result := make([]teacherPaymentInvoiceItemRaw, 0, len(attendances))
-	for _, attendance := range attendances {
-		grossCourseFeeValue, grossTransportFeeValue := calculateGrossCourseAndTransportFeeValue(attendance)
-		result = append(result, teacherPaymentInvoiceItemRaw{
-			Attendance:             attendance,
-			GrossCourseFeeValue:    grossCourseFeeValue,
-			GrossTransportFeeValue: grossTransportFeeValue,
-
-			TeacherPaymentID:      entity.TeacherPaymentID_None,
-			PaidCourseFeeValue:    0,
-			PaidTransportFeeValue: 0,
-			AddedAt:               time.Time{},
-		})
-	}
-	return result
-}
-
-func CreateTeacherPaymentInvoiceItemRawFromTeacherPayment(teacherPayments []entity.TeacherPayment) []teacherPaymentInvoiceItemRaw {
-	result := make([]teacherPaymentInvoiceItemRaw, 0, len(teacherPayments))
-	for _, teacherPayment := range teacherPayments {
-		result = append(result, teacherPaymentInvoiceItemRaw{
-			Attendance:             teacherPayment.Attendance,
-			GrossCourseFeeValue:    teacherPayment.GrossCourseFeeValue,
-			GrossTransportFeeValue: teacherPayment.GrossTransportFeeValue,
-
-			TeacherPaymentID:      teacherPayment.TeacherPaymentID,
-			PaidCourseFeeValue:    teacherPayment.PaidCourseFeeValue,
-			PaidTransportFeeValue: teacherPayment.PaidTransportFeeValue,
-			AddedAt:               teacherPayment.AddedAt,
-		})
-	}
-	return result
-}
-
-func CreateTeacherPaymentInvoiceItems(tpiisRaw []teacherPaymentInvoiceItemRaw) []TeacherPaymentInvoiceItem {
-	// group the Attendances by StudentLearningToken
-	sltIdToAttendances := make(map[entity.StudentLearningTokenID][]tpii_AttendanceWithTeacherPayment)
-	sltIdToSLT := make(map[entity.StudentLearningTokenID]entity.StudentLearningToken_Minimal)
-	sltIdToStudent := make(map[entity.StudentLearningTokenID]entity.StudentInfo_Minimal)
-	studentIdToStudent := make(map[entity.StudentID]entity.StudentInfo_Minimal)
-	studentIdToClass := make(map[entity.StudentID]entity.ClassInfo_Minimal)
-	for _, teacherPaymentInvoiceItemRaw := range tpiisRaw {
-		attendance := teacherPaymentInvoiceItemRaw.Attendance
-
-		var courseFeeSharingPercentage float64 = Default_CourseFeeSharingPercentage
-		var transportFeeSharingPercentage float64 = Default_TransportFeeSharingPercentage
-		if teacherPaymentInvoiceItemRaw.PaidCourseFeeValue > 0 && teacherPaymentInvoiceItemRaw.GrossCourseFeeValue > 0 {
-			courseFeeSharingPercentage = float64(teacherPaymentInvoiceItemRaw.PaidCourseFeeValue) / float64(teacherPaymentInvoiceItemRaw.GrossCourseFeeValue)
-		}
-		if teacherPaymentInvoiceItemRaw.PaidTransportFeeValue > 0 && teacherPaymentInvoiceItemRaw.GrossTransportFeeValue > 0 {
-			courseFeeSharingPercentage = float64(teacherPaymentInvoiceItemRaw.PaidTransportFeeValue) / float64(teacherPaymentInvoiceItemRaw.GrossTransportFeeValue)
-		}
-
-		tpiiAttendance := tpii_AttendanceWithTeacherPayment{
-			AttendanceInfo_Minimal: entity.AttendanceInfo_Minimal{
-				AttendanceID:          attendance.AttendanceID,
-				TeacherInfo:           attendance.TeacherInfo,
-				Date:                  attendance.Date,
-				UsedStudentTokenQuota: attendance.UsedStudentTokenQuota,
-				Duration:              attendance.Duration,
-				Note:                  attendance.Note,
-				IsPaid:                attendance.IsPaid,
-			},
-			GrossCourseFeeValue:           teacherPaymentInvoiceItemRaw.GrossCourseFeeValue,
-			GrossTransportFeeValue:        teacherPaymentInvoiceItemRaw.GrossTransportFeeValue,
-			CourseFeeSharingPercentage:    courseFeeSharingPercentage,
-			TransportFeeSharingPercentage: transportFeeSharingPercentage,
-
-			TeacherPaymentID:      teacherPaymentInvoiceItemRaw.TeacherPaymentID,
-			PaidCourseFeeValue:    teacherPaymentInvoiceItemRaw.PaidCourseFeeValue,
-			PaidTransportFeeValue: teacherPaymentInvoiceItemRaw.PaidTransportFeeValue,
-			AddedAt:               teacherPaymentInvoiceItemRaw.AddedAt,
-		}
-
-		sltId := attendance.StudentLearningToken.StudentLearningTokenID
-		prevValues, ok := sltIdToAttendances[sltId]
-		if ok {
-			sltIdToAttendances[sltId] = append(prevValues, tpiiAttendance)
-		} else {
-			sltIdToAttendances[sltId] = []tpii_AttendanceWithTeacherPayment{tpiiAttendance}
-		}
-		sltIdToSLT[sltId] = attendance.StudentLearningToken
-		sltIdToStudent[sltId] = attendance.StudentInfo
-		studentIdToStudent[attendance.StudentInfo.StudentID] = attendance.StudentInfo
-		studentIdToClass[attendance.StudentInfo.StudentID] = attendance.ClassInfo
-	}
-
-	// then group the StudentLearningTokens by Student
-	studentIdToSLTs := make(map[entity.StudentID][]tpii_StudentLearningToken)
-	for sltId, attendances := range sltIdToAttendances {
-		studentLearningToken := sltIdToSLT[sltId]
-		tpiiSLT := tpii_StudentLearningToken{
-			StudentLearningToken_Minimal: studentLearningToken,
-			Attendances:                  attendances,
-		}
-
-		student := sltIdToStudent[sltId]
-		prevValues, ok := studentIdToSLTs[student.StudentID]
-		if ok {
-			studentIdToSLTs[student.StudentID] = append(prevValues, tpiiSLT)
-		} else {
-			studentIdToSLTs[student.StudentID] = []tpii_StudentLearningToken{tpiiSLT}
-		}
-	}
-
-	// then group the Students by Class, with SLTs per Student are sorted by ID (the SLT ID is automatically generated, so sort by ID == sort by date)
-	classIdToStudents := make(map[entity.ClassID][]tpii_Student)
-	classIdToClass := make(map[entity.ClassID]entity.ClassInfo_Minimal)
-	for studentId, slts := range studentIdToSLTs {
-		sort.SliceStable(slts, func(i, j int) bool {
-			return slts[i].StudentLearningTokenID < slts[j].StudentLearningTokenID
-		})
-
-		student := studentIdToStudent[studentId]
-		class := studentIdToClass[studentId]
-		tpiiStudent := tpii_Student{
-			StudentInfo_Minimal:   student,
-			StudentLearningTokens: slts,
-		}
-
-		prevValues, ok := classIdToStudents[class.ClassID]
-		if ok {
-			classIdToStudents[class.ClassID] = append(prevValues, tpiiStudent)
-		} else {
-			classIdToStudents[class.ClassID] = []tpii_Student{tpiiStudent}
-		}
-		classIdToClass[class.ClassID] = class
-	}
-
-	// construct the TeacherPaymentInvoiceItem, with Students per Class are sorted by Student name
-	teacherPaymentInvoiceItems := make([]TeacherPaymentInvoiceItem, 0, 1)
-	for classId, students := range classIdToStudents {
-		sort.SliceStable(students, func(i, j int) bool {
-			return students[i].StudentInfo_Minimal.String() < students[j].StudentInfo_Minimal.String()
-		})
-
-		class := classIdToClass[classId]
-		teacherPaymentInvoiceItems = append(teacherPaymentInvoiceItems, TeacherPaymentInvoiceItem{
-			ClassInfo_Minimal: class,
-			Students:          students,
-		})
-	}
-	// finally, sort the TeacherPaymentInvoiceItem by Class name
-	sort.SliceStable(teacherPaymentInvoiceItems, func(i, j int) bool {
-		return teacherPaymentInvoiceItems[i].ClassInfo_Minimal.String() < teacherPaymentInvoiceItems[j].ClassInfo_Minimal.String()
-	})
-
-	return teacherPaymentInvoiceItems
 }
