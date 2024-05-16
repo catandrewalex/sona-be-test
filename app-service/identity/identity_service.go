@@ -19,6 +19,11 @@ type User struct {
 	CreatedAt     time.Time         `json:"createdAt"`
 }
 
+type UserStatus struct {
+	IsTeacher bool `json:"isTeacher"`
+	IsStudent bool `json:"isStudent"`
+}
+
 // UserInfo_Minimal is a subset of struct User that must have the same schema.
 type UserInfo_Minimal struct {
 	Username   string     `json:"username"`
@@ -73,6 +78,8 @@ type IdentityService interface {
 	InsertUsers(ctx context.Context, specs []InsertUserSpec) ([]UserID, error)
 	UpdateUserInfos(ctx context.Context, specs []UpdateUserInfoSpec) ([]UserID, error)
 	UpdateUserPassword(ctx context.Context, spec UpdateUserPasswordSpec) error
+
+	GetUserStatus(ctx context.Context, id UserID) (UserStatus, error)
 
 	SignUpUser(ctx context.Context, spec SignUpUserSpec) (UserID, error)
 	LoginUser(ctx context.Context, spec LoginUserSpec) (LoginUserResult, error)

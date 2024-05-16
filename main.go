@@ -193,6 +193,7 @@ func main() {
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
 		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
+		authRouter.Get("/userStatus", jsonSerdeWrapper.WrapFunc(backendService.GetUserStatus))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

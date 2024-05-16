@@ -2113,6 +2113,23 @@ func (s *BackendService) GetUserProfile(ctx context.Context, req *output.GetUser
 	}, nil
 }
 
+func (s *BackendService) GetUserStatus(ctx context.Context, req *output.GetUserStatusRequest) (*output.GetUserStatusResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	authInfo := network.GetAuthInfo(ctx)
+
+	userStatus, err := s.identityService.GetUserStatus(ctx, authInfo.UserID)
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetUserStatus()", "user")
+	}
+
+	return &output.GetUserStatusResponse{
+		Data: userStatus,
+	}, nil
+}
+
 // handleReadUpsertError combines handleReadError & handleUpsertError.
 func handleReadUpsertError(err error, methodName, entityName string) errs.HTTPError {
 	if err == nil {

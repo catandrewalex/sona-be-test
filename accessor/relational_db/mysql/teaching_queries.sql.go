@@ -2509,6 +2509,27 @@ func (q *Queries) GetTeachersForPayments(ctx context.Context, arg GetTeachersFor
 	return items, nil
 }
 
+const getUserTeacherIdAndStudentId = `-- name: GetUserTeacherIdAndStudentId :one
+SELECT user.id, teacher.id AS teacher_id, student.id AS student_id
+FROM user
+  LEFT JOIN teacher ON user.id = teacher.user_id
+  LEFT JOIN student ON user.id = student.user_id
+WHERE user.id = ? LIMIT 1
+`
+
+type GetUserTeacherIdAndStudentIdRow struct {
+	ID        int64
+	TeacherID sql.NullInt64
+	StudentID sql.NullInt64
+}
+
+func (q *Queries) GetUserTeacherIdAndStudentId(ctx context.Context, id int64) (GetUserTeacherIdAndStudentIdRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserTeacherIdAndStudentId, id)
+	var i GetUserTeacherIdAndStudentIdRow
+	err := row.Scan(&i.ID, &i.TeacherID, &i.StudentID)
+	return i, err
+}
+
 const insertClass = `-- name: InsertClass :execlastid
 INSERT INTO class (
     transport_fee, teacher_id, course_id, is_deactivated

@@ -76,6 +76,16 @@ func (r GetUserProfileRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type GetUserStatusRequest struct{}
+type GetUserStatusResponse struct {
+	Data    identity.UserStatus `json:"data"`
+	Message string              `json:"message,omitempty"`
+}
+
+func (r GetUserStatusRequest) Validate() errs.ValidationError {
+	return nil
+}
+
 type GetUsersRequest struct {
 	PaginationRequest
 	Filter             identity.GetUsersFilter `json:"filter,omitempty"`
