@@ -165,14 +165,6 @@ func main() {
 		authRouter.Post("/enrollmentPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentHandler))
 		authRouter.Post("/enrollmentPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPaymentHandler))
 
-		authRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
-		authRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
-		authRouter.Get("/classes/{ClassID}/studentLearningTokensDisplay", jsonSerdeWrapper.WrapFunc(backendService.GetStudentLearningTokensByClassIDHandler, "ClassID"))
-		authRouter.Get("/classes/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
-		authRouter.Post("/classes/{ClassID}/attendances/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
-		authRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
-		authRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
-
 		authRouter.Get("/teacherPayments/unpaidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetUnpaidTeachersHandler))
 		authRouter.Get("/teacherPayments/paidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetPaidTeachersHandler))
 		// TODO: improve naming for these 2 similar endpoints, as both return TeacherPaymentInvoiceItem.
@@ -193,7 +185,18 @@ func main() {
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
 		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
-		authRouter.Get("/userStatus", jsonSerdeWrapper.WrapFunc(backendService.GetUserStatus))
+		authRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
+
+		// these endpoints can be called by all type of members (except Anonymous). The privilege check is done inside the function.
+		// TODO: implement the authorization.
+		authRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
+		authRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
+		authRouter.Get("/classes/{ClassID}/studentLearningTokensDisplay", jsonSerdeWrapper.WrapFunc(backendService.GetStudentLearningTokensByClassIDHandler, "ClassID"))
+		authRouter.Get("/classes/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
+		// for Member, only teachers are allowed to utilize these endpoints
+		authRouter.Post("/classes/{ClassID}/attendances/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
+		authRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
+		authRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)

@@ -2113,20 +2113,20 @@ func (s *BackendService) GetUserProfile(ctx context.Context, req *output.GetUser
 	}, nil
 }
 
-func (s *BackendService) GetUserStatus(ctx context.Context, req *output.GetUserStatusRequest) (*output.GetUserStatusResponse, errs.HTTPError) {
+func (s *BackendService) GetUserTeachingInfo(ctx context.Context, req *output.GetUserTeachingInfoRequest) (*output.GetUserTeachingInfoResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
 
 	authInfo := network.GetAuthInfo(ctx)
 
-	userStatus, err := s.identityService.GetUserStatus(ctx, authInfo.UserID)
+	userTeachingInfo, err := s.teachingService.GetUserTeachingInfo(ctx, authInfo.UserID)
 	if err != nil {
-		return nil, handleReadError(err, "identityService.GetUserStatus()", "user")
+		return nil, handleReadError(err, "teachingService.GetUserTeachingInfo()", "user")
 	}
 
-	return &output.GetUserStatusResponse{
-		Data: userStatus,
+	return &output.GetUserTeachingInfoResponse{
+		Data: userTeachingInfo,
 	}, nil
 }
 

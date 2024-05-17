@@ -1,3 +1,10 @@
+-- name: GetUserTeacherIdAndStudentId :one
+SELECT user.id, teacher.id AS teacher_id, student.id AS student_id
+FROM user
+  LEFT JOIN teacher ON user.id = teacher.user_id
+  LEFT JOIN student ON user.id = student.user_id
+WHERE user.id = ? LIMIT 1;
+
 /* ============================== TEACHER ============================== */
 -- name: GetTeacherById :one
 SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
@@ -63,13 +70,6 @@ WITH unpaid_teacher AS (
     ORDER BY total_attendances DESC, teacher_id ASC
 )
 SELECT Count(teacher_id) AS total FROM unpaid_teacher;
-
--- name: GetUserTeacherIdAndStudentId :one
-SELECT user.id, teacher.id AS teacher_id, student.id AS student_id
-FROM user
-  LEFT JOIN teacher ON user.id = teacher.user_id
-  LEFT JOIN student ON user.id = student.user_id
-WHERE user.id = ? LIMIT 1;
 
 /* ============================== STUDENT ============================== */
 -- name: GetStudentById :one

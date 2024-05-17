@@ -275,20 +275,6 @@ func (s identityServiceImpl) UpdateUserPassword(ctx context.Context, spec identi
 	return nil
 }
 
-func (s identityServiceImpl) GetUserStatus(ctx context.Context, id identity.UserID) (identity.UserStatus, error) {
-	userStatusRow, err := s.mySQLQueries.GetUserTeacherIdAndStudentId(ctx, int64(id))
-	if err != nil {
-		return identity.UserStatus{}, fmt.Errorf("mySQLQueries.GetUserById(): %w", err)
-	}
-
-	userStatus := identity.UserStatus{
-		IsTeacher: userStatusRow.TeacherID.Valid,
-		IsStudent: userStatusRow.StudentID.Valid,
-	}
-
-	return userStatus, nil
-}
-
 func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignUpUserSpec) (identity.UserID, error) {
 	userIds, err := s.InsertUsers(ctx, []identity.InsertUserSpec{
 		{

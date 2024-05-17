@@ -9,6 +9,16 @@ import (
 	"time"
 )
 
+type GetUserTeachingInfoRequest struct{}
+type GetUserTeachingInfoResponse struct {
+	Data    teaching.UserTeachingInfo `json:"data"`
+	Message string                    `json:"message,omitempty"`
+}
+
+func (r GetUserTeachingInfoRequest) Validate() errs.ValidationError {
+	return nil
+}
+
 // ============================== ENROLLMENT_PAYMENT ==============================
 
 type SearchEnrollmentPaymentsRequest struct {

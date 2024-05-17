@@ -10,6 +10,7 @@ import (
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/accessor/relational_db/mysql"
 	"sonamusica-backend/app-service/entity"
+	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
@@ -40,6 +41,23 @@ func NewTeachingServiceImpl(mySQLQueries *relational_db.MySQLQueries, entityServ
 		mySQLQueries:  mySQLQueries,
 		entityService: entityService,
 	}
+}
+
+func (s teachingServiceImpl) GetUserTeachingInfo(ctx context.Context, id identity.UserID) (teaching.UserTeachingInfo, error) {
+	userTeachingInfoRow, err := s.mySQLQueries.GetUserTeacherIdAndStudentId(ctx, int64(id))
+	if err != nil {
+		return teaching.UserTeachingInfo{}, fmt.Errorf("mySQLQueries.GetUserTeacherIdAndStudentId(): %w", err)
+	}
+
+	// TODO: this struct is not created via result_construtor.go. Probably refactor?
+	userTeachingInfo := teaching.UserTeachingInfo{
+		TeacherID: entity.TeacherID(userTeachingInfoRow.TeacherID.Int64),
+		StudentID: entity.StudentID(userTeachingInfoRow.StudentID.Int64),
+		IsTeacher: userTeachingInfoRow.TeacherID.Valid,
+		IsStudent: userTeachingInfoRow.StudentID.Valid,
+	}
+
+	return userTeachingInfo, nil
 }
 
 func (s teachingServiceImpl) SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error) {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"sonamusica-backend/app-service/entity"
+	"sonamusica-backend/app-service/identity"
 	"sonamusica-backend/app-service/util"
 )
 
@@ -15,6 +16,13 @@ const (
 	Default_CourseFeeSharingPercentage    = 0.5
 	Default_TransportFeeSharingPercentage = 1.0
 )
+
+type UserTeachingInfo struct {
+	TeacherID entity.TeacherID `json:"teacherId"`
+	StudentID entity.StudentID `json:"studentId"`
+	IsTeacher bool             `json:"isTeacher"`
+	IsStudent bool             `json:"isStudent"`
+}
 
 type StudentEnrollmentInvoice struct {
 	BalanceTopUp      int32      `json:"balanceTopUp"`
@@ -70,6 +78,8 @@ type tpii_AttendanceWithTeacherPayment struct {
 }
 
 type TeachingService interface {
+	GetUserTeachingInfo(ctx context.Context, id identity.UserID) (UserTeachingInfo, error)
+
 	SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
 	// GetEnrollmentPaymentInvoice returns values for used by SubmitEnrollmentPayment.
 	// This includes calculating teacherSpecialFee, and penaltyFee.
