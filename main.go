@@ -188,12 +188,12 @@ func main() {
 		authRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
 
 		// these endpoints can be called by all type of members (except Anonymous). The privilege check is done inside the function.
-		// TODO: implement the authorization.
 		authRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
 		authRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
 		authRouter.Get("/classes/{ClassID}/studentLearningTokensDisplay", jsonSerdeWrapper.WrapFunc(backendService.GetStudentLearningTokensByClassIDHandler, "ClassID"))
 		authRouter.Get("/classes/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
 		// for Member, only teachers are allowed to utilize these endpoints
+		// TODO: implement the authorization.
 		authRouter.Post("/classes/{ClassID}/attendances/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
 		authRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
 		authRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))

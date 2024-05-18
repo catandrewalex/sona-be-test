@@ -79,6 +79,8 @@ type tpii_AttendanceWithTeacherPayment struct {
 
 type TeachingService interface {
 	GetUserTeachingInfo(ctx context.Context, id identity.UserID) (UserTeachingInfo, error)
+	IsUserInvolvedInClass(ctx context.Context, userId identity.UserID, classId entity.ClassID) (bool, error)
+	IsUserInvolvedInAttendance(ctx context.Context, userId identity.UserID, attendanceId entity.AttendanceID) (bool, error)
 
 	SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error)
 	// GetEnrollmentPaymentInvoice returns values for used by SubmitEnrollmentPayment.

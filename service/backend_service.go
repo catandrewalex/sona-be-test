@@ -1726,6 +1726,22 @@ func (s *BackendService) SearchClass(ctx context.Context, req *output.SearchClas
 		return nil, errV
 	}
 
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		userTeachingInfo, err := s.teachingService.GetUserTeachingInfo(ctx, authInfo.UserID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.GetUserTeachingInfo()", "class")
+		}
+		if req.StudentID != entity.StudentID_None && req.StudentID != userTeachingInfo.StudentID {
+			errContext := fmt.Errorf("unauthorized SearchClass(): userId='%d', studentId='%d', requestedStudentId='%d'", authInfo.UserID, userTeachingInfo.StudentID, req.StudentID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not authorized to search this class. Please contact the system administrator for further information.")
+		}
+		if req.TeacherID != entity.TeacherID_None && req.TeacherID != userTeachingInfo.TeacherID {
+			errContext := fmt.Errorf("unauthorized SearchClass(): userId='%d', teacherId='%d', requestedTeacherId='%d'", authInfo.UserID, userTeachingInfo.TeacherID, req.TeacherID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not authorized to search this class. Please contact the system administrator for further information.")
+		}
+	}
+
 	spec := teaching.SearchClassSpec{
 		TeacherID: req.TeacherID,
 		StudentID: req.StudentID,
@@ -1733,7 +1749,7 @@ func (s *BackendService) SearchClass(ctx context.Context, req *output.SearchClas
 	}
 	classes, err := s.teachingService.SearchClass(ctx, spec)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.SearchClass(): %w", err), nil, "Failed to get courses")
+		return nil, handleReadError(err, "teachingService.SearchClass()", "class")
 	}
 
 	return &output.SearchClassResponse{
@@ -1748,9 +1764,21 @@ func (s *BackendService) GetStudentLearningTokensByClassIDHandler(ctx context.Co
 		return nil, errV
 	}
 
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		isInvolved, err := s.teachingService.IsUserInvolvedInClass(ctx, authInfo.UserID, req.ClassID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.IsUserInvolvedInClass()", "studentLearningToken")
+		}
+		if !isInvolved {
+			errContext := fmt.Errorf("unauthorized GetStudentLearningTokensByClassIDHandler(): userId='%d', requestedClassId='%d'", authInfo.UserID, req.ClassID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not involved in this class to read its student learning tokens. Please contact the system administrator for further information.")
+		}
+	}
+
 	getStudentLearningTokensResults, err := s.teachingService.GetSLTsByClassID(ctx, req.ClassID)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetSLTsByClassID(): %w", err), nil, "Failed to get courses")
+		return nil, handleReadError(err, "teachingService.GetSLTsByClassID()", "studentLearningToken")
 	}
 
 	return &output.GetStudentLearningTokensByClassIDResponse{
@@ -1765,6 +1793,18 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 		return nil, errV
 	}
 
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		isInvolved, err := s.teachingService.IsUserInvolvedInClass(ctx, authInfo.UserID, req.ClassID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.IsUserInvolvedInClass()", "attendance")
+		}
+		if !isInvolved {
+			errContext := fmt.Errorf("unauthorized GetAttendancesByClassIDHandler(): userId='%d', requestedClassId='%d'", authInfo.UserID, req.ClassID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not involved in this class to read its attendances. Please contact the system administrator for further information.")
+		}
+	}
+
 	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
 
 	spec := teaching.GetAttendancesByClassIDSpec{
@@ -1775,7 +1815,7 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 	}
 	getAttendancesResult, err := s.teachingService.GetAttendancesByClassID(ctx, spec)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.GetAttendancesByClassID(): %w", err), nil, "Failed to get courses")
+		return nil, handleReadError(err, "teachingService.GetSLTsByClassID()", "class")
 	}
 
 	return &output.GetAttendancesByClassIDResponse{
@@ -1793,6 +1833,18 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 func (s *BackendService) AddAttendanceHandler(ctx context.Context, req *output.AddAttendanceRequest) (*output.AddAttendanceResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
+	}
+
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		isInvolved, err := s.teachingService.IsUserInvolvedInClass(ctx, authInfo.UserID, req.ClassID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.IsUserInvolvedInClass()", "userInvolvementInClass")
+		}
+		if !isInvolved {
+			errContext := fmt.Errorf("unauthorized GetAttendancesByClassIDHandler(): userId='%d', requestedClassId='%d'", authInfo.UserID, req.ClassID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not involved in this class as a teacher to add new attendances. Please contact the system administrator for further information.")
+		}
 	}
 
 	allowAutoCreateSLT := configObject.AllowAutoCreateSLTOnAddAttendance
@@ -1820,7 +1872,7 @@ func (s *BackendService) AddAttendanceHandler(ctx context.Context, req *output.A
 
 	attendances, err := s.entityService.GetAttendancesByIds(ctx, attendanceIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetAttendancesByIds: %v", err), nil, "")
+		return nil, handleReadError(err, "entityService.GetAttendancesByIds()", "attendance")
 	}
 
 	return &output.AddAttendanceResponse{
@@ -1834,6 +1886,18 @@ func (s *BackendService) AddAttendanceHandler(ctx context.Context, req *output.A
 func (s *BackendService) EditAttendanceHandler(ctx context.Context, req *output.EditAttendanceRequest) (*output.EditAttendanceResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
+	}
+
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		isInvolved, err := s.teachingService.IsUserInvolvedInAttendance(ctx, authInfo.UserID, req.AttendanceID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.IsUserInvolvedInAttendance()", "userInvolvementInAttendance")
+		}
+		if !isInvolved {
+			errContext := fmt.Errorf("unauthorized GetAttendancesByAttendanceIDHandler(): userId='%d', requestedAttendanceId='%d'", authInfo.UserID, req.AttendanceID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not involved in this attendance as a teacher to edit. Please contact the system administrator for further information.")
+		}
 	}
 
 	attendanceIDs, err := s.teachingService.EditAttendance(ctx, teaching.EditAttendanceSpec{
@@ -1856,7 +1920,7 @@ func (s *BackendService) EditAttendanceHandler(ctx context.Context, req *output.
 
 	attendances, err := s.entityService.GetAttendancesByIds(ctx, attendanceIDs)
 	if err != nil {
-		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("entityService.GetAttendancesByIds: %v", err), nil, "")
+		return nil, handleReadError(err, "entityService.GetAttendancesByIds()", "attendance")
 	}
 
 	return &output.EditAttendanceResponse{
@@ -1870,6 +1934,18 @@ func (s *BackendService) EditAttendanceHandler(ctx context.Context, req *output.
 func (s *BackendService) RemoveAttendanceHandler(ctx context.Context, req *output.RemoveAttendanceRequest) (*output.RemoveAttendanceResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
+	}
+
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		isInvolved, err := s.teachingService.IsUserInvolvedInAttendance(ctx, authInfo.UserID, req.AttendanceID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.IsUserInvolvedInAttendance()", "userInvolvementInAttendance")
+		}
+		if !isInvolved {
+			errContext := fmt.Errorf("unauthorized GetAttendancesByAttendanceIDHandler(): userId='%d', requestedAttendanceId='%d'", authInfo.UserID, req.AttendanceID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not involved in this attendance as a teacher to remove. Please contact the system administrator for further information.")
+		}
 	}
 
 	attendanceIDs, err := s.teachingService.RemoveAttendance(ctx, req.AttendanceID)

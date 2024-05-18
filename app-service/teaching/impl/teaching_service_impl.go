@@ -60,6 +60,30 @@ func (s teachingServiceImpl) GetUserTeachingInfo(ctx context.Context, id identit
 	return userTeachingInfo, nil
 }
 
+func (s teachingServiceImpl) IsUserInvolvedInClass(ctx context.Context, userId identity.UserID, classId entity.ClassID) (bool, error) {
+	isInvolved, err := s.mySQLQueries.IsUserIdInvolvedInClassId(ctx, mysql.IsUserIdInvolvedInClassIdParams{
+		UserID:  int64(userId),
+		ClassID: int64(classId),
+	})
+	if err != nil {
+		return false, fmt.Errorf("mySQLQueries.IsUserIdInvolvedInClassId(): %v", err)
+	}
+
+	return isInvolved, nil
+}
+
+func (s teachingServiceImpl) IsUserInvolvedInAttendance(ctx context.Context, userId identity.UserID, attendanceId entity.AttendanceID) (bool, error) {
+	isInvolved, err := s.mySQLQueries.IsUserIdInvolvedInAttendanceId(ctx, mysql.IsUserIdInvolvedInAttendanceIdParams{
+		UserID:       int64(userId),
+		AttendanceID: int64(attendanceId),
+	})
+	if err != nil {
+		return false, fmt.Errorf("mySQLQueries.IsUserIdInvolvedInAttendanceId(): %v", err)
+	}
+
+	return isInvolved, nil
+}
+
 func (s teachingServiceImpl) SearchEnrollmentPayment(ctx context.Context, timeFilter util.TimeSpec) ([]entity.EnrollmentPayment, error) {
 	paginationSpec := util.PaginationSpec{
 		Page:           pagination_FirstPage,

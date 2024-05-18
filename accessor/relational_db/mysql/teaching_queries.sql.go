@@ -2674,6 +2674,76 @@ func (q *Queries) InsertTeacherSpecialFee(ctx context.Context, arg InsertTeacher
 	return result.LastInsertId()
 }
 
+const isUserIdInvolvedInAttendanceId = `-- name: IsUserIdInvolvedInAttendanceId :one
+SELECT EXISTS(
+    -- check whether the user is enrolled in the attendance's class as a student
+    SELECT user.id, attendance.id
+    FROM user 
+        JOIN student ON user.id = student.user_id
+        JOIN attendance ON student.id = attendance.student_id
+    WHERE user.id = ? AND attendance.id = ?
+    UNION
+    -- check whether the user is teaching the attendance's class
+    SELECT user.id, class.id
+    FROM user 
+        JOIN teacher ON user.id = teacher.user_id
+        JOIN attendance ON teacher.id = attendance.teacher_id
+    WHERE user.id = ? AND attendance.id = ?
+) AS is_involved
+`
+
+type IsUserIdInvolvedInAttendanceIdParams struct {
+	UserID       int64
+	AttendanceID int64
+}
+
+func (q *Queries) IsUserIdInvolvedInAttendanceId(ctx context.Context, arg IsUserIdInvolvedInAttendanceIdParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isUserIdInvolvedInAttendanceId,
+		arg.UserID,
+		arg.AttendanceID,
+		arg.UserID,
+		arg.AttendanceID,
+	)
+	var is_involved bool
+	err := row.Scan(&is_involved)
+	return is_involved, err
+}
+
+const isUserIdInvolvedInClassId = `-- name: IsUserIdInvolvedInClassId :one
+SELECT EXISTS(
+    -- check whether the user is enrolled in the class as a student
+    SELECT user.id, se.class_id
+    FROM user 
+        JOIN student ON user.id = student.user_id
+        JOIN student_enrollment AS se ON student.id = se.student_id
+    WHERE user.id = ? AND se.class_id = ?
+    UNION
+    -- check whether the user is teaching the class
+    SELECT user.id, class.id
+    FROM user 
+        JOIN teacher ON user.id = teacher.user_id
+        JOIN class ON teacher.id = class.teacher_id
+    WHERE user.id = ? AND class.id = ?
+) AS is_involved
+`
+
+type IsUserIdInvolvedInClassIdParams struct {
+	UserID  int64
+	ClassID int64
+}
+
+func (q *Queries) IsUserIdInvolvedInClassId(ctx context.Context, arg IsUserIdInvolvedInClassIdParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isUserIdInvolvedInClassId,
+		arg.UserID,
+		arg.ClassID,
+		arg.UserID,
+		arg.ClassID,
+	)
+	var is_involved bool
+	err := row.Scan(&is_involved)
+	return is_involved, err
+}
+
 const updateClass = `-- name: UpdateClass :exec
 UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, is_deactivated = ?
 WHERE id = ?

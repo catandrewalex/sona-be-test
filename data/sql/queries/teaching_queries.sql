@@ -5,6 +5,40 @@ FROM user
   LEFT JOIN student ON user.id = student.user_id
 WHERE user.id = ? LIMIT 1;
 
+-- name: IsUserIdInvolvedInClassId :one
+SELECT EXISTS(
+    -- check whether the user is enrolled in the class as a student
+    SELECT user.id, se.class_id
+    FROM user 
+        JOIN student ON user.id = student.user_id
+        JOIN student_enrollment AS se ON student.id = se.student_id
+    WHERE user.id = sqlc.arg('user_id') AND se.class_id = sqlc.arg('class_id')
+    UNION
+    -- check whether the user is teaching the class
+    SELECT user.id, class.id
+    FROM user 
+        JOIN teacher ON user.id = teacher.user_id
+        JOIN class ON teacher.id = class.teacher_id
+    WHERE user.id = sqlc.arg('user_id') AND class.id = sqlc.arg('class_id')
+) AS is_involved;
+
+-- name: IsUserIdInvolvedInAttendanceId :one
+SELECT EXISTS(
+    -- check whether the user is enrolled in the attendance's class as a student
+    SELECT user.id, attendance.id
+    FROM user 
+        JOIN student ON user.id = student.user_id
+        JOIN attendance ON student.id = attendance.student_id
+    WHERE user.id = sqlc.arg('user_id') AND attendance.id = sqlc.arg('attendance_id')
+    UNION
+    -- check whether the user is teaching the attendance's class
+    SELECT user.id, class.id
+    FROM user 
+        JOIN teacher ON user.id = teacher.user_id
+        JOIN attendance ON teacher.id = attendance.teacher_id
+    WHERE user.id = sqlc.arg('user_id') AND attendance.id = sqlc.arg('attendance_id')
+) AS is_involved;
+
 /* ============================== TEACHER ============================== */
 -- name: GetTeacherById :one
 SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
