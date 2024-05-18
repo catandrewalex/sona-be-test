@@ -187,6 +187,9 @@ func main() {
 		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
 		authRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
 
+		// TODO: properly implement this, as we're reusing admin endpoint?
+		authRouter.Get("/teachersForAttendance", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+
 		// these endpoints can be called by all type of members (except Anonymous). The privilege check is done inside the function.
 		authRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
 		authRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
