@@ -330,6 +330,14 @@ func (s *BackendService) UpdateUserPasswordHandler(ctx context.Context, req *out
 		return nil, errV
 	}
 
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Admin {
+		if req.UserID != identity.UserID_None && req.UserID != authInfo.UserID {
+			errContext := fmt.Errorf("unauthorized UpdateUserPassword(): userId='%d', requesteduserId='%d'", authInfo.UserID, req.UserID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not authorized to change this user's password. Please contact the system administrator for further information.")
+		}
+	}
+
 	err := s.identityService.UpdateUserPassword(ctx, identity.UpdateUserPasswordSpec{
 		UserID:   req.UserID,
 		Password: req.NewPassword,

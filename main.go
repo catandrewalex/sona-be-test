@@ -81,7 +81,6 @@ func main() {
 		authRouter.Get("/users/{UserID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "UserID"))
 		authRouter.Post("/users", jsonSerdeWrapper.WrapFunc(backendService.InsertUsersHandler))
 		authRouter.Put("/users", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersHandler))
-		authRouter.Put("/users/{UserID}/password", jsonSerdeWrapper.WrapFunc(backendService.UpdateUserPasswordHandler, "UserID"))
 
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/teachers/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherByIdHandler, "TeacherID"))
@@ -184,6 +183,7 @@ func main() {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
+		authRouter.Put("/users/{UserID}/password", jsonSerdeWrapper.WrapFunc(backendService.UpdateUserPasswordHandler, "UserID"))
 		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
 		authRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
 
