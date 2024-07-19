@@ -28,6 +28,10 @@ go.work
 # Search engine data
 data/typesense
 
+# Seed on test & prod
+data/sql/test/
+data/csv/prod/
+
 # Etc
 sql_debug_helper.sql
 debugging/

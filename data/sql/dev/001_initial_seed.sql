@@ -89,6 +89,7 @@ INSERT INTO instrument ( name ) VALUES ( "Drum" );
 INSERT INTO instrument ( name ) VALUES ( "Flute" );
 INSERT INTO instrument ( name ) VALUES ( "Saxophone" );
 INSERT INTO instrument ( name ) VALUES ( "Trumpet" );
+INSERT INTO instrument ( name ) VALUES ( "Viola" );
 
 INSERT INTO grade ( name ) VALUES ( "Children" );
 INSERT INTO grade ( name ) VALUES ( "Adult" );
@@ -195,6 +196,17 @@ INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_
 INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 0, 45, 12, 15 );
 INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 0, 45, 12, 16 );
 INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 0, 60, 12, 17 );
+/* ---------- Viola ---------- */
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 350000, 30, 13, 4 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 350000, 30, 13, 5 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 375000, 30, 13, 6 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 425000, 45, 13, 7 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 475000, 45, 13, 8 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 525000, 45, 13, 9 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 650000, 45, 13, 10 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 750000, 60, 13, 11 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 850000, 60, 13, 12 );
+INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 850000, 60, 13, 13 );
 
 /* ============================== CLASS & STUDENT ENROLLMENT ============================== */
 INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 1, 1, 0 );
