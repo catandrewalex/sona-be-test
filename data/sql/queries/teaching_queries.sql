@@ -32,7 +32,7 @@ SELECT EXISTS(
     WHERE user.id = sqlc.arg('user_id') AND attendance.id = sqlc.arg('attendance_id')
     UNION
     -- check whether the user is teaching the attendance's class
-    SELECT user.id, class.id
+    SELECT user.id, attendance.id
     FROM user 
         JOIN teacher ON user.id = teacher.user_id
         JOIN attendance ON teacher.id = attendance.teacher_id
