@@ -634,25 +634,49 @@ func (s teachingServiceImpl) GetTeachersForPayment(ctx context.Context, spec tea
 
 	spec.TimeSpec.SetDefaultForZeroValues()
 
-	teacherRows, err := s.mySQLQueries.GetTeachersForPayments(ctx, mysql.GetTeachersForPaymentsParams{
-		IsPaid:    util.BoolToInt32(spec.IsPaid),
-		StartDate: spec.StartDatetime,
-		EndDate:   spec.EndDatetime,
-		Limit:     int32(limit),
-		Offset:    int32(offset),
-	})
-	if err != nil {
-		return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.GetTeachersForPayments(): %w", err)
-	}
+	var teachersForPayments []teaching.TeacherForPayment
+	var totalResults int64
+	if spec.IsPaid { // for paid teachers, we fetch data from `TeacherPayment`
+		teacherRows, err := s.mySQLQueries.GetPaidTeachers(ctx, mysql.GetPaidTeachersParams{
+			StartDate: spec.StartDatetime,
+			EndDate:   spec.EndDatetime,
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+		})
+		if err != nil {
+			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.GetPaidTeachers(): %w", err)
+		}
 
-	teachersForPayments := NewTeacherForPaymentsFromGetTeachersForPaymentsRow(teacherRows)
+		teachersForPayments = NewTeacherForPaymentsFromGetPaidTeachersRow(teacherRows)
 
-	totalResults, err := s.mySQLQueries.CountTeachersForPayments(ctx, mysql.CountTeachersForPaymentsParams{
-		StartDate: spec.StartDatetime,
-		EndDate:   spec.EndDatetime,
-	})
-	if err != nil {
-		return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.CountTeachersForPayments(): %w", err)
+		totalResults, err = s.mySQLQueries.CountUnpaidTeachers(ctx, mysql.CountUnpaidTeachersParams{
+			StartDate: spec.StartDatetime,
+			EndDate:   spec.EndDatetime,
+		})
+		if err != nil {
+			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
+		}
+
+	} else { // for unpaid teachers, we fetch data from `Attendance`
+		teacherRows, err := s.mySQLQueries.GetUnpaidTeachers(ctx, mysql.GetUnpaidTeachersParams{
+			StartDate: spec.StartDatetime,
+			EndDate:   spec.EndDatetime,
+			Limit:     int32(limit),
+			Offset:    int32(offset),
+		})
+		if err != nil {
+			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.GetUnpaidTeachers(): %w", err)
+		}
+
+		teachersForPayments = NewTeacherForPaymentsFromGetUnpaidTeachersRow(teacherRows)
+
+		totalResults, err = s.mySQLQueries.CountUnpaidTeachers(ctx, mysql.CountUnpaidTeachersParams{
+			StartDate: spec.StartDatetime,
+			EndDate:   spec.EndDatetime,
+		})
+		if err != nil {
+			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
+		}
 	}
 
 	return teaching.GetTeachersForPaymentResult{
@@ -681,8 +705,8 @@ func (s teachingServiceImpl) GetTeacherPaymentInvoiceItems(ctx context.Context, 
 
 func (s teachingServiceImpl) GetExistingTeacherPaymentInvoiceItems(ctx context.Context, spec teaching.GetExistingTeacherPaymentInvoiceItemsSpec) ([]teaching.TeacherPaymentInvoiceItem, error) {
 	getTeacherPaymentsByTeacherIdSpec := entity.GetTeacherPaymentsByTeacherIdSpec{
-		TeacherID:          spec.TeacherID,
-		AttendanceTimeSpec: spec.AttendanceTimeSpec,
+		TeacherID: spec.TeacherID,
+		TimeSpec:  spec.TimeSpec,
 	}
 
 	teacherPayments, err := s.entityService.GetTeacherPaymentsByTeacherId(ctx, getTeacherPaymentsByTeacherIdSpec)

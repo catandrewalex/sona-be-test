@@ -1813,7 +1813,7 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 		}
 	}
 
-	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Standard)
 
 	spec := teaching.GetAttendancesByClassIDSpec{
 		ClassID:        req.ClassID,
@@ -1823,7 +1823,7 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 	}
 	getAttendancesResult, err := s.teachingService.GetAttendancesByClassID(ctx, spec)
 	if err != nil {
-		return nil, handleReadError(err, "teachingService.GetSLTsByClassID()", "class")
+		return nil, handleReadError(err, "teachingService.GetAttendancesByClassID()", "class")
 	}
 
 	return &output.GetAttendancesByClassIDResponse{
@@ -1977,7 +1977,7 @@ func (s *BackendService) GetUnpaidTeachersHandler(ctx context.Context, req *outp
 		return nil, errV
 	}
 
-	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_CalculatingSalary)
 
 	getUnpaidTeachersResult, err := s.teachingService.GetTeachersForPayment(ctx, teaching.GetTeachersForPaymentSpec{
 		IsPaid:     false,
@@ -2003,7 +2003,7 @@ func (s *BackendService) GetPaidTeachersHandler(ctx context.Context, req *output
 		return nil, errV
 	}
 
-	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Standard)
 
 	getPaidTeachersResult, err := s.teachingService.GetTeachersForPayment(ctx, teaching.GetTeachersForPaymentSpec{
 		IsPaid:     true,
@@ -2024,12 +2024,13 @@ func (s *BackendService) GetPaidTeachersHandler(ctx context.Context, req *output
 	}, nil
 }
 
+// GetTeacherPaymentInvoiceItemsHandler gets all `Attendances`s within the range of specific rule (prev month's 28th to curr month's 27) for a selected TeacherID, then convert to `TeacherPaymentInvoiceItem`s.
 func (s *BackendService) GetTeacherPaymentInvoiceItemsHandler(ctx context.Context, req *output.GetTeacherPaymentInvoiceItemsRequest) (*output.GetTeacherPaymentInvoiceItemsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
 
-	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+	timeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_CalculatingSalary)
 
 	invoiceItems, err := s.teachingService.GetTeacherPaymentInvoiceItems(ctx, teaching.GetTeacherPaymentInvoiceItemsSpec{
 		TeacherID: req.TeacherID,
@@ -2046,16 +2047,17 @@ func (s *BackendService) GetTeacherPaymentInvoiceItemsHandler(ctx context.Contex
 	}, nil
 }
 
+// GetTeacherPaymentsAsInvoiceItemsHandler gets all `TeacherPayment`s within the range of a whole month (curr month's 1th to last day) for a selected TeacherID, then convert to `TeacherPaymentInvoiceItem`s.
 func (s *BackendService) GetTeacherPaymentsAsInvoiceItemsHandler(ctx context.Context, req *output.GetTeacherPaymentsAsInvoiceItemsRequest) (*output.GetTeacherPaymentsAsInvoiceItemsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
 
-	attendanceTimeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Salary)
+	attendanceTimeFilter := req.YearMonthFilter.ToTimeFilter(output.YearMonthFilterType_Standard)
 
 	invoiceItems, err := s.teachingService.GetExistingTeacherPaymentInvoiceItems(ctx, teaching.GetExistingTeacherPaymentInvoiceItemsSpec{
-		TeacherID:          req.TeacherID,
-		AttendanceTimeSpec: util.TimeSpec(attendanceTimeFilter),
+		TeacherID: req.TeacherID,
+		TimeSpec:  util.TimeSpec(attendanceTimeFilter),
 	})
 	if err != nil {
 		return nil, handleReadError(err, "teachingService.GetExistingTeacherPaymentInvoiceItems()", "teacherPayment")

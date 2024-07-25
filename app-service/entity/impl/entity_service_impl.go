@@ -1577,15 +1577,15 @@ func (s entityServiceImpl) GetTeacherPayments(ctx context.Context, pagination ut
 }
 
 func (s entityServiceImpl) GetTeacherPaymentsByTeacherId(ctx context.Context, spec entity.GetTeacherPaymentsByTeacherIdSpec) ([]entity.TeacherPayment, error) {
-	attendanceTimeFilter := spec.AttendanceTimeSpec
-	attendanceTimeFilter.SetDefaultForZeroValues()
+	timeFilter := spec.TimeSpec
+	timeFilter.SetDefaultForZeroValues()
 
 	teacherID := int64(spec.TeacherID)
 
 	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPaymentsByTeacherId(ctx, mysql.GetTeacherPaymentsByTeacherIdParams{
-		AttendanceStartDate: attendanceTimeFilter.StartDatetime,
-		AttendanceEndDate:   attendanceTimeFilter.EndDatetime,
-		TeacherID:           teacherID,
+		StartDate: timeFilter.StartDatetime,
+		EndDate:   timeFilter.EndDatetime,
+		TeacherID: teacherID,
 	})
 	if err != nil {
 		return []entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentsByTeacherId(): %w", err)

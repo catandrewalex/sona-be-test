@@ -1259,14 +1259,14 @@ func (q *Queries) GetTeacherPaymentAttendanceIdsByIds(ctx context.Context, teach
 }
 
 const getTeacherPaymentById = `-- name: GetTeacherPaymentById :one
-SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
-FROM teacher_payment AS ts
+FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1283,7 +1283,7 @@ FROM teacher_payment AS ts
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
-WHERE ts.id = ? LIMIT 1
+WHERE tp.id = ? LIMIT 1
 `
 
 type GetTeacherPaymentByIdRow struct {
@@ -1363,14 +1363,14 @@ func (q *Queries) GetTeacherPaymentById(ctx context.Context, id int64) (GetTeach
 }
 
 const getTeacherPayments = `-- name: GetTeacherPayments :many
-SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
-FROM teacher_payment AS ts
+FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1388,9 +1388,9 @@ FROM teacher_payment AS ts
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
-    (ts.added_at >= ? AND ts.added_at <= ?)
+    (tp.added_at >= ? AND tp.added_at <= ?)
     AND (attendance.teacher_id = ? OR ? = false)
-ORDER BY ts.id
+ORDER BY tp.id
 LIMIT ? OFFSET ?
 `
 
@@ -1503,14 +1503,14 @@ func (q *Queries) GetTeacherPayments(ctx context.Context, arg GetTeacherPayments
 }
 
 const getTeacherPaymentsByIds = `-- name: GetTeacherPaymentsByIds :many
-SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
-FROM teacher_payment AS ts
+FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1527,7 +1527,7 @@ FROM teacher_payment AS ts
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
-WHERE ts.id IN (/*SLICE:ids*/?)
+WHERE tp.id IN (/*SLICE:ids*/?)
 `
 
 type GetTeacherPaymentsByIdsRow struct {
@@ -1633,14 +1633,14 @@ func (q *Queries) GetTeacherPaymentsByIds(ctx context.Context, ids []int64) ([]G
 }
 
 const getTeacherPaymentsByTeacherId = `-- name: GetTeacherPaymentsByTeacherId :many
-SELECT ts.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
+SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_value, added_at,
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
-FROM teacher_payment AS ts
+FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -1658,15 +1658,15 @@ FROM teacher_payment AS ts
     
     JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
-    (attendance.date >= ? AND attendance.date <= ?)
+    (tp.added_at >= ? AND tp.added_at <= ?)
     AND attendance.teacher_id = ?
-ORDER BY attendance.date DESC, ts.id ASC
+ORDER BY attendance.date DESC, tp.id ASC
 `
 
 type GetTeacherPaymentsByTeacherIdParams struct {
-	AttendanceStartDate time.Time
-	AttendanceEndDate   time.Time
-	TeacherID           int64
+	StartDate time.Time
+	EndDate   time.Time
+	TeacherID int64
 }
 
 type GetTeacherPaymentsByTeacherIdRow struct {
@@ -1693,7 +1693,7 @@ type GetTeacherPaymentsByTeacherIdRow struct {
 }
 
 func (q *Queries) GetTeacherPaymentsByTeacherId(ctx context.Context, arg GetTeacherPaymentsByTeacherIdParams) ([]GetTeacherPaymentsByTeacherIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getTeacherPaymentsByTeacherId, arg.AttendanceStartDate, arg.AttendanceEndDate, arg.TeacherID)
+	rows, err := q.db.QueryContext(ctx, getTeacherPaymentsByTeacherId, arg.StartDate, arg.EndDate, arg.TeacherID)
 	if err != nil {
 		return nil, err
 	}

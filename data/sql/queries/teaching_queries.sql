@@ -79,31 +79,53 @@ WHERE id IN (sqlc.slice('ids'));
 DELETE FROM teacher
 WHERE user_id = ?;
 
--- name: GetTeachersForPayments :many
+-- name: GetUnpaidTeachers :many
 SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
 WHERE
-    attendance.is_paid = ?
+    attendance.is_paid = 0
     AND (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
 GROUP BY teacher.id
-HAVING total_attendances > 0
 ORDER BY total_attendances DESC, teacher.id ASC
 LIMIT ? OFFSET ?;
 
--- name: CountTeachersForPayments :one
+-- name: CountUnpaidTeachers :one
 WITH unpaid_teacher AS (
     SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
     FROM attendance
     WHERE
-        is_paid = ?
+        is_paid = 0
         AND (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
     GROUP BY teacher_id
-    HAVING total_attendances > 0
     ORDER BY total_attendances DESC, teacher_id ASC
 )
 SELECT Count(teacher_id) AS total FROM unpaid_teacher;
+
+-- name: GetPaidTeachers :many
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
+FROM teacher
+    JOIN user ON teacher.user_id = user.id
+    JOIN attendance ON teacher.id = attendance.teacher_id
+    RIGHT JOIN teacher_payment AS tp ON attendance.id = tp.attendance_id
+WHERE
+    (tp.added_at >= sqlc.arg('startDate') AND tp.added_at <= sqlc.arg('endDate'))
+GROUP BY teacher.id
+ORDER BY total_attendances DESC, teacher.id ASC
+LIMIT ? OFFSET ?;
+
+-- name: CountPaidTeachers :one
+WITH paid_teacher AS (
+    SELECT attendance.teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
+    FROM teacher_payment AS tp
+        JOIN attendance ON tp.attendance_id = attendance.id
+    WHERE
+        (tp.added_at >= sqlc.arg('startDate') AND tp.added_at <= sqlc.arg('endDate'))
+    GROUP BY teacher_id
+    ORDER BY total_attendances DESC, teacher_id ASC
+)
+SELECT Count(teacher_id) AS total FROM paid_teacher;
 
 /* ============================== STUDENT ============================== */
 -- name: GetStudentById :one

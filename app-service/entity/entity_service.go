@@ -525,8 +525,8 @@ type GetTeacherPaymentsResult struct {
 }
 
 type GetTeacherPaymentsByTeacherIdSpec struct {
-	TeacherID          TeacherID
-	AttendanceTimeSpec util.TimeSpec
+	TeacherID TeacherID
+	TimeSpec  util.TimeSpec
 }
 
 type InsertTeacherPaymentSpec struct {

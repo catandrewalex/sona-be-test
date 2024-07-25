@@ -187,8 +187,8 @@ type GetTeacherPaymentInvoiceItemsSpec struct {
 }
 
 type GetExistingTeacherPaymentInvoiceItemsSpec struct {
-	TeacherID          entity.TeacherID
-	AttendanceTimeSpec util.TimeSpec
+	TeacherID entity.TeacherID
+	TimeSpec  util.TimeSpec
 }
 
 type SubmitTeacherPaymentsSpec struct {

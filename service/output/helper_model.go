@@ -16,8 +16,8 @@ const (
 type YearMonthFilterType string
 
 const (
-	YearMonthFilterType_Standard YearMonthFilterType = "STANDARD"
-	YearMonthFilterType_Salary   YearMonthFilterType = "SALARY"
+	YearMonthFilterType_Standard          YearMonthFilterType = "STANDARD" // First to last day of current month
+	YearMonthFilterType_CalculatingSalary YearMonthFilterType = "SALARY"   // 28th previous month to 27th current month
 )
 
 type ErrorResponse struct {
@@ -98,8 +98,10 @@ func (d YearMonthFilter) Validate() errs.ValidationError {
 	if d.Year < 1960 || d.Year > 2100 {
 		errorDetail["year"] = "year must be in between 1960-2100"
 	}
-	if d.Month < 1 || d.Month > 12 {
-		errorDetail["month"] = "month must be in between 1-12"
+	if d.Month != 0 { // we allow empty month, for a year-wide filter (e.g. year=2023, month=0, which means a whole year filter across 2023)
+		if d.Month < 1 || d.Month > 12 {
+			errorDetail["month"] = "month must be in between 1-12"
+		}
 	}
 
 	if len(errorDetail) > 0 {
@@ -110,21 +112,28 @@ func (d YearMonthFilter) Validate() errs.ValidationError {
 }
 
 func (d YearMonthFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter {
-	if d.Year == 0 && d.Month == 0 {
+	if d.Year == 0 && d.Month == 0 { // an all-time filter
 		return TimeFilter{}
 	}
 
 	timeFilter := TimeFilter{}
-	switch filterType {
-	case YearMonthFilterType_Standard:
+	if d.Year != 0 && d.Month == 0 { // a whole year filter
 		timeFilter = TimeFilter{
-			StartDatetime: time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, util.DefaultTimezone),
-			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 1, 23, 59, 59, 0, util.DefaultTimezone).AddDate(0, 1, -1),
+			StartDatetime: time.Date(d.Year, 1, 1, 0, 0, 0, 0, util.DefaultTimezone),
+			EndDatetime:   time.Date(d.Year, 1, 1, 23, 59, 59, 0, util.DefaultTimezone).AddDate(1, 0, -1),
 		}
-	case YearMonthFilterType_Salary:
-		timeFilter = TimeFilter{
-			StartDatetime: time.Date(d.Year, time.Month(d.Month), 28, 0, 0, 0, 0, util.DefaultTimezone).AddDate(0, -1, 0),
-			EndDatetime:   time.Date(d.Year, time.Month(d.Month), 27, 23, 59, 59, 0, util.DefaultTimezone),
+	} else { // a monthly filter
+		switch filterType {
+		case YearMonthFilterType_Standard:
+			timeFilter = TimeFilter{
+				StartDatetime: time.Date(d.Year, time.Month(d.Month), 1, 0, 0, 0, 0, util.DefaultTimezone),
+				EndDatetime:   time.Date(d.Year, time.Month(d.Month), 1, 23, 59, 59, 0, util.DefaultTimezone).AddDate(0, 1, -1),
+			}
+		case YearMonthFilterType_CalculatingSalary:
+			timeFilter = TimeFilter{
+				StartDatetime: time.Date(d.Year, time.Month(d.Month), 28, 0, 0, 0, 0, util.DefaultTimezone).AddDate(0, -1, 0),
+				EndDatetime:   time.Date(d.Year, time.Month(d.Month), 27, 23, 59, 59, 0, util.DefaultTimezone),
+			}
 		}
 	}
 	return timeFilter
