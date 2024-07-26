@@ -3,6 +3,7 @@ package identity
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"sonamusica-backend/app-service/util"
@@ -36,6 +37,10 @@ type AuthToken string
 type UserDetail struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName,omitempty"`
+}
+
+func (u UserDetail) String() string {
+	return fmt.Sprintf("%s %s", u.FirstName, u.LastName)
 }
 
 type UserPrivilegeType int32

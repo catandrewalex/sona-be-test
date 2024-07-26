@@ -35,6 +35,8 @@ data/csv/prod/
 # Etc
 sql_debug_helper.sql
 debugging/
+*.txt
+!/*/*.txt
 
 # Space.deta files, for deployment testing
 .space

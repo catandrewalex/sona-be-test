@@ -138,3 +138,55 @@ func (d YearMonthFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter
 	}
 	return timeFilter
 }
+
+type YearMonthRangeFilter struct {
+	StartDate YearMonthFilter `json:"startDate"`
+	EndDate   YearMonthFilter `json:"endDate"`
+}
+
+func (r YearMonthRangeFilter) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	// all years & months must be filled
+	if r.StartDate.Year == 0 || r.StartDate.Month == 0 {
+		errorDetail["startDate.year"] = "year must not be empty"
+		errorDetail["startDate.month"] = "month must not be empty"
+	}
+	if r.EndDate.Year == 0 || r.EndDate.Month == 0 {
+		errorDetail["endDate.year"] = "year must not be empty"
+		errorDetail["endDate.month"] = "month must not be empty"
+	}
+
+	// check for YearMonthFilter validity
+	if validationErr := r.StartDate.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+	if validationErr := r.EndDate.Validate(); validationErr != nil {
+		for key, value := range validationErr.GetErrorDetail() {
+			errorDetail[key] = value
+		}
+	}
+
+	// check for range validity
+	startTime := time.Date(r.StartDate.Year, time.Month(r.StartDate.Month), 0, 0, 0, 0, 0, util.DefaultTimezone)
+	endTime := time.Date(r.EndDate.Year, time.Month(r.EndDate.Month), 0, 0, 0, 0, 0, util.DefaultTimezone)
+	if startTime.After(endTime) {
+		errorDetail["startDate"] = "startDate must be less than endDate"
+		errorDetail["endDate"] = "endDate must be greater than startDate"
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+
+	return nil
+}
+
+func (r YearMonthRangeFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter {
+	return TimeFilter{
+		StartDatetime: time.Date(r.StartDate.Year, time.Month(r.StartDate.Month), 0, 0, 0, 0, 0, util.DefaultTimezone),
+		EndDatetime:   time.Date(r.EndDate.Year, time.Month(r.EndDate.Month), 0, 0, 0, 0, 0, util.DefaultTimezone),
+	}
+}

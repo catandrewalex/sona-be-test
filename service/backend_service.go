@@ -15,6 +15,8 @@ import (
 	emailImpl "sonamusica-backend/accessor/email/impl"
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/app-service/auth"
+	"sonamusica-backend/app-service/dashboard"
+	dashboardImpl "sonamusica-backend/app-service/dashboard/impl"
 	"sonamusica-backend/app-service/email_composer"
 	"sonamusica-backend/app-service/entity"
 	entityImpl "sonamusica-backend/app-service/entity/impl"
@@ -38,9 +40,10 @@ var (
 type BackendService struct {
 	jwtService auth.JWTService
 
-	identityService identity.IdentityService
-	entityService   entity.EntityService
-	teachingService teaching.TeachingService
+	identityService  identity.IdentityService
+	entityService    entity.EntityService
+	teachingService  teaching.TeachingService
+	dashboardService dashboard.DashboardService
 }
 
 func NewBackendService() *BackendService {
@@ -71,11 +74,14 @@ func NewBackendService() *BackendService {
 
 	teachingService := teachingImpl.NewTeachingServiceImpl(mySqlQueries, entityService)
 
+	dashhboardService := dashboardImpl.NewDashboardServiceImpl(mySqlQueries, entityService)
+
 	return &BackendService{
-		jwtService:      jwtService,
-		identityService: identityService,
-		entityService:   entityService,
-		teachingService: teachingService,
+		jwtService:       jwtService,
+		identityService:  identityService,
+		entityService:    entityService,
+		teachingService:  teachingService,
+		dashboardService: dashhboardService,
 	}
 }
 
@@ -2179,6 +2185,93 @@ func (s *BackendService) RemoveTeacherPaymentsHandler(ctx context.Context, req *
 
 	return &output.RemoveTeacherPaymentsResponse{
 		Message: "Successfully removed teacherPayment",
+	}, nil
+}
+
+func (s *BackendService) GetDashboardExpenseOverview(ctx context.Context, req *output.GetDashboardExpenseOverviewRequest) (*output.GetDashboardExpenseOverviewResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	overviewResult, err := s.dashboardService.GetExpenseOverview(ctx, dashboard.GetExpenseOverviewSpec{
+		TimeSpec:      util.TimeSpec(req.DateRange.ToTimeFilter(output.YearMonthFilterType_Standard)),
+		TeacherIDs:    req.TeacherIDs,
+		InstrumentIDs: req.InstrumentIDs,
+	})
+	if err != nil {
+		return &output.GetDashboardExpenseOverviewResponse{}, errs.NewHTTPError(http.StatusInternalServerError,
+			fmt.Errorf("dashboardService.GetExpenseOverview(): %v", err), nil, "Failed to get dashboardExpenseOverview data")
+	}
+
+	return &output.GetDashboardExpenseOverviewResponse{
+		Data: output.GetDashboardExpenseOverviewResult{
+			Results: overviewResult.Data,
+		},
+	}, nil
+}
+func (s *BackendService) GetDashboardExpenseMonthlySummary(ctx context.Context, req *output.GetDashboardExpenseMonthlySummaryRequest) (*output.GetDashboardExpenseMonthlySummaryResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	monthlySummary, err := s.dashboardService.GetExpenseMonthlySummary(ctx, dashboard.GetExpenseMontlySummarySpec{
+		TimeSpec:      util.TimeSpec(req.SelectedDate.ToTimeFilter(output.YearMonthFilterType_Standard)),
+		GroupBy:       req.GroupBy,
+		TeacherIDs:    req.TeacherIDs,
+		InstrumentIDs: req.InstrumentIDs,
+	})
+	if err != nil {
+		return &output.GetDashboardExpenseMonthlySummaryResponse{}, errs.NewHTTPError(http.StatusInternalServerError,
+			fmt.Errorf("dashboardService.GetExpenseMonthlySummary(): %v", err), nil, "Failed to get dashboardExpenseMonthlySummary data")
+	}
+
+	return &output.GetDashboardExpenseMonthlySummaryResponse{
+		Data: output.GetDashboardExpenseMonthlySummaryResult{
+			Results: monthlySummary.Data,
+		},
+	}, nil
+}
+func (s *BackendService) GetDashboardIncomeOverview(ctx context.Context, req *output.GetDashboardIncomeOverviewRequest) (*output.GetDashboardIncomeOverviewResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	overviewResult, err := s.dashboardService.GetIncomeOverview(ctx, dashboard.GetIncomeOverviewSpec{
+		TimeSpec:      util.TimeSpec(req.DateRange.ToTimeFilter(output.YearMonthFilterType_Standard)),
+		StudentIDs:    req.StudentIDs,
+		InstrumentIDs: req.InstrumentIDs,
+	})
+	if err != nil {
+		return &output.GetDashboardIncomeOverviewResponse{}, errs.NewHTTPError(http.StatusInternalServerError,
+			fmt.Errorf("dashboardService.GetIncomeOverview(): %v", err), nil, "Failed to get dashboardIncomeOverview data")
+	}
+
+	return &output.GetDashboardIncomeOverviewResponse{
+		Data: output.GetDashboardIncomeOverviewResult{
+			Results: overviewResult.Data,
+		},
+	}, nil
+}
+func (s *BackendService) GetDashboardIncomeMonthlySummary(ctx context.Context, req *output.GetDashboardIncomeMonthlySummaryRequest) (*output.GetDashboardIncomeMonthlySummaryResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	monthlySummary, err := s.dashboardService.GetIncomeMonthlySummary(ctx, dashboard.GetIncomeMontlySummarySpec{
+		TimeSpec:      util.TimeSpec(req.SelectedDate.ToTimeFilter(output.YearMonthFilterType_Standard)),
+		GroupBy:       req.GroupBy,
+		StudentIDs:    req.StudentIDs,
+		InstrumentIDs: req.InstrumentIDs,
+	})
+	if err != nil {
+		return &output.GetDashboardIncomeMonthlySummaryResponse{}, errs.NewHTTPError(http.StatusInternalServerError,
+			fmt.Errorf("dashboardService.GetIncomeMonthlySummary(): %v", err), nil, "Failed to get dashboardIncomeMonthlySummary data")
+	}
+
+	return &output.GetDashboardIncomeMonthlySummaryResponse{
+		Data: output.GetDashboardIncomeMonthlySummaryResult{
+			Results: monthlySummary.Data,
+		},
 	}, nil
 }
 

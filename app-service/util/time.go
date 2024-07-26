@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -46,4 +47,11 @@ func (s *TimeSpec) SetDefaultForZeroValues() {
 		mainLog.Warn("Found zero value for EndDatetime, reverting to default value (maxTime)")
 		s.EndDatetime = default_EndDatetime
 	}
+}
+
+func (s TimeSpec) ValidateZeroValues() error {
+	if s.StartDatetime.IsZero() || s.EndDatetime.IsZero() {
+		return fmt.Errorf("this TimeSpec must have both StartDateTime and EndDateTime to be greater than zero")
+	}
+	return nil
 }

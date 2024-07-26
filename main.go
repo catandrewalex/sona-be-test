@@ -176,6 +176,14 @@ func main() {
 		// TODO: delete these /edit & /remove. /modify already handles both of the operations
 		authRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
 		authRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
+
+		authRouter.Post("/dashboard/expense/overview", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardExpenseOverview))
+		authRouter.Post("/dashboard/expense/monthlySummary", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardExpenseMonthlySummary))
+		authRouter.Post("/dashboard/income/overview", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardIncomeOverview))
+		authRouter.Post("/dashboard/income/monthlySummary", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardIncomeMonthlySummary))
+		// TODO: properly implement this, as we're reusing admin endpoint?
+		authRouter.Get("/teachersForDashboard", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+		authRouter.Get("/instrumentsForDashboard", jsonSerdeWrapper.WrapFunc(backendService.GetInstrumentsHandler))
 	})
 
 	// Router group for member endpoints
