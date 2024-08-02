@@ -331,6 +331,33 @@ func (s *BackendService) UpdateUsersHandler(ctx context.Context, req *output.Upd
 	}, nil
 }
 
+func (s *BackendService) UpdateUsersByUsernamesHandler(ctx context.Context, req *output.UpdateUsersByUsernamesRequest) (*output.UpdateUsersByUsernamesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]identity.UpdateUserInfoByUsernameSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, identity.UpdateUserInfoByUsernameSpec{
+			Username:          param.Username,
+			Email:             param.Email,
+			UserDetail:        param.UserDetail,
+			UserPrivilegeType: param.UserPrivilegeType,
+			IsDeactivated:     param.IsDeactivated,
+		})
+	}
+
+	totalUpdatedRows, err := s.identityService.UpdateUserInfosByUsernames(ctx, specs)
+	if err != nil {
+		return nil, handleUpsertionError(err, "identityService.UpdateUserInfosByUsernames()", "user")
+	}
+	mainLog.Info("Users updated: totalUpdatedRows='%v'", totalUpdatedRows)
+
+	return &output.UpdateUsersByUsernamesResponse{
+		Message: fmt.Sprintf("Successfully updated users (%d affected users)", totalUpdatedRows),
+	}, nil
+}
+
 func (s *BackendService) UpdateUserPasswordHandler(ctx context.Context, req *output.UpdateUserPasswordRequest) (*output.UpdateUserPasswordResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV

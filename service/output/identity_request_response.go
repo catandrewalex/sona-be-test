@@ -163,6 +163,24 @@ func (r UpdateUsersRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type UpdateUsersByUsernamesRequest struct {
+	Data []UpdateUserByUsernameRequestParam `json:"data"`
+}
+type UpdateUserByUsernameRequestParam struct {
+	Username          string                     `json:"username"`
+	Email             string                     `json:"email,omitempty"`
+	UserDetail        identity.UserDetail        `json:"userDetail"`
+	UserPrivilegeType identity.UserPrivilegeType `json:"privilegeType"`
+	IsDeactivated     bool                       `json:"isDeactivated,omitempty"` // false is a zero value, so we must allow this to be empty
+}
+type UpdateUsersByUsernamesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r UpdateUsersByUsernamesRequest) Validate() errs.ValidationError {
+	return nil
+}
+
 type UpdateUserPasswordRequest struct {
 	UserID      identity.UserID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	NewPassword string          `json:"newPassword"`

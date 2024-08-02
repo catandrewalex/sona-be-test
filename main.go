@@ -81,6 +81,9 @@ func main() {
 		authRouter.Get("/users/{UserID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "UserID"))
 		authRouter.Post("/users", jsonSerdeWrapper.WrapFunc(backendService.InsertUsersHandler))
 		authRouter.Put("/users", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersHandler))
+		// This endpoint is only used internally as an administrative tool (to update previously submitted data, without needing to know the UserID).
+		// This endpoint won't be used in frontend.
+		authRouter.Put("/users/by-usernames", jsonSerdeWrapper.WrapFunc(backendService.UpdateUsersByUsernamesHandler))
 
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/teachers/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherByIdHandler, "TeacherID"))

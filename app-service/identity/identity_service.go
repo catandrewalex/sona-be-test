@@ -37,6 +37,14 @@ type AuthToken string
 type UserDetail struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName,omitempty"`
+
+	Birthdate         time.Time `json:"birthdate"`
+	Address           string    `json:"address,omitempty"`
+	PhoneNumber       string    `json:"phoneNumber,omitempty"`
+	InstagramAccount  string    `json:"instagramAccount,omitempty"`
+	TwitterAccount    string    `json:"twitterAccount,omitempty"`
+	ParentName        string    `json:"parentName,omitempty"`
+	ParentPhoneNumber string    `json:"parentPhoneNumber,omitempty"`
 }
 
 func (u UserDetail) String() string {
@@ -77,6 +85,9 @@ type IdentityService interface {
 	GetUsersByIds(ctx context.Context, ids []UserID) ([]User, error)
 	InsertUsers(ctx context.Context, specs []InsertUserSpec) ([]UserID, error)
 	UpdateUserInfos(ctx context.Context, specs []UpdateUserInfoSpec) ([]UserID, error)
+	// UpdateUserInfosByUsernames returns number of updated rows. This method is only used internally as an administrative tool (to update previously submitted data, without needing to know the UserID).
+	// This endpoint won't be used in frontend.
+	UpdateUserInfosByUsernames(ctx context.Context, specs []UpdateUserInfoByUsernameSpec) (int64, error)
 	UpdateUserPassword(ctx context.Context, spec UpdateUserPasswordSpec) error
 
 	SignUpUser(ctx context.Context, spec SignUpUserSpec) (UserID, error)
@@ -120,6 +131,14 @@ type UpdateUserInfoSpec struct {
 
 func (s UpdateUserInfoSpec) GetInt64ID() int64 {
 	return int64(s.UserID)
+}
+
+type UpdateUserInfoByUsernameSpec struct {
+	Username          string
+	Email             string
+	UserDetail        UserDetail
+	UserPrivilegeType UserPrivilegeType
+	IsDeactivated     bool
 }
 
 type UpdateUserPasswordSpec struct {

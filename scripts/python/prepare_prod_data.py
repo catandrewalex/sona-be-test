@@ -10,9 +10,9 @@ from typing import List
 FOLDER_NAME_OUT = 'out'
 
 
-def read_csv_file(path: str) -> List[List[str]]:
+def read_csv_file(path: str, delimiter:str = ',') -> List[List[str]]:
     with open(path, 'r', newline='') as f_in:
-        data = csv.reader(f_in, delimiter=',')
+        data = csv.reader(f_in, delimiter=delimiter)
         return list(map(lambda row: list(map(lambda val: val.strip(), row)), data))[1:] # ignore header, so we start from idx 1
 
 def _get_folderpath_filename_and_outfolderpath(path: str) -> [str, str, str]:
@@ -27,31 +27,31 @@ if __name__ == '__main__':
         '-s',
         '--student_data_file_path',
         type=str,
-        default='data/csv/prod/students.csv',
+        default='data/csv/prod/students.tsv',
     )
     argparser.add_argument(
         '-t',
         '--teacher_data_file_path',
         type=str,
-        default='data/csv/prod/teachers.csv',
+        default='data/csv/prod/teachers.tsv',
     )
     argparser.add_argument(
         '-tsf',
         '--teacher_special_fee_data_file_path',
         type=str,
-        default='data/csv/prod/teacher_special_fees.csv',
+        default='data/csv/prod/teacher_special_fees.tsv',
     )
     argparser.add_argument(
         '-c',
         '--class_data_file_path',
         type=str,
-        default='data/csv/prod/classes.csv',
+        default='data/csv/prod/classes.tsv',
     )
     argparser.add_argument(
         '-a',
         '--attendance_data_file_path',
         type=str,
-        default='data/csv/prod/attendances.csv',
+        default='data/csv/prod/attendances.tsv',
     )
     args = argparser.parse_args()
 
@@ -61,14 +61,20 @@ if __name__ == '__main__':
 
         os.makedirs(outfolderpath, exist_ok=True)
 
-        data = read_csv_file(args.student_data_file_path)
+        data = read_csv_file(args.student_data_file_path, delimiter='\t')
         deduplicator = dict() # Python 3.7's dict() and above are insertion-ordered
         email_deduplicator = dict()
         for idx, datum in enumerate(data[1:]):
             raw_name = string.capwords(datum[1].replace('  ', ' '))
-            dob = datum[2]
+            dob = datetime.strptime(datum[2], "%m/%d/%Y")
+            address = datum[3]
+            phone_number = datum[4]
             email = datum[5]
-            instrument = datum[8]
+            instagram_account = datum[6]
+            twitter_account = "" if datum[7] == "-" or datum[7].lower() == "tidak ada" else datum[7]
+            instrument = "" if datum[8] == "-" or datum[8].lower() == "tidak ada" else datum[8]
+            parent_name = string.capwords(datum[9])
+            parent_phone_number = datum[10]
 
             name, alias = '', ''
             if (idx := raw_name.find('(')) != -1:
@@ -78,13 +84,14 @@ if __name__ == '__main__':
             first_name, *last_name = name.rsplit(' ', 1)
             last_name = last_name[0] if len(last_name) > 0 else ''
             username = '.'.join(name.lower().split()[:2])
-            generated_password = datetime.strptime(dob, "%m/%d/%Y").date().strftime("%Y%m%d")
+            generated_password = dob.strftime("%Y%m%d")
+            birthdate = f'{dob.isoformat()}Z'
 
             if email_deduplicator.get(email) is not None:
                 email_name, domain = email.split('@', 1)
                 email = f'{email_name}+{username.split(".")[0]}@{domain}'
 
-            deduplicator[f'{name}-{instrument}'] = {'name': name, 'alias': alias, 'dob': dob, 'instrument': instrument, 'email': email, 'username': username, 'password': generated_password, 'userDetail':{'firstName': first_name, 'lastName': last_name}, 'privilegeType': 200}
+            deduplicator[f'{name}-{instrument}'] = {'name': name, 'alias': alias, 'dob': dob, 'instrument': instrument, 'email': email, 'username': username, 'password': generated_password, 'userDetail':{'firstName': first_name, 'lastName': last_name, 'birthdate': birthdate, 'address': address, 'phoneNumber': phone_number, 'instagramAccount': instagram_account, 'twitterAccount': twitter_account, 'parentName': parent_name, 'parentPhoneNumber': parent_phone_number}, 'privilegeType': 200}
             email_deduplicator[email] = True
 
         clean_data = deduplicator.values()
@@ -108,7 +115,7 @@ if __name__ == '__main__':
 
     #     os.makedirs(outfolderpath, exist_ok=True)
 
-    #     data = read_csv_file(args.teacher_data_file_path)
+    #     data = read_csv_file(args.teacher_data_file_path, delimiter='\t')
     #     deduplicator = dict() # Python 3.7's dict() and above are insertion-ordered
     #     for idx, datum in enumerate(data[1:]):
     #         raw_name = string.capwords(datum[1].replace('  ', ' '))

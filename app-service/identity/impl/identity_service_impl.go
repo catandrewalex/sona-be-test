@@ -258,6 +258,58 @@ func (s identityServiceImpl) UpdateUserInfos(ctx context.Context, specs []identi
 	return userIDs, nil
 }
 
+func (s identityServiceImpl) UpdateUserInfosByUsernames(ctx context.Context, specs []identity.UpdateUserInfoByUsernameSpec) (int64, error) {
+	// as a backend-only administrative tools, we can skip the `ValidateUpdateSpecs()`
+
+	userDetails := make([][]byte, 0, len(specs))
+	for _, spec := range specs {
+		userDetail, err := json.Marshal(spec.UserDetail)
+		if err != nil {
+			return 0, fmt.Errorf("marshal UserDetail: %w", err)
+		}
+		userDetails = append(userDetails, userDetail)
+	}
+
+	var totalUpdatedRows int64
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for i, spec := range specs {
+			email := strings.TrimSpace(spec.Email)
+			sqlEmail := sql.NullString{String: email, Valid: email != ""}
+			n1, err := qtx.UpdateUserByUsername(newCtx, mysql.UpdateUserByUsernameParams{
+				Email:         sqlEmail,
+				UserDetail:    userDetails[i],
+				PrivilegeType: int32(spec.UserPrivilegeType),
+				IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
+				Username:      spec.Username,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateUserByUsername(): %w", err)
+			}
+
+			n2, err := qtx.UpdateUserCredentialInfoByUsername(newCtx, mysql.UpdateUserCredentialInfoByUsernameParams{
+				Email:    sqlEmail,
+				Username: spec.Username,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateUserCredentialInfoByUsername(): %w", err)
+			}
+
+			if n1 != n2 {
+				mainLog.Warn("UpdateUserByUsername()'s updated row (%d) != UpdateUserCredentialInfoByUsername()'s updated row (%d). There MUST be an inconsistency between `user` and `user_credential`.", n1, n2)
+			}
+
+			totalUpdatedRows += n1
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return totalUpdatedRows, nil
+}
+
 func (s identityServiceImpl) UpdateUserPassword(ctx context.Context, spec identity.UpdateUserPasswordSpec) error {
 	hashedPassword, err := hashPassword(spec.Password)
 	if err != nil {

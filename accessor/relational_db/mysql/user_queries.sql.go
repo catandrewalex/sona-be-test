@@ -560,6 +560,32 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 	return err
 }
 
+const updateUserByUsername = `-- name: UpdateUserByUsername :execrows
+UPDATE user SET email = ?, user_detail = ?, privilege_type = ?, is_deactivated = ? WHERE username = ?
+`
+
+type UpdateUserByUsernameParams struct {
+	Email         sql.NullString
+	UserDetail    json.RawMessage
+	PrivilegeType int32
+	IsDeactivated int32
+	Username      string
+}
+
+func (q *Queries) UpdateUserByUsername(ctx context.Context, arg UpdateUserByUsernameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserByUsername,
+		arg.Email,
+		arg.UserDetail,
+		arg.PrivilegeType,
+		arg.IsDeactivated,
+		arg.Username,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const updateUserCredentialInfoByUserId = `-- name: UpdateUserCredentialInfoByUserId :exec
 UPDATE user_credential SET username = ?, email = ? WHERE user_id = ?
 `
@@ -575,25 +601,21 @@ func (q *Queries) UpdateUserCredentialInfoByUserId(ctx context.Context, arg Upda
 	return err
 }
 
-const updateUserInfo = `-- name: UpdateUserInfo :exec
-UPDATE user SET username = ?, email = ?, user_detail = ? WHERE id = ?
+const updateUserCredentialInfoByUsername = `-- name: UpdateUserCredentialInfoByUsername :execrows
+UPDATE user_credential SET email = ? WHERE username = ?
 `
 
-type UpdateUserInfoParams struct {
-	Username   string
-	Email      sql.NullString
-	UserDetail json.RawMessage
-	ID         int64
+type UpdateUserCredentialInfoByUsernameParams struct {
+	Email    sql.NullString
+	Username string
 }
 
-func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserInfo,
-		arg.Username,
-		arg.Email,
-		arg.UserDetail,
-		arg.ID,
-	)
-	return err
+func (q *Queries) UpdateUserCredentialInfoByUsername(ctx context.Context, arg UpdateUserCredentialInfoByUsernameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserCredentialInfoByUsername, arg.Email, arg.Username)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateUserPrivilege = `-- name: UpdateUserPrivilege :exec
