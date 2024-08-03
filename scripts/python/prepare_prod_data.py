@@ -13,7 +13,7 @@ FOLDER_NAME_OUT = 'out'
 def read_csv_file(path: str, delimiter:str = ',') -> List[List[str]]:
     with open(path, 'r', newline='') as f_in:
         data = csv.reader(f_in, delimiter=delimiter)
-        return list(map(lambda row: list(map(lambda val: val.strip(), row)), data))[1:] # ignore header, so we start from idx 1
+        return list(map(lambda row: list(map(lambda val: val.strip(), row)), data))
 
 def _get_folderpath_filename_and_outfolderpath(path: str) -> [str, str, str]:
     folderpath = os.path.dirname(path)

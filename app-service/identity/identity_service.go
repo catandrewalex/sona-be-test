@@ -38,7 +38,7 @@ type UserDetail struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName,omitempty"`
 
-	Birthdate         time.Time `json:"birthdate"`
+	Birthdate         time.Time `json:"birthdate,omitempty"`
 	Address           string    `json:"address,omitempty"`
 	PhoneNumber       string    `json:"phoneNumber,omitempty"`
 	InstagramAccount  string    `json:"instagramAccount,omitempty"`
