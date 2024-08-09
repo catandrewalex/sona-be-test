@@ -287,15 +287,7 @@ INSERT INTO course (
 );
 
 -- name: UpdateCourseInfo :exec
-UPDATE course SET default_fee = ?, default_duration_minute = ?
-WHERE id = ?;
-
--- name: UpdateCourseInstrument :exec
-UPDATE course SET instrument_id = ?
-WHERE id = ?;
-
--- name: UpdateCourseGrade :exec
-UPDATE course SET grade_id = ?
+UPDATE course SET grade_id = ?, default_fee = ?, default_duration_minute = ?
 WHERE id = ?;
 
 -- name: DeleteCoursesByIds :exec

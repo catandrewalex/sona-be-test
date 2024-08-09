@@ -2903,49 +2903,25 @@ func (q *Queries) UpdateClassTeacher(ctx context.Context, arg UpdateClassTeacher
 	return err
 }
 
-const updateCourseGrade = `-- name: UpdateCourseGrade :exec
-UPDATE course SET grade_id = ?
-WHERE id = ?
-`
-
-type UpdateCourseGradeParams struct {
-	GradeID int64
-	ID      int64
-}
-
-func (q *Queries) UpdateCourseGrade(ctx context.Context, arg UpdateCourseGradeParams) error {
-	_, err := q.db.ExecContext(ctx, updateCourseGrade, arg.GradeID, arg.ID)
-	return err
-}
-
 const updateCourseInfo = `-- name: UpdateCourseInfo :exec
-UPDATE course SET default_fee = ?, default_duration_minute = ?
+UPDATE course SET grade_id = ?, default_fee = ?, default_duration_minute = ?
 WHERE id = ?
 `
 
 type UpdateCourseInfoParams struct {
+	GradeID               int64
 	DefaultFee            int32
 	DefaultDurationMinute int32
 	ID                    int64
 }
 
 func (q *Queries) UpdateCourseInfo(ctx context.Context, arg UpdateCourseInfoParams) error {
-	_, err := q.db.ExecContext(ctx, updateCourseInfo, arg.DefaultFee, arg.DefaultDurationMinute, arg.ID)
-	return err
-}
-
-const updateCourseInstrument = `-- name: UpdateCourseInstrument :exec
-UPDATE course SET instrument_id = ?
-WHERE id = ?
-`
-
-type UpdateCourseInstrumentParams struct {
-	InstrumentID int64
-	ID           int64
-}
-
-func (q *Queries) UpdateCourseInstrument(ctx context.Context, arg UpdateCourseInstrumentParams) error {
-	_, err := q.db.ExecContext(ctx, updateCourseInstrument, arg.InstrumentID, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateCourseInfo,
+		arg.GradeID,
+		arg.DefaultFee,
+		arg.DefaultDurationMinute,
+		arg.ID,
+	)
 	return err
 }
 

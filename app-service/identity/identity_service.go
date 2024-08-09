@@ -38,13 +38,13 @@ type UserDetail struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName,omitempty"`
 
-	Birthdate         time.Time `json:"birthdate,omitempty"`
-	Address           string    `json:"address,omitempty"`
-	PhoneNumber       string    `json:"phoneNumber,omitempty"`
-	InstagramAccount  string    `json:"instagramAccount,omitempty"`
-	TwitterAccount    string    `json:"twitterAccount,omitempty"`
-	ParentName        string    `json:"parentName,omitempty"`
-	ParentPhoneNumber string    `json:"parentPhoneNumber,omitempty"`
+	Birthdate         *time.Time `json:"birthdate,omitempty"`
+	Address           string     `json:"address,omitempty"`
+	PhoneNumber       string     `json:"phoneNumber,omitempty"`
+	InstagramAccount  string     `json:"instagramAccount,omitempty"`
+	TwitterAccount    string     `json:"twitterAccount,omitempty"`
+	ParentName        string     `json:"parentName,omitempty"`
+	ParentPhoneNumber string     `json:"parentPhoneNumber,omitempty"`
 }
 
 func (u UserDetail) String() string {

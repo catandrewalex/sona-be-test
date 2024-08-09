@@ -275,7 +275,8 @@ type UpdateCoursesRequest struct {
 }
 type UpdateCoursesRequestParam struct {
 	CourseID              entity.CourseID `json:"courseId"`
-	DefaultFee            int32           `json:"defaultFee"`
+	GradeID               entity.GradeID  `json:"gradeId"`
+	DefaultFee            int32           `json:"defaultFee,omitempty"`
 	DefaultDurationMinute int32           `json:"defaultDurationMinute"`
 }
 type UpdateCoursesResponse struct {

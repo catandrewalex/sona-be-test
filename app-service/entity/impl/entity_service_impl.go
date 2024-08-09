@@ -583,6 +583,7 @@ func (s entityServiceImpl) UpdateCourses(ctx context.Context, specs []entity.Upd
 		for _, spec := range specs {
 			err := qtx.UpdateCourseInfo(newCtx, mysql.UpdateCourseInfoParams{
 				DefaultFee:            spec.DefaultFee,
+				GradeID:               int64(spec.GradeID),
 				DefaultDurationMinute: spec.DefaultDurationMinute,
 				ID:                    int64(spec.CourseID),
 			})

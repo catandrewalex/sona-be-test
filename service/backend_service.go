@@ -940,6 +940,7 @@ func (s *BackendService) UpdateCoursesHandler(ctx context.Context, req *output.U
 	for _, param := range req.Data {
 		specs = append(specs, entity.UpdateCourseSpec{
 			CourseID:              param.CourseID,
+			GradeID:               param.GradeID,
 			DefaultFee:            param.DefaultFee,
 			DefaultDurationMinute: param.DefaultDurationMinute,
 		})

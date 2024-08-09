@@ -340,6 +340,7 @@ type InsertCourseSpec struct {
 
 type UpdateCourseSpec struct {
 	CourseID              CourseID
+	GradeID               GradeID
 	DefaultFee            int32
 	DefaultDurationMinute int32
 }
