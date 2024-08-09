@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	emailImpl "sonamusica-backend/accessor/email/impl"
 	"sonamusica-backend/accessor/relational_db"
@@ -2346,9 +2347,9 @@ func handleReadUpsertError(err error, methodName, entityName string) errs.HTTPEr
 	var validationErr errs.ValidationError
 	wrappedErr := fmt.Errorf("%s: %w", methodName, err)
 	if errors.Is(err, sql.ErrNoRows) {
-		return errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, fmt.Sprintf("%s is not found", strings.Title(entityName)))
+		return errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, fmt.Sprintf("%s is not found", cases.Title(language.English).String(entityName)))
 	} else if errors.As(err, &validationErr) {
-		return errs.NewHTTPError(http.StatusConflict, wrappedErr, validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
+		return errs.NewHTTPError(http.StatusConflict, wrappedErr, validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties. Please check whether the same %s already exists.", entityName, entityName))
 	}
 	return errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, fmt.Sprintf("Failed to get %s", entityName))
 }
@@ -2361,7 +2362,7 @@ func handleReadError(err error, methodName, entityName string) errs.HTTPError {
 
 	wrappedErr := fmt.Errorf("%s: %w", methodName, err)
 	if errors.Is(err, sql.ErrNoRows) {
-		return errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, fmt.Sprintf("%s is not found", strings.Title(entityName)))
+		return errs.NewHTTPError(http.StatusNotFound, wrappedErr, nil, fmt.Sprintf("%s is not found", cases.Title(language.English).String(entityName)))
 	}
 	return errs.NewHTTPError(http.StatusInternalServerError, wrappedErr, nil, fmt.Sprintf("Failed to get %s", entityName))
 }
@@ -2374,7 +2375,7 @@ func handleUpsertionError(err error, methodName, entityName string) errs.HTTPErr
 
 	var validationErr errs.ValidationError
 	if errors.As(err, &validationErr) {
-		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, err), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties", entityName))
+		return errs.NewHTTPError(http.StatusConflict, fmt.Errorf("%s: %v", methodName, err), validationErr.GetErrorDetail(), fmt.Sprintf("Invalid %s properties. Please check whether the same %s already exists.", entityName, entityName))
 	}
 	return errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("%s: %v", methodName, err), nil, fmt.Sprintf("Failed to create or update %s(s)", entityName))
 }

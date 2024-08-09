@@ -258,7 +258,7 @@ type InsertCoursesRequest struct {
 type InsertCoursesRequestParam struct {
 	InstrumentID          entity.InstrumentID `json:"instrumentId"`
 	GradeID               entity.GradeID      `json:"gradeId"`
-	DefaultFee            int32               `json:"defaultFee"`
+	DefaultFee            int32               `json:"defaultFee,omitempty"`
 	DefaultDurationMinute int32               `json:"defaultDurationMinute"`
 }
 type InsertCoursesResponse struct {
