@@ -70,9 +70,9 @@ if __name__ == '__main__':
             address = datum[3]
             phone_number = datum[4]
             email = datum[5]
-            instagram_account = datum[6]
-            twitter_account = "" if datum[7] == "-" or datum[7].lower() == "tidak ada" else datum[7]
-            instrument = "" if datum[8] == "-" or datum[8].lower() == "tidak ada" else datum[8]
+            instagram_account = "" if datum[6].lower() in ["-", "none", "tidak ada"] else datum[6]
+            twitter_account = "" if datum[7].lower() in ["-", "none", "tidak ada"] else datum[7]
+            instrument = datum[8]
             parent_name = string.capwords(datum[9])
             parent_phone_number = datum[10]
 
