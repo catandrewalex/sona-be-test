@@ -6,6 +6,26 @@ import (
 	"sonamusica-backend/app-service/identity"
 )
 
+func CalculateOverviewResultItemsPercentage(items *[]dashboard.OverviewResultItem) {
+	var sum int64
+	for _, item := range *items {
+		sum += item.Value
+	}
+	for i := range *items {
+		(*items)[i].Percentage = float32((*items)[i].Value) / float32(sum)
+	}
+}
+
+func CalculateMonthlySummaryResultItemsPercentage(items *[]dashboard.MonthlySummaryResultItem) {
+	var sum int64
+	for _, item := range *items {
+		sum += item.Value
+	}
+	for i := range *items {
+		(*items)[i].Percentage = float32((*items)[i].Value) / float32(sum)
+	}
+}
+
 // ============================== EXPENSE ==============================
 
 func NewOverviewResultItems_FromMySQLExpenseOverview(rows []mysql.GetExpenseOverviewRow) []dashboard.OverviewResultItem {

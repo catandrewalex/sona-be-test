@@ -23,16 +23,18 @@ type OverviewResult struct {
 	Data []OverviewResultItem `json:"data"`
 }
 type OverviewResultItem struct {
-	Label string `json:"label"`
-	Value int64  `json:"value"`
+	Label      string  `json:"label"`
+	Value      int64   `json:"value"`
+	Percentage float32 `json:"percentage"`
 }
 
 type MonthlySummaryResult struct {
 	Data []MonthlySummaryResultItem `json:"data"`
 }
 type MonthlySummaryResultItem struct {
-	Label string `json:"label"`
-	Value int64  `json:"value"`
+	Label      string  `json:"label"`
+	Value      int64   `json:"value"`
+	Percentage float32 `json:"percentage"`
 }
 
 type DashboardService interface {

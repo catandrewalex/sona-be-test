@@ -65,6 +65,7 @@ func (s dashboardServiceImpl) GetExpenseOverview(ctx context.Context, spec dashb
 	}
 
 	overviewResultItems := NewOverviewResultItems_FromMySQLExpenseOverview(expenseOverviewRows)
+	CalculateOverviewResultItemsPercentage(&overviewResultItems)
 
 	return dashboard.OverviewResult{
 		Data: overviewResultItems,
@@ -124,6 +125,8 @@ func (s dashboardServiceImpl) GetExpenseMonthlySummary(ctx context.Context, spec
 		return dashboard.MonthlySummaryResult{}, fmt.Errorf("invalid 'GroupBy' option: %s", spec.GroupBy)
 	}
 
+	CalculateMonthlySummaryResultItemsPercentage(&monthlySummaryResultItems)
+
 	return dashboard.MonthlySummaryResult{
 		Data: monthlySummaryResultItems,
 	}, nil
@@ -161,6 +164,7 @@ func (s dashboardServiceImpl) GetIncomeOverview(ctx context.Context, spec dashbo
 	}
 
 	overviewResultItems := NewOverviewResultItems_FromMySQLIncomeOverview(incomeOverviewRows)
+	CalculateOverviewResultItemsPercentage(&overviewResultItems)
 
 	return dashboard.OverviewResult{
 		Data: overviewResultItems,
@@ -219,6 +223,8 @@ func (s dashboardServiceImpl) GetIncomeMonthlySummary(ctx context.Context, spec 
 	default:
 		return dashboard.MonthlySummaryResult{}, fmt.Errorf("invalid 'GroupBy' option: %s", spec.GroupBy)
 	}
+
+	CalculateMonthlySummaryResultItemsPercentage(&monthlySummaryResultItems)
 
 	return dashboard.MonthlySummaryResult{
 		Data: monthlySummaryResultItems,
