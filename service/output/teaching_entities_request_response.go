@@ -718,7 +718,7 @@ type InsertStudentLearningTokensRequest struct {
 }
 type InsertStudentLearningTokensRequestParam struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
-	Quota               float64                    `json:"quota"`
+	Quota               float64                    `json:"quota,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 }
@@ -736,7 +736,7 @@ type UpdateStudentLearningTokensRequest struct {
 }
 type UpdateStudentLearningTokensRequestParam struct {
 	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenId"`
-	Quota                  float64                       `json:"quota"`
+	Quota                  float64                       `json:"quota,omitempty"`
 	CourseFeeValue         int32                         `json:"courseFeeValue,omitempty"`
 	TransportFeeValue      int32                         `json:"transportFeeValue,omitempty"`
 }
