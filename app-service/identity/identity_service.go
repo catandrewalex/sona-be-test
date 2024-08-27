@@ -54,11 +54,12 @@ func (u UserDetail) String() string {
 type UserPrivilegeType int32
 
 const (
-	UserPrivilegeType_None      UserPrivilegeType = iota
-	UserPrivilegeType_Anonymous UserPrivilegeType = 100
-	UserPrivilegeType_Member    UserPrivilegeType = 200
-	UserPrivilegeType_Staff     UserPrivilegeType = 300
-	UserPrivilegeType_Admin     UserPrivilegeType = 400
+	UserPrivilegeType_None        UserPrivilegeType = iota
+	UserPrivilegeType_Anonymous   UserPrivilegeType = 100
+	UserPrivilegeType_Member      UserPrivilegeType = 200
+	UserPrivilegeType_Staff       UserPrivilegeType = 300
+	UserPrivilegeType_Admin       UserPrivilegeType = 400
+	UserPrivilegeType_Super_Admin UserPrivilegeType = 500
 )
 
 type GetUsersFilter string
