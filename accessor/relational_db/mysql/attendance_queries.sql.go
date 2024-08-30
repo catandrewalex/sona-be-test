@@ -139,7 +139,7 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -219,8 +219,8 @@ func (q *Queries) GetAttendanceById(ctx context.Context, id int64) (GetAttendanc
 		&i.ClassTeacherDetail,
 		&i.StudentLearningToken.ID,
 		&i.StudentLearningToken.Quota,
-		&i.StudentLearningToken.CourseFeeValue,
-		&i.StudentLearningToken.TransportFeeValue,
+		&i.StudentLearningToken.CourseFeeQuarterValue,
+		&i.StudentLearningToken.TransportFeeQuarterValue,
 		&i.StudentLearningToken.CreatedAt,
 		&i.StudentLearningToken.LastUpdatedAt,
 		&i.StudentLearningToken.EnrollmentID,
@@ -282,7 +282,7 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -396,8 +396,8 @@ func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) 
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
@@ -421,7 +421,7 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -517,8 +517,8 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
@@ -542,7 +542,7 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -657,8 +657,8 @@ func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAtten
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
@@ -682,7 +682,7 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -778,8 +778,8 @@ func (q *Queries) GetUnpaidAttendancesByTeacherId(ctx context.Context, arg GetUn
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,

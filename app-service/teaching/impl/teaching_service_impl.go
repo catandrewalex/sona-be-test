@@ -170,6 +170,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 				StudentEnrollmentID: spec.StudentEnrollmentID,
 				PaymentDate:         spec.PaymentDate,
 				BalanceTopUp:        spec.BalanceTopUp,
+				BalanceBonus:        spec.BalanceBonus,
 				CourseFeeValue:      spec.CourseFeeValue,
 				TransportFeeValue:   spec.TransportFeeValue,
 				PenaltyFeeValue:     spec.PenaltyFeeValue,
@@ -180,7 +181,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 		}
 
 		// sum all negative quotas to reduce balanceTUpValue, and reset those SLTs with negative quota to 0
-		var balanceTopUpMinusPenalty = float64(spec.BalanceTopUp)
+		var balanceTopUpMinusPenalty = float64(spec.BalanceTopUp + spec.BalanceBonus)
 		slts, err := qtx.GetSLTWithNegativeQuotaByEnrollmentId(newCtx, int64(spec.StudentEnrollmentID))
 		if err != nil {
 			return fmt.Errorf("qtx.GetSLTWithNegativeQuotaByEnrollmentId(): %w", err)
@@ -201,26 +202,28 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 		}
 
 		// Upsert StudentLearningTokens
-		existingSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams{
-			EnrollmentID:      int64(spec.StudentEnrollmentID),
-			CourseFeeValue:    spec.CourseFeeValue,
-			TransportFeeValue: spec.TransportFeeValue,
+		courseFeeQuarterValue := teaching.CalculateSLTFeeQuarterFromEP(spec.CourseFeeValue, spec.BalanceTopUp)
+		transportFeeQuarterValue := teaching.CalculateSLTFeeQuarterFromEP(spec.TransportFeeValue, spec.BalanceTopUp)
+		existingSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams{
+			EnrollmentID:             int64(spec.StudentEnrollmentID),
+			CourseFeeQuarterValue:    courseFeeQuarterValue,
+			TransportFeeQuarterValue: transportFeeQuarterValue,
 		})
 		isNeedInsert := errors.Is(err, sql.ErrNoRows)
 		if isNeedInsert {
 			err = nil
 		}
 		if err != nil {
-			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
+			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(): %w", err)
 		}
 
 		if isNeedInsert {
 			_, err = s.entityService.InsertStudentLearningTokens(newCtx, []entity.InsertStudentLearningTokenSpec{
 				{
-					StudentEnrollmentID: spec.StudentEnrollmentID,
-					Quota:               balanceTopUpMinusPenalty,
-					CourseFeeValue:      spec.CourseFeeValue,
-					TransportFeeValue:   spec.TransportFeeValue,
+					StudentEnrollmentID:      spec.StudentEnrollmentID,
+					Quota:                    balanceTopUpMinusPenalty,
+					CourseFeeQuarterValue:    courseFeeQuarterValue,
+					TransportFeeQuarterValue: transportFeeQuarterValue,
 				},
 			})
 			if err != nil {
@@ -252,10 +255,10 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 			return fmt.Errorf("qtx.GetEnrollmentPaymentById(): %w", err)
 		}
 
-		updatedSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams{
-			EnrollmentID:      prevEP.StudentEnrollmentID,
-			CourseFeeValue:    prevEP.CourseFeeValue,
-			TransportFeeValue: prevEP.TransportFeeValue,
+		updatedSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams{
+			EnrollmentID:             prevEP.StudentEnrollmentID,
+			CourseFeeQuarterValue:    teaching.CalculateSLTFeeQuarterFromEP(prevEP.CourseFeeValue, prevEP.BalanceTopUp),
+			TransportFeeQuarterValue: teaching.CalculateSLTFeeQuarterFromEP(prevEP.TransportFeeValue, prevEP.BalanceTopUp),
 		})
 		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
 		if skipSLTUpdate {
@@ -263,11 +266,11 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 			err = nil
 		}
 		if err != nil {
-			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
+			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(): %w", err)
 		}
 
 		if !skipSLTUpdate {
-			quotaChange := float64(spec.BalanceTopUp - prevEP.BalanceTopUp)
+			quotaChange := float64(spec.BalanceBonus - prevEP.BalanceBonus)
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
 				Quota: quotaChange,
 				ID:    updatedSLT.ID,
@@ -277,13 +280,13 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 			}
 		}
 
-		err = qtx.UpdateEnrollmentPaymentDateAndBalance(newCtx, mysql.UpdateEnrollmentPaymentDateAndBalanceParams{
+		err = qtx.UpdateEnrollmentPaymentDateAndBalanceBonus(newCtx, mysql.UpdateEnrollmentPaymentDateAndBalanceBonusParams{
 			PaymentDate:  spec.PaymentDate,
-			BalanceTopUp: spec.BalanceTopUp,
+			BalanceBonus: spec.BalanceBonus,
 			ID:           int64(spec.EnrollmentPaymentID),
 		})
 		if err != nil {
-			return fmt.Errorf("entityService.UpdateEnrollmentPayment(): %w", err)
+			return fmt.Errorf("entityService.UpdateEnrollmentPaymentDateAndBalanceBonus(): %w", err)
 		}
 
 		return nil
@@ -307,10 +310,10 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 			return fmt.Errorf("qtx.GetEnrollmentPaymentById(): %w", err)
 		}
 
-		updatedSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams{
-			EnrollmentID:      prevEP.StudentEnrollmentID,
-			CourseFeeValue:    prevEP.CourseFeeValue,
-			TransportFeeValue: prevEP.TransportFeeValue,
+		updatedSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams{
+			EnrollmentID:             prevEP.StudentEnrollmentID,
+			CourseFeeQuarterValue:    teaching.CalculateSLTFeeQuarterFromEP(prevEP.CourseFeeValue, prevEP.BalanceTopUp),
+			TransportFeeQuarterValue: teaching.CalculateSLTFeeQuarterFromEP(prevEP.TransportFeeValue, prevEP.BalanceTopUp),
 		})
 		skipSLTUpdate := errors.Is(err, sql.ErrNoRows)
 		if skipSLTUpdate {
@@ -318,7 +321,7 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 			err = nil
 		}
 		if err != nil {
-			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(): %w", err)
+			return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(): %w", err)
 		}
 
 		if !skipSLTUpdate {
@@ -380,8 +383,8 @@ func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entit
 		slt := entity.StudentLearningToken_Minimal{
 			StudentLearningTokenID: entity.StudentLearningTokenID(sltRow.StudentLearningTokenID),
 			Quota:                  sltRow.Quota,
-			CourseFeeValue:         sltRow.CourseFeeValue,
-			TransportFeeValue:      sltRow.TransportFeeValue,
+			CourseFeeValue:         sltRow.CourseFeeQuarterValue,
+			TransportFeeValue:      sltRow.TransportFeeQuarterValue,
 			CreatedAt:              sltRow.CreatedAt,
 			LastUpdatedAt:          sltRow.LastUpdatedAt,
 		}
@@ -503,18 +506,17 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 }
 
 func (s teachingServiceImpl) autoRegisterSLT(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID, quota float64) (entity.StudentLearningTokenID, error) {
-	enrollmentID := entity.StudentEnrollmentID(studentEnrollmentID)
-	invoice, err := s.GetEnrollmentPaymentInvoice(ctx, enrollmentID)
+	invoice, err := s.GetEnrollmentPaymentInvoice(ctx, studentEnrollmentID)
 	if err != nil {
 		return entity.StudentLearningTokenID_None, fmt.Errorf("GetEnrollmentPaymentInvoice(): %w", err)
 	}
 
 	newSLTIDs, err := s.entityService.InsertStudentLearningTokens(ctx, []entity.InsertStudentLearningTokenSpec{
 		{
-			StudentEnrollmentID: studentEnrollmentID,
-			Quota:               quota,
-			CourseFeeValue:      invoice.CourseFeeValue,
-			TransportFeeValue:   invoice.TransportFeeValue,
+			StudentEnrollmentID:      studentEnrollmentID,
+			Quota:                    quota,
+			CourseFeeQuarterValue:    teaching.CalculateSLTFeeQuarterFromEP(invoice.CourseFeeValue, invoice.BalanceTopUp),
+			TransportFeeQuarterValue: teaching.CalculateSLTFeeQuarterFromEP(invoice.TransportFeeValue, invoice.BalanceTopUp),
 		},
 	})
 	if err != nil {

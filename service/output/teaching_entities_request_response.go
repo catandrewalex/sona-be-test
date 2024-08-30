@@ -568,6 +568,7 @@ type InsertEnrollmentPaymentsRequestParam struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
+	BalanceBonus        int32                      `json:"balanceBonus,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
@@ -608,6 +609,7 @@ type UpdateEnrollmentPaymentsRequestParam struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
 	BalanceTopUp        int32                      `json:"balanceTopUp,omitempty"`
+	BalanceBonus        int32                      `json:"balanceBonus,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
@@ -717,10 +719,10 @@ type InsertStudentLearningTokensRequest struct {
 	Data []InsertStudentLearningTokensRequestParam `json:"data"`
 }
 type InsertStudentLearningTokensRequestParam struct {
-	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
-	Quota               float64                    `json:"quota,omitempty"`
-	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
-	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
+	StudentEnrollmentID      entity.StudentEnrollmentID `json:"studentEnrollmentId"`
+	Quota                    float64                    `json:"quota,omitempty"`
+	CourseFeeQuarterValue    int32                      `json:"courseFeeQuarterValue,omitempty"`
+	TransportFeeQuarterValue int32                      `json:"transportFeeQuarterValue,omitempty"`
 }
 type InsertStudentLearningTokensResponse struct {
 	Data    UpsertStudentLearningTokenResult `json:"data"`
@@ -735,10 +737,10 @@ type UpdateStudentLearningTokensRequest struct {
 	Data []UpdateStudentLearningTokensRequestParam `json:"data"`
 }
 type UpdateStudentLearningTokensRequestParam struct {
-	StudentLearningTokenID entity.StudentLearningTokenID `json:"studentLearningTokenId"`
-	Quota                  float64                       `json:"quota,omitempty"`
-	CourseFeeValue         int32                         `json:"courseFeeValue,omitempty"`
-	TransportFeeValue      int32                         `json:"transportFeeValue,omitempty"`
+	StudentLearningTokenID   entity.StudentLearningTokenID `json:"studentLearningTokenId"`
+	Quota                    float64                       `json:"quota,omitempty"`
+	CourseFeeQuarterValue    int32                         `json:"courseFeeQuarterValue,omitempty"`
+	TransportFeeQuarterValue int32                         `json:"transportFeeQuarterValue,omitempty"`
 }
 type UpdateStudentLearningTokensResponse struct {
 	Data    UpsertStudentLearningTokenResult `json:"data"`

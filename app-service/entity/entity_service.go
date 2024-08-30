@@ -94,10 +94,13 @@ type EnrollmentPayment struct {
 	EnrollmentPaymentID   EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	StudentEnrollmentInfo StudentEnrollment   `json:"studentEnrollment"`
 	PaymentDate           time.Time           `json:"paymentDate"`
-	BalanceTopUp          int32               `json:"balanceTopUp"`
-	CourseFeeValue        int32               `json:"courseFeeValue"`
-	TransportFeeValue     int32               `json:"transportFeeValue"`
-	PenaltyFeeValue       int32               `json:"penaltyFeeValue"`
+	// BalanceTopUp determines StudentLearningToken's CourseFeeQuarterValue & TransportFeeQuarterValue. Check teaching/calculation_util.go for more information.
+	BalanceTopUp int32 `json:"balanceTopUp"`
+	// BalanceBonus is used for modifying top-upped balance, without affecting CourseFeeQuarterValue & TransportFeeQuarterValue. Check teaching/calculation_util.go for more information.
+	BalanceBonus      int32 `json:"balanceBonus"`
+	CourseFeeValue    int32 `json:"courseFeeValue"`
+	TransportFeeValue int32 `json:"transportFeeValue"`
+	PenaltyFeeValue   int32 `json:"penaltyFeeValue"`
 }
 
 type StudentLearningToken struct {
@@ -423,6 +426,7 @@ type InsertEnrollmentPaymentSpec struct {
 	StudentEnrollmentID StudentEnrollmentID
 	PaymentDate         time.Time
 	BalanceTopUp        int32
+	BalanceBonus        int32
 	CourseFeeValue      int32
 	TransportFeeValue   int32
 	PenaltyFeeValue     int32
@@ -432,6 +436,7 @@ type UpdateEnrollmentPaymentSpec struct {
 	EnrollmentPaymentID EnrollmentPaymentID
 	PaymentDate         time.Time
 	BalanceTopUp        int32
+	BalanceBonus        int32
 	CourseFeeValue      int32
 	TransportFeeValue   int32
 	PenaltyFeeValue     int32
@@ -449,17 +454,17 @@ type GetStudentLearningTokensResult struct {
 }
 
 type InsertStudentLearningTokenSpec struct {
-	StudentEnrollmentID StudentEnrollmentID
-	Quota               float64
-	CourseFeeValue      int32
-	TransportFeeValue   int32
+	StudentEnrollmentID      StudentEnrollmentID
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
 }
 
 type UpdateStudentLearningTokenSpec struct {
-	StudentLearningTokenID StudentLearningTokenID
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
+	StudentLearningTokenID   StudentLearningTokenID
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
 }
 
 func (s UpdateStudentLearningTokenSpec) GetInt64ID() int64 {

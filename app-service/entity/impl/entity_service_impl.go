@@ -1140,6 +1140,7 @@ func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs [
 			enrollmentPaymentID, err := qtx.InsertEnrollmentPayment(newCtx, mysql.InsertEnrollmentPaymentParams{
 				PaymentDate:       spec.PaymentDate,
 				BalanceTopUp:      spec.BalanceTopUp,
+				BalanceBonus:      spec.BalanceBonus,
 				CourseFeeValue:    spec.CourseFeeValue,
 				TransportFeeValue: spec.TransportFeeValue,
 				PenaltyFeeValue:   spec.PenaltyFeeValue,
@@ -1171,6 +1172,7 @@ func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs [
 			err := qtx.UpdateEnrollmentPayment(newCtx, mysql.UpdateEnrollmentPaymentParams{
 				PaymentDate:       spec.PaymentDate,
 				BalanceTopUp:      spec.BalanceTopUp,
+				BalanceBonus:      spec.BalanceBonus,
 				CourseFeeValue:    spec.CourseFeeValue,
 				TransportFeeValue: spec.TransportFeeValue,
 				PenaltyFeeValue:   spec.PenaltyFeeValue,
@@ -1266,10 +1268,10 @@ func (s entityServiceImpl) InsertStudentLearningTokens(ctx context.Context, spec
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			studentLearningTokenID, err := qtx.InsertStudentLearningToken(newCtx, mysql.InsertStudentLearningTokenParams{
-				Quota:             spec.Quota,
-				CourseFeeValue:    spec.CourseFeeValue,
-				TransportFeeValue: spec.TransportFeeValue,
-				EnrollmentID:      int64(spec.StudentEnrollmentID),
+				Quota:                    spec.Quota,
+				CourseFeeQuarterValue:    spec.CourseFeeQuarterValue,
+				TransportFeeQuarterValue: spec.TransportFeeQuarterValue,
+				EnrollmentID:             int64(spec.StudentEnrollmentID),
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.InsertStudentLearningToken(): %w", err)
@@ -1296,10 +1298,10 @@ func (s entityServiceImpl) UpdateStudentLearningTokens(ctx context.Context, spec
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			err := qtx.UpdateStudentLearningToken(newCtx, mysql.UpdateStudentLearningTokenParams{
-				Quota:             spec.Quota,
-				CourseFeeValue:    spec.CourseFeeValue,
-				TransportFeeValue: spec.TransportFeeValue,
-				ID:                int64(spec.StudentLearningTokenID),
+				Quota:                    spec.Quota,
+				CourseFeeQuarterValue:    spec.CourseFeeQuarterValue,
+				TransportFeeQuarterValue: spec.TransportFeeQuarterValue,
+				ID:                       int64(spec.StudentLearningTokenID),
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.UpdateStudentLearningToken(): %w", err)

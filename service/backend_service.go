@@ -1304,6 +1304,7 @@ func (s *BackendService) InsertEnrollmentPaymentsHandler(ctx context.Context, re
 			StudentEnrollmentID: param.StudentEnrollmentID,
 			PaymentDate:         param.PaymentDate,
 			BalanceTopUp:        param.BalanceTopUp,
+			BalanceBonus:        param.BalanceBonus,
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
 			PenaltyFeeValue:     param.PenaltyFeeValue,
@@ -1340,6 +1341,7 @@ func (s *BackendService) UpdateEnrollmentPaymentsHandler(ctx context.Context, re
 			EnrollmentPaymentID: param.EnrollmentPaymentID,
 			PaymentDate:         param.PaymentDate,
 			BalanceTopUp:        param.BalanceTopUp,
+			BalanceBonus:        param.BalanceBonus,
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
 			PenaltyFeeValue:     param.PenaltyFeeValue,
@@ -1428,10 +1430,10 @@ func (s *BackendService) InsertStudentLearningTokensHandler(ctx context.Context,
 	specs := make([]entity.InsertStudentLearningTokenSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, entity.InsertStudentLearningTokenSpec{
-			StudentEnrollmentID: param.StudentEnrollmentID,
-			Quota:               param.Quota,
-			CourseFeeValue:      param.CourseFeeValue,
-			TransportFeeValue:   param.TransportFeeValue,
+			StudentEnrollmentID:      param.StudentEnrollmentID,
+			Quota:                    param.Quota,
+			CourseFeeQuarterValue:    param.CourseFeeQuarterValue,
+			TransportFeeQuarterValue: param.TransportFeeQuarterValue,
 		})
 	}
 
@@ -1462,10 +1464,10 @@ func (s *BackendService) UpdateStudentLearningTokensHandler(ctx context.Context,
 	specs := make([]entity.UpdateStudentLearningTokenSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, entity.UpdateStudentLearningTokenSpec{
-			StudentLearningTokenID: param.StudentLearningTokenID,
-			Quota:                  param.Quota,
-			CourseFeeValue:         param.CourseFeeValue,
-			TransportFeeValue:      param.TransportFeeValue,
+			StudentLearningTokenID:   param.StudentLearningTokenID,
+			Quota:                    param.Quota,
+			CourseFeeQuarterValue:    param.CourseFeeQuarterValue,
+			TransportFeeQuarterValue: param.TransportFeeQuarterValue,
 		})
 	}
 
@@ -1711,6 +1713,7 @@ func (s *BackendService) SubmitEnrollmentPaymentHandler(ctx context.Context, req
 		StudentEnrollmentID: req.StudentEnrollmentID,
 		PaymentDate:         req.PaymentDate,
 		BalanceTopUp:        req.BalanceTopUp,
+		BalanceBonus:        req.BalanceBonus,
 		PenaltyFeeValue:     req.PenaltyFeeValue,
 		CourseFeeValue:      req.CourseFeeValue,
 		TransportFeeValue:   req.TransportFeeValue,
@@ -1732,7 +1735,7 @@ func (s *BackendService) EditEnrollmentPaymentHandler(ctx context.Context, req *
 	enrollmentPaymentID, err := s.teachingService.EditEnrollmentPayment(ctx, teaching.EditStudentEnrollmentPaymentSpec{
 		EnrollmentPaymentID: req.EnrollmentPaymentID,
 		PaymentDate:         req.PaymentDate,
-		BalanceTopUp:        req.BalanceTopUp,
+		BalanceBonus:        req.BalanceBonus,
 	})
 	if err != nil {
 		return nil, handleReadUpsertError(err, "teachingService.EditEnrollmentPayment()", "enrollmentPayment")

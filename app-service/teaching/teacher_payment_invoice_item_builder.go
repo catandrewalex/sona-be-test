@@ -93,8 +93,12 @@ func (b *teacherPaymentInvoiceItemBuilder) AddAttendances(attendances []entity.A
 }
 
 func calculateGrossCourseAndTransportFeeValue(attendance entity.Attendance) (int32, int32) {
-	grossCourseFeeValue := int32(float64(attendance.StudentLearningToken.CourseFeeValue) * attendance.UsedStudentTokenQuota / float64(Default_OneCourseCycle))
-	grossTransportFeeValue := int32(float64(attendance.StudentLearningToken.TransportFeeValue) * attendance.UsedStudentTokenQuota / float64(Default_OneCourseCycle))
+	// This division by OneCourseCycle will not contain any precision error.
+	// The SLT...FeeValue is calculated from (..FeeQuarterValue * 4).
+	//  1. The ..FeeValue is guaranteed to be divisible by 4
+	//  2. All calculations are done in integer, so there should be no precision error
+	grossCourseFeeValue := int32(float64(attendance.StudentLearningToken.CourseFeeValue/Default_OneCourseCycle) * attendance.UsedStudentTokenQuota)
+	grossTransportFeeValue := int32(float64(attendance.StudentLearningToken.TransportFeeValue/Default_OneCourseCycle) * attendance.UsedStudentTokenQuota)
 	return grossCourseFeeValue, grossTransportFeeValue
 }
 

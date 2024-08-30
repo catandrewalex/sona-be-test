@@ -241,7 +241,7 @@ WITH slt_min_max AS (
     GROUP BY enrollment_id
     -- each record will be unique if all non-latest SLTs has 0 quota; OR duplicated (2 records) if there exists non-latest SLT with quota > 0
 )
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, slt.enrollment_id AS enrollment_id,
     se.student_id AS student_id
 FROM student_learning_token AS slt
     JOIN (
@@ -259,14 +259,14 @@ WHERE slt.enrollment_id IN (/*SLICE:student_enrollment_ids*/?)
 `
 
 type GetEarliestAvailableSLTsByStudentEnrollmentIdsRow struct {
-	StudentLearningTokenID int64
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
-	CreatedAt              time.Time
-	LastUpdatedAt          time.Time
-	EnrollmentID           int64
-	StudentID              int64
+	StudentLearningTokenID   int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	EnrollmentID             int64
+	StudentID                int64
 }
 
 func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Context, studentEnrollmentIds []int64) ([]GetEarliestAvailableSLTsByStudentEnrollmentIdsRow, error) {
@@ -291,8 +291,8 @@ func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Con
 		if err := rows.Scan(
 			&i.StudentLearningTokenID,
 			&i.Quota,
-			&i.CourseFeeValue,
-			&i.TransportFeeValue,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.EnrollmentID,
@@ -312,7 +312,7 @@ func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Con
 }
 
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -337,6 +337,7 @@ type GetEnrollmentPaymentByIdRow struct {
 	EnrollmentPaymentID  int64
 	PaymentDate          time.Time
 	BalanceTopUp         int32
+	BalanceBonus         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
 	PenaltyFeeValue      int32
@@ -362,6 +363,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 		&i.EnrollmentPaymentID,
 		&i.PaymentDate,
 		&i.BalanceTopUp,
+		&i.BalanceBonus,
 		&i.CourseFeeValue,
 		&i.TransportFeeValue,
 		&i.PenaltyFeeValue,
@@ -392,7 +394,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 }
 
 const getEnrollmentPayments = `-- name: GetEnrollmentPayments :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -427,6 +429,7 @@ type GetEnrollmentPaymentsRow struct {
 	EnrollmentPaymentID  int64
 	PaymentDate          time.Time
 	BalanceTopUp         int32
+	BalanceBonus         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
 	PenaltyFeeValue      int32
@@ -462,6 +465,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 			&i.EnrollmentPaymentID,
 			&i.PaymentDate,
 			&i.BalanceTopUp,
+			&i.BalanceBonus,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
 			&i.PenaltyFeeValue,
@@ -502,7 +506,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 }
 
 const getEnrollmentPaymentsByIds = `-- name: GetEnrollmentPaymentsByIds :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -527,6 +531,7 @@ type GetEnrollmentPaymentsByIdsRow struct {
 	EnrollmentPaymentID  int64
 	PaymentDate          time.Time
 	BalanceTopUp         int32
+	BalanceBonus         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
 	PenaltyFeeValue      int32
@@ -567,6 +572,7 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 			&i.EnrollmentPaymentID,
 			&i.PaymentDate,
 			&i.BalanceTopUp,
+			&i.BalanceBonus,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
 			&i.PenaltyFeeValue,
@@ -607,7 +613,7 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 }
 
 const getEnrollmentPaymentsDescendingDate = `-- name: GetEnrollmentPaymentsDescendingDate :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -642,6 +648,7 @@ type GetEnrollmentPaymentsDescendingDateRow struct {
 	EnrollmentPaymentID  int64
 	PaymentDate          time.Time
 	BalanceTopUp         int32
+	BalanceBonus         int32
 	CourseFeeValue       int32
 	TransportFeeValue    int32
 	PenaltyFeeValue      int32
@@ -678,6 +685,7 @@ func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg G
 			&i.EnrollmentPaymentID,
 			&i.PaymentDate,
 			&i.BalanceTopUp,
+			&i.BalanceBonus,
 			&i.CourseFeeValue,
 			&i.TransportFeeValue,
 			&i.PenaltyFeeValue,
@@ -732,7 +740,7 @@ func (q *Queries) GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx contex
 }
 
 const getSLTByClassIdForAttendanceInfo = `-- name: GetSLTByClassIdForAttendanceInfo :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, se.student_id AS student_id
+SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, se.student_id AS student_id
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
 WHERE se.class_id = ?
@@ -740,13 +748,13 @@ ORDER BY created_at DESC, slt.id DESC
 `
 
 type GetSLTByClassIdForAttendanceInfoRow struct {
-	StudentLearningTokenID int64
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
-	CreatedAt              time.Time
-	LastUpdatedAt          time.Time
-	StudentID              int64
+	StudentLearningTokenID   int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	StudentID                int64
 }
 
 func (q *Queries) GetSLTByClassIdForAttendanceInfo(ctx context.Context, classID int64) ([]GetSLTByClassIdForAttendanceInfoRow, error) {
@@ -761,8 +769,8 @@ func (q *Queries) GetSLTByClassIdForAttendanceInfo(ctx context.Context, classID 
 		if err := rows.Scan(
 			&i.StudentLearningTokenID,
 			&i.Quota,
-			&i.CourseFeeValue,
-			&i.TransportFeeValue,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.StudentID,
@@ -780,25 +788,25 @@ func (q *Queries) GetSLTByClassIdForAttendanceInfo(ctx context.Context, classID 
 	return items, nil
 }
 
-const getSLTByEnrollmentIdAndCourseFeeAndTransportFee = `-- name: GetSLTByEnrollmentIdAndCourseFeeAndTransportFee :one
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
-WHERE enrollment_id = ? AND course_fee_value = ? AND transport_fee_value = ?
+const getSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter = `-- name: GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter :one
+SELECT id, quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
+WHERE enrollment_id = ? AND course_fee_quarter_value = ? AND transport_fee_quarter_value = ?
 `
 
-type GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams struct {
-	EnrollmentID      int64
-	CourseFeeValue    int32
-	TransportFeeValue int32
+type GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams struct {
+	EnrollmentID             int64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
 }
 
-func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Context, arg GetSLTByEnrollmentIdAndCourseFeeAndTransportFeeParams) (StudentLearningToken, error) {
-	row := q.db.QueryRowContext(ctx, getSLTByEnrollmentIdAndCourseFeeAndTransportFee, arg.EnrollmentID, arg.CourseFeeValue, arg.TransportFeeValue)
+func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(ctx context.Context, arg GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams) (StudentLearningToken, error) {
+	row := q.db.QueryRowContext(ctx, getSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter, arg.EnrollmentID, arg.CourseFeeQuarterValue, arg.TransportFeeQuarterValue)
 	var i StudentLearningToken
 	err := row.Scan(
 		&i.ID,
 		&i.Quota,
-		&i.CourseFeeValue,
-		&i.TransportFeeValue,
+		&i.CourseFeeQuarterValue,
+		&i.TransportFeeQuarterValue,
 		&i.CreatedAt,
 		&i.LastUpdatedAt,
 		&i.EnrollmentID,
@@ -807,7 +815,7 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeAndTransportFee(ctx context.Co
 }
 
 const getSLTWithNegativeQuotaByEnrollmentId = `-- name: GetSLTWithNegativeQuotaByEnrollmentId :many
-SELECT id, quota, course_fee_value, transport_fee_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
+SELECT id, quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
 WHERE enrollment_id = ? AND quota < 0
 `
 
@@ -824,8 +832,8 @@ func (q *Queries) GetSLTWithNegativeQuotaByEnrollmentId(ctx context.Context, enr
 		if err := rows.Scan(
 			&i.ID,
 			&i.Quota,
-			&i.CourseFeeValue,
-			&i.TransportFeeValue,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.EnrollmentID,
@@ -844,7 +852,7 @@ func (q *Queries) GetSLTWithNegativeQuotaByEnrollmentId(ctx context.Context, enr
 }
 
 const getStudentLearningTokenById = `-- name: GetStudentLearningTokenById :one
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -865,24 +873,24 @@ WHERE slt.id = ? LIMIT 1
 `
 
 type GetStudentLearningTokenByIdRow struct {
-	StudentLearningTokenID int64
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
-	CreatedAt              time.Time
-	LastUpdatedAt          time.Time
-	StudentEnrollmentID    int64
-	StudentID              int64
-	StudentUsername        string
-	StudentDetail          json.RawMessage
-	Class                  Class
-	TeacherSpecialFee      sql.NullInt32
-	Course                 Course
-	Instrument             Instrument
-	Grade                  Grade
-	ClassTeacherID         sql.NullInt64
-	ClassTeacherUsername   sql.NullString
-	ClassTeacherDetail     []byte
+	StudentLearningTokenID   int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	StudentEnrollmentID      int64
+	StudentID                int64
+	StudentUsername          string
+	StudentDetail            json.RawMessage
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
 }
 
 func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (GetStudentLearningTokenByIdRow, error) {
@@ -891,8 +899,8 @@ func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (Ge
 	err := row.Scan(
 		&i.StudentLearningTokenID,
 		&i.Quota,
-		&i.CourseFeeValue,
-		&i.TransportFeeValue,
+		&i.CourseFeeQuarterValue,
+		&i.TransportFeeQuarterValue,
 		&i.CreatedAt,
 		&i.LastUpdatedAt,
 		&i.StudentEnrollmentID,
@@ -922,7 +930,7 @@ func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (Ge
 }
 
 const getStudentLearningTokens = `-- name: GetStudentLearningTokens :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -949,24 +957,24 @@ type GetStudentLearningTokensParams struct {
 }
 
 type GetStudentLearningTokensRow struct {
-	StudentLearningTokenID int64
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
-	CreatedAt              time.Time
-	LastUpdatedAt          time.Time
-	StudentEnrollmentID    int64
-	StudentID              int64
-	StudentUsername        string
-	StudentDetail          json.RawMessage
-	Class                  Class
-	TeacherSpecialFee      sql.NullInt32
-	Course                 Course
-	Instrument             Instrument
-	Grade                  Grade
-	ClassTeacherID         sql.NullInt64
-	ClassTeacherUsername   sql.NullString
-	ClassTeacherDetail     []byte
+	StudentLearningTokenID   int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	StudentEnrollmentID      int64
+	StudentID                int64
+	StudentUsername          string
+	StudentDetail            json.RawMessage
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
 }
 
 func (q *Queries) GetStudentLearningTokens(ctx context.Context, arg GetStudentLearningTokensParams) ([]GetStudentLearningTokensRow, error) {
@@ -981,8 +989,8 @@ func (q *Queries) GetStudentLearningTokens(ctx context.Context, arg GetStudentLe
 		if err := rows.Scan(
 			&i.StudentLearningTokenID,
 			&i.Quota,
-			&i.CourseFeeValue,
-			&i.TransportFeeValue,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.StudentEnrollmentID,
@@ -1022,7 +1030,7 @@ func (q *Queries) GetStudentLearningTokens(ctx context.Context, arg GetStudentLe
 }
 
 const getStudentLearningTokensByEnrollmentId = `-- name: GetStudentLearningTokensByEnrollmentId :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -1043,24 +1051,24 @@ WHERE slt.enrollment_id = ?
 `
 
 type GetStudentLearningTokensByEnrollmentIdRow struct {
-	StudentLearningTokenID int64
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
-	CreatedAt              time.Time
-	LastUpdatedAt          time.Time
-	StudentEnrollmentID    int64
-	StudentID              int64
-	StudentUsername        string
-	StudentDetail          json.RawMessage
-	Class                  Class
-	TeacherSpecialFee      sql.NullInt32
-	Course                 Course
-	Instrument             Instrument
-	Grade                  Grade
-	ClassTeacherID         sql.NullInt64
-	ClassTeacherUsername   sql.NullString
-	ClassTeacherDetail     []byte
+	StudentLearningTokenID   int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	StudentEnrollmentID      int64
+	StudentID                int64
+	StudentUsername          string
+	StudentDetail            json.RawMessage
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
 }
 
 func (q *Queries) GetStudentLearningTokensByEnrollmentId(ctx context.Context, enrollmentID int64) ([]GetStudentLearningTokensByEnrollmentIdRow, error) {
@@ -1075,8 +1083,8 @@ func (q *Queries) GetStudentLearningTokensByEnrollmentId(ctx context.Context, en
 		if err := rows.Scan(
 			&i.StudentLearningTokenID,
 			&i.Quota,
-			&i.CourseFeeValue,
-			&i.TransportFeeValue,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.StudentEnrollmentID,
@@ -1116,7 +1124,7 @@ func (q *Queries) GetStudentLearningTokensByEnrollmentId(ctx context.Context, en
 }
 
 const getStudentLearningTokensByIds = `-- name: GetStudentLearningTokensByIds :many
-SELECT slt.id AS student_learning_token_id, quota, course_fee_value, transport_fee_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
+SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -1137,24 +1145,24 @@ WHERE slt.id IN (/*SLICE:ids*/?)
 `
 
 type GetStudentLearningTokensByIdsRow struct {
-	StudentLearningTokenID int64
-	Quota                  float64
-	CourseFeeValue         int32
-	TransportFeeValue      int32
-	CreatedAt              time.Time
-	LastUpdatedAt          time.Time
-	StudentEnrollmentID    int64
-	StudentID              int64
-	StudentUsername        string
-	StudentDetail          json.RawMessage
-	Class                  Class
-	TeacherSpecialFee      sql.NullInt32
-	Course                 Course
-	Instrument             Instrument
-	Grade                  Grade
-	ClassTeacherID         sql.NullInt64
-	ClassTeacherUsername   sql.NullString
-	ClassTeacherDetail     []byte
+	StudentLearningTokenID   int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	StudentEnrollmentID      int64
+	StudentID                int64
+	StudentUsername          string
+	StudentDetail            json.RawMessage
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
 }
 
 func (q *Queries) GetStudentLearningTokensByIds(ctx context.Context, ids []int64) ([]GetStudentLearningTokensByIdsRow, error) {
@@ -1179,8 +1187,8 @@ func (q *Queries) GetStudentLearningTokensByIds(ctx context.Context, ids []int64
 		if err := rows.Scan(
 			&i.StudentLearningTokenID,
 			&i.Quota,
-			&i.CourseFeeValue,
-			&i.TransportFeeValue,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
 			&i.CreatedAt,
 			&i.LastUpdatedAt,
 			&i.StudentEnrollmentID,
@@ -1265,7 +1273,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -1353,8 +1361,8 @@ func (q *Queries) GetTeacherPaymentById(ctx context.Context, id int64) (GetTeach
 		&i.ClassTeacherDetail,
 		&i.StudentLearningToken.ID,
 		&i.StudentLearningToken.Quota,
-		&i.StudentLearningToken.CourseFeeValue,
-		&i.StudentLearningToken.TransportFeeValue,
+		&i.StudentLearningToken.CourseFeeQuarterValue,
+		&i.StudentLearningToken.TransportFeeQuarterValue,
 		&i.StudentLearningToken.CreatedAt,
 		&i.StudentLearningToken.LastUpdatedAt,
 		&i.StudentLearningToken.EnrollmentID,
@@ -1369,7 +1377,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -1483,8 +1491,8 @@ func (q *Queries) GetTeacherPayments(ctx context.Context, arg GetTeacherPayments
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
@@ -1509,7 +1517,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -1613,8 +1621,8 @@ func (q *Queries) GetTeacherPaymentsByIds(ctx context.Context, ids []int64) ([]G
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
@@ -1639,7 +1647,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    slt.id, slt.quota, slt.course_fee_value, slt.transport_fee_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
     JOIN attendance ON attendance_id = attendance.id
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -1742,8 +1750,8 @@ func (q *Queries) GetTeacherPaymentsByTeacherId(ctx context.Context, arg GetTeac
 			&i.ClassTeacherDetail,
 			&i.StudentLearningToken.ID,
 			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeValue,
-			&i.StudentLearningToken.TransportFeeValue,
+			&i.StudentLearningToken.CourseFeeQuarterValue,
+			&i.StudentLearningToken.TransportFeeQuarterValue,
 			&i.StudentLearningToken.CreatedAt,
 			&i.StudentLearningToken.LastUpdatedAt,
 			&i.StudentLearningToken.EnrollmentID,
@@ -1778,15 +1786,16 @@ func (q *Queries) IncrementSLTQuotaById(ctx context.Context, arg IncrementSLTQuo
 
 const insertEnrollmentPayment = `-- name: InsertEnrollmentPayment :execlastid
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 type InsertEnrollmentPaymentParams struct {
 	PaymentDate       time.Time
 	BalanceTopUp      int32
+	BalanceBonus      int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
 	PenaltyFeeValue   int32
@@ -1797,6 +1806,7 @@ func (q *Queries) InsertEnrollmentPayment(ctx context.Context, arg InsertEnrollm
 	result, err := q.db.ExecContext(ctx, insertEnrollmentPayment,
 		arg.PaymentDate,
 		arg.BalanceTopUp,
+		arg.BalanceBonus,
 		arg.CourseFeeValue,
 		arg.TransportFeeValue,
 		arg.PenaltyFeeValue,
@@ -1810,24 +1820,24 @@ func (q *Queries) InsertEnrollmentPayment(ctx context.Context, arg InsertEnrollm
 
 const insertStudentLearningToken = `-- name: InsertStudentLearningToken :execlastid
 INSERT INTO student_learning_token (
-    quota, course_fee_value, transport_fee_value, enrollment_id
+    quota, course_fee_quarter_value, transport_fee_quarter_value, enrollment_id
 ) VALUES (
     ?, ?, ?, ?
 )
 `
 
 type InsertStudentLearningTokenParams struct {
-	Quota             float64
-	CourseFeeValue    int32
-	TransportFeeValue int32
-	EnrollmentID      int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	EnrollmentID             int64
 }
 
 func (q *Queries) InsertStudentLearningToken(ctx context.Context, arg InsertStudentLearningTokenParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, insertStudentLearningToken,
 		arg.Quota,
-		arg.CourseFeeValue,
-		arg.TransportFeeValue,
+		arg.CourseFeeQuarterValue,
+		arg.TransportFeeQuarterValue,
 		arg.EnrollmentID,
 	)
 	if err != nil {
@@ -1879,13 +1889,14 @@ func (q *Queries) ResetStudentLearningTokenQuotaByIds(ctx context.Context, ids [
 }
 
 const updateEnrollmentPayment = `-- name: UpdateEnrollmentPayment :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, course_fee_value = ?, transport_fee_value = ?, penalty_fee_value = ?
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, balance_bonus = ?, course_fee_value = ?, transport_fee_value = ?, penalty_fee_value = ?
 WHERE id = ?
 `
 
 type UpdateEnrollmentPaymentParams struct {
 	PaymentDate       time.Time
 	BalanceTopUp      int32
+	BalanceBonus      int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
 	PenaltyFeeValue   int32
@@ -1896,6 +1907,7 @@ func (q *Queries) UpdateEnrollmentPayment(ctx context.Context, arg UpdateEnrollm
 	_, err := q.db.ExecContext(ctx, updateEnrollmentPayment,
 		arg.PaymentDate,
 		arg.BalanceTopUp,
+		arg.BalanceBonus,
 		arg.CourseFeeValue,
 		arg.TransportFeeValue,
 		arg.PenaltyFeeValue,
@@ -1904,39 +1916,39 @@ func (q *Queries) UpdateEnrollmentPayment(ctx context.Context, arg UpdateEnrollm
 	return err
 }
 
-const updateEnrollmentPaymentDateAndBalance = `-- name: UpdateEnrollmentPaymentDateAndBalance :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?
+const updateEnrollmentPaymentDateAndBalanceBonus = `-- name: UpdateEnrollmentPaymentDateAndBalanceBonus :exec
+UPDATE enrollment_payment SET payment_date = ?, balance_bonus = ?
 WHERE id = ?
 `
 
-type UpdateEnrollmentPaymentDateAndBalanceParams struct {
+type UpdateEnrollmentPaymentDateAndBalanceBonusParams struct {
 	PaymentDate  time.Time
-	BalanceTopUp int32
+	BalanceBonus int32
 	ID           int64
 }
 
-func (q *Queries) UpdateEnrollmentPaymentDateAndBalance(ctx context.Context, arg UpdateEnrollmentPaymentDateAndBalanceParams) error {
-	_, err := q.db.ExecContext(ctx, updateEnrollmentPaymentDateAndBalance, arg.PaymentDate, arg.BalanceTopUp, arg.ID)
+func (q *Queries) UpdateEnrollmentPaymentDateAndBalanceBonus(ctx context.Context, arg UpdateEnrollmentPaymentDateAndBalanceBonusParams) error {
+	_, err := q.db.ExecContext(ctx, updateEnrollmentPaymentDateAndBalanceBonus, arg.PaymentDate, arg.BalanceBonus, arg.ID)
 	return err
 }
 
 const updateStudentLearningToken = `-- name: UpdateStudentLearningToken :exec
-UPDATE student_learning_token SET quota = ?, course_fee_value = ?, transport_fee_value = ?
+UPDATE student_learning_token SET quota = ?, course_fee_quarter_value = ?, transport_fee_quarter_value = ?
 WHERE id = ?
 `
 
 type UpdateStudentLearningTokenParams struct {
-	Quota             float64
-	CourseFeeValue    int32
-	TransportFeeValue int32
-	ID                int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	ID                       int64
 }
 
 func (q *Queries) UpdateStudentLearningToken(ctx context.Context, arg UpdateStudentLearningTokenParams) error {
 	_, err := q.db.ExecContext(ctx, updateStudentLearningToken,
 		arg.Quota,
-		arg.CourseFeeValue,
-		arg.TransportFeeValue,
+		arg.CourseFeeQuarterValue,
+		arg.TransportFeeQuarterValue,
 		arg.ID,
 	)
 	return err

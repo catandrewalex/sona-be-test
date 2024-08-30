@@ -64,6 +64,7 @@ type SubmitEnrollmentPaymentRequest struct {
 	StudentEnrollmentID entity.StudentEnrollmentID `json:"studentEnrollmentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"`
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
+	BalanceBonus        int32                      `json:"balanceBonus,omitempty"`
 	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
@@ -98,7 +99,7 @@ func (r SubmitEnrollmentPaymentRequest) Validate() errs.ValidationError {
 type EditEnrollmentPaymentRequest struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"`
-	BalanceTopUp        int32                      `json:"balanceTopUp"`
+	BalanceBonus        int32                      `json:"balanceBonus,omitempty"`
 }
 type EditEnrollmentPaymentResponse struct {
 	Data    entity.EnrollmentPayment `json:"data"`
@@ -107,10 +108,6 @@ type EditEnrollmentPaymentResponse struct {
 
 func (r EditEnrollmentPaymentRequest) Validate() errs.ValidationError {
 	errorDetail := make(errs.ValidationErrorDetail, 0)
-
-	if r.BalanceTopUp < 0 {
-		errorDetail["balanceTopUp"] = "balanceTopUp must be >= 0"
-	}
 
 	if len(errorDetail) > 0 {
 		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)

@@ -120,6 +120,7 @@ type SubmitStudentEnrollmentPaymentSpec struct {
 	PaymentDate         time.Time
 
 	BalanceTopUp      int32
+	BalanceBonus      int32
 	PenaltyFeeValue   int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
@@ -127,7 +128,7 @@ type SubmitStudentEnrollmentPaymentSpec struct {
 type EditStudentEnrollmentPaymentSpec struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID
 	PaymentDate         time.Time
-	BalanceTopUp        int32
+	BalanceBonus        int32
 }
 
 type SearchClassSpec struct {

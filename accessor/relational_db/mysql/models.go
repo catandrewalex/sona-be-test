@@ -43,6 +43,7 @@ type EnrollmentPayment struct {
 	ID                int64
 	PaymentDate       time.Time
 	BalanceTopUp      int32
+	BalanceBonus      int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
 	PenaltyFeeValue   int32
@@ -72,13 +73,13 @@ type StudentEnrollment struct {
 }
 
 type StudentLearningToken struct {
-	ID                int64
-	Quota             float64
-	CourseFeeValue    int32
-	TransportFeeValue int32
-	CreatedAt         time.Time
-	LastUpdatedAt     time.Time
-	EnrollmentID      int64
+	ID                       int64
+	Quota                    float64
+	CourseFeeQuarterValue    int32
+	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
+	EnrollmentID             int64
 }
 
 type Teacher struct {

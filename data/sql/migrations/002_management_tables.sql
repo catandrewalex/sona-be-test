@@ -67,6 +67,7 @@ CREATE TABLE enrollment_payment
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   payment_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   balance_top_up INT NOT NULL,
+  balance_bonus INT NOT NULL DEFAULT 0,
   course_fee_value INT NOT NULL,
   transport_fee_value INT NOT NULL,
   penalty_fee_value INT NOT NULL,
@@ -79,8 +80,8 @@ CREATE TABLE student_learning_token
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   quota FLOAT NOT NULL DEFAULT 4,
-  course_fee_value INT NOT NULL,
-  transport_fee_value INT NOT NULL,
+  course_fee_quarter_value INT NOT NULL,
+  transport_fee_quarter_value INT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   enrollment_id BIGINT unsigned NOT NULL,

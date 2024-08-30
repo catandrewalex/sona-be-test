@@ -4,7 +4,6 @@ import (
 	"sonamusica-backend/accessor/relational_db/mysql"
 	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/identity"
-	"sonamusica-backend/app-service/teaching"
 	"sonamusica-backend/app-service/util"
 )
 
@@ -276,6 +275,7 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 			},
 			PaymentDate:       enrollmentPaymentRow.PaymentDate,
 			BalanceTopUp:      enrollmentPaymentRow.BalanceTopUp,
+			BalanceBonus:      enrollmentPaymentRow.BalanceBonus,
 			CourseFeeValue:    enrollmentPaymentRow.CourseFeeValue,
 			TransportFeeValue: enrollmentPaymentRow.TransportFeeValue,
 			PenaltyFeeValue:   enrollmentPaymentRow.PenaltyFeeValue,
@@ -329,8 +329,8 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 				},
 			},
 			Quota:             sltRow.Quota,
-			CourseFeeValue:    sltRow.CourseFeeValue,
-			TransportFeeValue: sltRow.TransportFeeValue,
+			CourseFeeValue:    sltRow.CourseFeeQuarterValue * 4,
+			TransportFeeValue: sltRow.TransportFeeQuarterValue * 4,
 			CreatedAt:         sltRow.CreatedAt,
 			LastUpdatedAt:     sltRow.LastUpdatedAt,
 		})
@@ -409,8 +409,8 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 			StudentLearningToken: entity.StudentLearningToken_Minimal{
 				StudentLearningTokenID: entity.StudentLearningTokenID(attendanceRow.StudentLearningToken.ID),
 				Quota:                  attendanceRow.StudentLearningToken.Quota,
-				CourseFeeValue:         attendanceRow.StudentLearningToken.CourseFeeValue,
-				TransportFeeValue:      attendanceRow.StudentLearningToken.TransportFeeValue,
+				CourseFeeValue:         attendanceRow.StudentLearningToken.CourseFeeQuarterValue * 4,
+				TransportFeeValue:      attendanceRow.StudentLearningToken.TransportFeeQuarterValue * 4,
 				CreatedAt:              attendanceRow.StudentLearningToken.CreatedAt,
 				LastUpdatedAt:          attendanceRow.StudentLearningToken.LastUpdatedAt,
 			},
@@ -457,8 +457,8 @@ func NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRows []mysql.GetT
 			PaidCourseFeeValue:     tpRow.PaidCourseFeeValue,
 			PaidTransportFeeValue:  tpRow.PaidTransportFeeValue,
 			AddedAt:                tpRow.AddedAt,
-			GrossCourseFeeValue:    int32(float64(tpRow.StudentLearningToken.CourseFeeValue) * tpRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
-			GrossTransportFeeValue: int32(float64(tpRow.StudentLearningToken.TransportFeeValue) * tpRow.Attendance.UsedStudentTokenQuota / float64(teaching.Default_OneCourseCycle)),
+			GrossCourseFeeValue:    int32(float64(tpRow.StudentLearningToken.CourseFeeQuarterValue) * tpRow.Attendance.UsedStudentTokenQuota),
+			GrossTransportFeeValue: int32(float64(tpRow.StudentLearningToken.TransportFeeQuarterValue) * tpRow.Attendance.UsedStudentTokenQuota),
 		})
 	}
 
