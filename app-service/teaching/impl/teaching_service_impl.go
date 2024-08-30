@@ -325,7 +325,7 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 		}
 
 		if !skipSLTUpdate {
-			quotaChange := -1 * prevEP.BalanceTopUp
+			quotaChange := -1 * (prevEP.BalanceTopUp + prevEP.BalanceBonus)
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
 				Quota: float64(quotaChange),
 				ID:    updatedSLT.ID,
