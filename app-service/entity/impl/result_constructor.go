@@ -279,6 +279,7 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 			CourseFeeValue:    enrollmentPaymentRow.CourseFeeValue,
 			TransportFeeValue: enrollmentPaymentRow.TransportFeeValue,
 			PenaltyFeeValue:   enrollmentPaymentRow.PenaltyFeeValue,
+			DiscountFeeValue:  enrollmentPaymentRow.DiscountFeeValue,
 		})
 	}
 

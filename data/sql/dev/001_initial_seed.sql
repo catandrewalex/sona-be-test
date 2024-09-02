@@ -243,79 +243,79 @@ INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 575000, 
 
 /* ============================== ENROLLMENT_PAYMENT ============================== */
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-07-01 07:00:00', 4, 300000, 0, 0, 1
+    '2023-07-01 07:00:00', 4, 300000, 0, 0, 0, 1
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-07-01 07:00:00', 4, 750000, 0, 0, 2
-);
-
-INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
-) VALUES (
-    '2023-08-01 07:00:00', 4, 375000, 0, 20000, 1
-);
-INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
-) VALUES (
-    '2023-08-01 07:00:00', 4, 850000, 0, 0, 2
+    '2023-07-01 07:00:00', 4, 750000, 0, 0, 0, 2
 );
 
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-10-15 22:03:49', 4, 375000, 0, 40000, 1
+    '2023-08-01 07:00:00', 4, 375000, 0, 20000, 0, 1
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-10-01 09:13:28', 4, 850000, 0, 20000, 2
+    '2023-08-01 07:00:00', 4, 850000, 0, 0, 0, 2
+);
+
+INSERT INTO enrollment_payment (
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
+) VALUES (
+    '2023-10-15 22:03:49', 4, 375000, 0, 40000, 0, 1
+);
+INSERT INTO enrollment_payment (
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
+) VALUES (
+    '2023-10-01 09:13:28', 4, 850000, 0, 20000, 0, 2
 );
 
 
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-08-28 14:14:22', 4, 250000, 37500, 0, 5
+    '2023-08-28 14:14:22', 4, 250000, 37500, 0, 0, 5
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-08-28 14:24:41', 4, 250000, 37500, 0, 6
+    '2023-08-28 14:24:41', 4, 250000, 37500, 0, 0, 6
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-08-28 14:34:55', 4, 250000, 37500, 0, 7
+    '2023-08-28 14:34:55', 4, 250000, 37500, 0, 0, 7
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-08-28 14:45:06', 4, 250000, 37500, 0, 8
+    '2023-08-28 14:45:06', 4, 250000, 37500, 0, 0, 8
 );
 
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-09-25 17:04:22', 4, 250000, 37500, 0, 5
+    '2023-09-25 17:04:22', 4, 250000, 37500, 0, 0, 5
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-09-25 17:14:41', 4, 250000, 37500, 0, 6
+    '2023-09-25 17:14:41', 4, 250000, 37500, 0, 0, 6
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-09-25 17:24:55', 4, 250000, 37500, 0, 7
+    '2023-09-25 17:24:55', 4, 250000, 37500, 0, 0, 7
 );
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    '2023-09-25 17:35:06', 4, 250000, 37500, 0, 8
+    '2023-09-25 17:35:06', 4, 250000, 37500, 0, 0, 8
 );
 
 /* ============================== STUDENT_LEARNING_TOKEN ============================== */

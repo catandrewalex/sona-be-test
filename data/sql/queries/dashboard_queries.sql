@@ -49,7 +49,7 @@ ORDER BY total_paid_course_fee;
 
 /* ============================== INCOME ============================== */
 -- name: GetIncomeOverview :many
-SELECT DATE_FORMAT(ep.payment_date, '%Y-%m') AS year_with_month, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value
+SELECT DATE_FORMAT(ep.payment_date, '%Y-%m') AS year_with_month, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value, CAST(sum(ep.discount_fee_value) AS SIGNED) AS total_discount_fee_value
 FROM enrollment_payment AS ep
     -- we need this joins just for the filtering (student_id & instrument_id)
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -63,7 +63,7 @@ GROUP BY year_with_month
 ORDER BY year_with_month ASC;
 
 -- name: GetIncomeMonthlySummaryGroupedByStudent :many
-SELECT student.id AS student_id, user.id AS user_id, user_detail, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value
+SELECT student.id AS student_id, user.id AS user_id, user_detail, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value, CAST(sum(ep.discount_fee_value) AS SIGNED) AS total_discount_fee_value
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
     JOIN student ON se.student_id = student.id
@@ -80,7 +80,7 @@ GROUP BY student.id
 ORDER BY total_course_fee;
 
 -- name: GetIncomeMonthlySummaryGroupedByInstrument :many
-SELECT sqlc.embed(instrument), CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value
+SELECT sqlc.embed(instrument), CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value, CAST(sum(ep.discount_fee_value) AS SIGNED) AS total_discount_fee_value
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
     JOIN class ON se.class_id = class.id

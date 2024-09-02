@@ -155,9 +155,11 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 
 	return teaching.StudentEnrollmentInvoice{
 		BalanceTopUp:      teaching.Default_BalanceTopUp,
-		PenaltyFeeValue:   penaltyFeeValue,
+		BalanceBonus:      0,
 		CourseFeeValue:    courseFeeValue,
 		TransportFeeValue: splittedTransportFee,
+		PenaltyFeeValue:   penaltyFeeValue,
+		DiscountFeeValue:  0,
 		LastPaymentDate:   lastPaymentDate,
 		DaysLate:          daysLate,
 	}, nil
@@ -174,6 +176,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 				CourseFeeValue:      spec.CourseFeeValue,
 				TransportFeeValue:   spec.TransportFeeValue,
 				PenaltyFeeValue:     spec.PenaltyFeeValue,
+				DiscountFeeValue:    spec.DiscountFeeValue,
 			},
 		})
 		if err != nil {
@@ -280,13 +283,14 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 			}
 		}
 
-		err = qtx.UpdateEnrollmentPaymentDateAndBalanceBonus(newCtx, mysql.UpdateEnrollmentPaymentDateAndBalanceBonusParams{
-			PaymentDate:  spec.PaymentDate,
-			BalanceBonus: spec.BalanceBonus,
-			ID:           int64(spec.EnrollmentPaymentID),
+		err = qtx.UpdateEnrollmentPaymentOnSafeAttributes(newCtx, mysql.UpdateEnrollmentPaymentOnSafeAttributesParams{
+			PaymentDate:      spec.PaymentDate,
+			BalanceBonus:     spec.BalanceBonus,
+			DiscountFeeValue: spec.DiscountFeeValue,
+			ID:               int64(spec.EnrollmentPaymentID),
 		})
 		if err != nil {
-			return fmt.Errorf("entityService.UpdateEnrollmentPaymentDateAndBalanceBonus(): %w", err)
+			return fmt.Errorf("entityService.UpdateEnrollmentPaymentOnSafeAttributes(): %w", err)
 		}
 
 		return nil
@@ -383,8 +387,8 @@ func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entit
 		slt := entity.StudentLearningToken_Minimal{
 			StudentLearningTokenID: entity.StudentLearningTokenID(sltRow.StudentLearningTokenID),
 			Quota:                  sltRow.Quota,
-			CourseFeeValue:         sltRow.CourseFeeQuarterValue,
-			TransportFeeValue:      sltRow.TransportFeeQuarterValue,
+			CourseFeeValue:         sltRow.CourseFeeQuarterValue * 4,
+			TransportFeeValue:      sltRow.TransportFeeQuarterValue * 4,
 			CreatedAt:              sltRow.CreatedAt,
 			LastUpdatedAt:          sltRow.LastUpdatedAt,
 		}

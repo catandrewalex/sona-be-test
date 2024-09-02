@@ -1,6 +1,6 @@
 /* ============================== ENROLLMENT_PAYMENT ============================== */
 -- name: GetEnrollmentPaymentById :one
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -21,7 +21,7 @@ FROM enrollment_payment AS ep
 WHERE ep.id = ? LIMIT 1;
 
 -- name: GetEnrollmentPaymentsByIds :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -42,7 +42,7 @@ FROM enrollment_payment AS ep
 WHERE ep.id IN (sqlc.slice('ids'));
 
 -- name: GetEnrollmentPayments :many
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -73,7 +73,7 @@ GROUP BY enrollment_id LIMIT 1;
 
 -- name: GetEnrollmentPaymentsDescendingDate :many
 -- GetEnrollmentPaymentsDescendingDate is a copy of GetEnrollmentPayments, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query which is mature enough, so that we need to do this.
-SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, se.id AS student_enrollment_id,
+SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
@@ -105,17 +105,17 @@ SELECT Count(id) AS total FROM enrollment_payment;
 
 -- name: InsertEnrollmentPayment :execlastid
 INSERT INTO enrollment_payment (
-    payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, enrollment_id
+    payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?
 );
 
 -- name: UpdateEnrollmentPayment :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, balance_bonus = ?, course_fee_value = ?, transport_fee_value = ?, penalty_fee_value = ?
+UPDATE enrollment_payment SET payment_date = ?, balance_top_up = ?, balance_bonus = ?, course_fee_value = ?, transport_fee_value = ?, penalty_fee_value = ?, discount_fee_value = ?
 WHERE id = ?;
 
--- name: UpdateEnrollmentPaymentDateAndBalanceBonus :exec
-UPDATE enrollment_payment SET payment_date = ?, balance_bonus = ?
+-- name: UpdateEnrollmentPaymentOnSafeAttributes :exec
+UPDATE enrollment_payment SET payment_date = ?, balance_bonus = ?, discount_fee_value = ?
 WHERE id = ?;
 
 -- name: DeleteEnrollmentPaymentById :exec

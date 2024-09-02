@@ -259,7 +259,7 @@ func (q *Queries) GetExpenseOverview(ctx context.Context, arg GetExpenseOverview
 }
 
 const getIncomeMonthlySummaryGroupedByInstrument = `-- name: GetIncomeMonthlySummaryGroupedByInstrument :many
-SELECT instrument.id, instrument.name, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value
+SELECT instrument.id, instrument.name, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value, CAST(sum(ep.discount_fee_value) AS SIGNED) AS total_discount_fee_value
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
     JOIN class ON se.class_id = class.id
@@ -283,10 +283,11 @@ type GetIncomeMonthlySummaryGroupedByInstrumentParams struct {
 }
 
 type GetIncomeMonthlySummaryGroupedByInstrumentRow struct {
-	Instrument           Instrument
-	TotalCourseFee       int64
-	TotalTransportFee    int64
-	TotalPenaltyFeeValue int64
+	Instrument            Instrument
+	TotalCourseFee        int64
+	TotalTransportFee     int64
+	TotalPenaltyFeeValue  int64
+	TotalDiscountFeeValue int64
 }
 
 func (q *Queries) GetIncomeMonthlySummaryGroupedByInstrument(ctx context.Context, arg GetIncomeMonthlySummaryGroupedByInstrumentParams) ([]GetIncomeMonthlySummaryGroupedByInstrumentRow, error) {
@@ -326,6 +327,7 @@ func (q *Queries) GetIncomeMonthlySummaryGroupedByInstrument(ctx context.Context
 			&i.TotalCourseFee,
 			&i.TotalTransportFee,
 			&i.TotalPenaltyFeeValue,
+			&i.TotalDiscountFeeValue,
 		); err != nil {
 			return nil, err
 		}
@@ -341,7 +343,7 @@ func (q *Queries) GetIncomeMonthlySummaryGroupedByInstrument(ctx context.Context
 }
 
 const getIncomeMonthlySummaryGroupedByStudent = `-- name: GetIncomeMonthlySummaryGroupedByStudent :many
-SELECT student.id AS student_id, user.id AS user_id, user_detail, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value
+SELECT student.id AS student_id, user.id AS user_id, user_detail, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value, CAST(sum(ep.discount_fee_value) AS SIGNED) AS total_discount_fee_value
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
     JOIN student ON se.student_id = student.id
@@ -368,12 +370,13 @@ type GetIncomeMonthlySummaryGroupedByStudentParams struct {
 }
 
 type GetIncomeMonthlySummaryGroupedByStudentRow struct {
-	StudentID            int64
-	UserID               int64
-	UserDetail           json.RawMessage
-	TotalCourseFee       int64
-	TotalTransportFee    int64
-	TotalPenaltyFeeValue int64
+	StudentID             int64
+	UserID                int64
+	UserDetail            json.RawMessage
+	TotalCourseFee        int64
+	TotalTransportFee     int64
+	TotalPenaltyFeeValue  int64
+	TotalDiscountFeeValue int64
 }
 
 func (q *Queries) GetIncomeMonthlySummaryGroupedByStudent(ctx context.Context, arg GetIncomeMonthlySummaryGroupedByStudentParams) ([]GetIncomeMonthlySummaryGroupedByStudentRow, error) {
@@ -414,6 +417,7 @@ func (q *Queries) GetIncomeMonthlySummaryGroupedByStudent(ctx context.Context, a
 			&i.TotalCourseFee,
 			&i.TotalTransportFee,
 			&i.TotalPenaltyFeeValue,
+			&i.TotalDiscountFeeValue,
 		); err != nil {
 			return nil, err
 		}
@@ -429,7 +433,7 @@ func (q *Queries) GetIncomeMonthlySummaryGroupedByStudent(ctx context.Context, a
 }
 
 const getIncomeOverview = `-- name: GetIncomeOverview :many
-SELECT DATE_FORMAT(ep.payment_date, '%Y-%m') AS year_with_month, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value
+SELECT DATE_FORMAT(ep.payment_date, '%Y-%m') AS year_with_month, CAST(sum(ep.course_fee_value) AS SIGNED) AS total_course_fee, CAST(sum(ep.transport_fee_value) AS SIGNED) AS total_transport_fee, CAST(sum(ep.penalty_fee_value) AS SIGNED) AS total_penalty_fee_value, CAST(sum(ep.discount_fee_value) AS SIGNED) AS total_discount_fee_value
 FROM enrollment_payment AS ep
     -- we need this joins just for the filtering (student_id & instrument_id)
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -453,10 +457,11 @@ type GetIncomeOverviewParams struct {
 }
 
 type GetIncomeOverviewRow struct {
-	YearWithMonth        string
-	TotalCourseFee       int64
-	TotalTransportFee    int64
-	TotalPenaltyFeeValue int64
+	YearWithMonth         string
+	TotalCourseFee        int64
+	TotalTransportFee     int64
+	TotalPenaltyFeeValue  int64
+	TotalDiscountFeeValue int64
 }
 
 // ============================== INCOME ==============================
@@ -496,6 +501,7 @@ func (q *Queries) GetIncomeOverview(ctx context.Context, arg GetIncomeOverviewPa
 			&i.TotalCourseFee,
 			&i.TotalTransportFee,
 			&i.TotalPenaltyFeeValue,
+			&i.TotalDiscountFeeValue,
 		); err != nil {
 			return nil, err
 		}

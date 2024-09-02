@@ -26,9 +26,11 @@ type UserTeachingInfo struct {
 
 type StudentEnrollmentInvoice struct {
 	BalanceTopUp      int32      `json:"balanceTopUp"`
-	PenaltyFeeValue   int32      `json:"penaltyFeeValue"`
+	BalanceBonus      int32      `json:"balanceBonus"`
 	CourseFeeValue    int32      `json:"courseFeeValue"`
 	TransportFeeValue int32      `json:"transportFeeValue"`
+	PenaltyFeeValue   int32      `json:"penaltyFeeValue"`
+	DiscountFeeValue  int32      `json:"discountFeeValue"`
 	LastPaymentDate   *time.Time `json:"lastPaymentDate,omitempty"`
 	DaysLate          int32      `json:"daysLate"`
 }
@@ -121,14 +123,16 @@ type SubmitStudentEnrollmentPaymentSpec struct {
 
 	BalanceTopUp      int32
 	BalanceBonus      int32
-	PenaltyFeeValue   int32
 	CourseFeeValue    int32
 	TransportFeeValue int32
+	PenaltyFeeValue   int32
+	DiscountFeeValue  int32
 }
 type EditStudentEnrollmentPaymentSpec struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID
 	PaymentDate         time.Time
 	BalanceBonus        int32
+	DiscountFeeValue    int32
 }
 
 type SearchClassSpec struct {

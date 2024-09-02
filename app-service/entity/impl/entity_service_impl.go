@@ -1144,6 +1144,7 @@ func (s entityServiceImpl) InsertEnrollmentPayments(ctx context.Context, specs [
 				CourseFeeValue:    spec.CourseFeeValue,
 				TransportFeeValue: spec.TransportFeeValue,
 				PenaltyFeeValue:   spec.PenaltyFeeValue,
+				DiscountFeeValue:  spec.DiscountFeeValue,
 				EnrollmentID:      sql.NullInt64{Int64: int64(spec.StudentEnrollmentID), Valid: true},
 			})
 			if err != nil {
@@ -1176,6 +1177,7 @@ func (s entityServiceImpl) UpdateEnrollmentPayments(ctx context.Context, specs [
 				CourseFeeValue:    spec.CourseFeeValue,
 				TransportFeeValue: spec.TransportFeeValue,
 				PenaltyFeeValue:   spec.PenaltyFeeValue,
+				DiscountFeeValue:  spec.DiscountFeeValue,
 				ID:                int64(spec.EnrollmentPaymentID),
 			})
 			if err != nil {

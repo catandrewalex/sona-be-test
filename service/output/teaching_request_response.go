@@ -65,9 +65,10 @@ type SubmitEnrollmentPaymentRequest struct {
 	PaymentDate         time.Time                  `json:"paymentDate"`
 	BalanceTopUp        int32                      `json:"balanceTopUp"`
 	BalanceBonus        int32                      `json:"balanceBonus,omitempty"`
-	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
+	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
+	DiscountFeeValue    int32                      `json:"discountFeeValue,omitempty"`
 }
 type SubmitEnrollmentPaymentResponse struct {
 	Message string `json:"message,omitempty"`
@@ -79,14 +80,17 @@ func (r SubmitEnrollmentPaymentRequest) Validate() errs.ValidationError {
 	if r.BalanceTopUp < 0 {
 		errorDetail["balanceTopUp"] = "balanceTopUp must be >= 0"
 	}
-	if r.PenaltyFeeValue < 0 {
-		errorDetail["penaltyFeeValue"] = "penaltyFeeValue must be >= 0"
-	}
 	if r.CourseFeeValue < 0 {
 		errorDetail["courseFeeValue"] = "courseFeeValue must be >= 0"
 	}
 	if r.TransportFeeValue < 0 {
 		errorDetail["transportFeeValue"] = "transportFeeValue must be >= 0"
+	}
+	if r.PenaltyFeeValue < 0 {
+		errorDetail["penaltyFeeValue"] = "penaltyFeeValue must be >= 0"
+	}
+	if r.DiscountFeeValue < 0 {
+		errorDetail["discountFeeValue"] = "discountFeeValue must be >= 0"
 	}
 
 	if len(errorDetail) > 0 {
@@ -100,6 +104,7 @@ type EditEnrollmentPaymentRequest struct {
 	EnrollmentPaymentID entity.EnrollmentPaymentID `json:"enrollmentPaymentId"`
 	PaymentDate         time.Time                  `json:"paymentDate"`
 	BalanceBonus        int32                      `json:"balanceBonus,omitempty"`
+	DiscountFeeValue    int32                      `json:"discountFeeValue,omitempty"`
 }
 type EditEnrollmentPaymentResponse struct {
 	Data    entity.EnrollmentPayment `json:"data"`

@@ -572,6 +572,7 @@ type InsertEnrollmentPaymentsRequestParam struct {
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
+	DiscountFeeValue    int32                      `json:"discountFeeValue,omitempty"`
 }
 type InsertEnrollmentPaymentsResponse struct {
 	Data    UpsertEnrollmentPaymentResult `json:"data"`
@@ -594,6 +595,9 @@ func (r InsertEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 		if datum.PenaltyFeeValue < 0 {
 			errorDetail[fmt.Sprintf("data.%d.penaltyFeeValue", i)] = "penaltyFeeValue must be >= 0"
 		}
+		if datum.DiscountFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.discountFeeValue", i)] = "discountFeeValue must be >= 0"
+		}
 	}
 
 	if len(errorDetail) > 0 {
@@ -613,6 +617,7 @@ type UpdateEnrollmentPaymentsRequestParam struct {
 	CourseFeeValue      int32                      `json:"courseFeeValue,omitempty"`
 	TransportFeeValue   int32                      `json:"transportFeeValue,omitempty"`
 	PenaltyFeeValue     int32                      `json:"penaltyFeeValue,omitempty"`
+	DiscountFeeValue    int32                      `json:"discountFeeValue,omitempty"`
 }
 type UpdateEnrollmentPaymentsResponse struct {
 	Data    UpsertEnrollmentPaymentResult `json:"data"`
@@ -634,6 +639,9 @@ func (r UpdateEnrollmentPaymentsRequest) Validate() errs.ValidationError {
 		}
 		if datum.PenaltyFeeValue < 0 {
 			errorDetail[fmt.Sprintf("data.%d.penaltyFeeValue", i)] = "penaltyFeeValue must be >= 0"
+		}
+		if datum.DiscountFeeValue < 0 {
+			errorDetail[fmt.Sprintf("data.%d.discountFeeValue", i)] = "discountFeeValue must be >= 0"
 		}
 	}
 

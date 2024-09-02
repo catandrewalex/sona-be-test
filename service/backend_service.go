@@ -1308,6 +1308,7 @@ func (s *BackendService) InsertEnrollmentPaymentsHandler(ctx context.Context, re
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
 			PenaltyFeeValue:     param.PenaltyFeeValue,
+			DiscountFeeValue:    param.DiscountFeeValue,
 		})
 	}
 
@@ -1345,6 +1346,7 @@ func (s *BackendService) UpdateEnrollmentPaymentsHandler(ctx context.Context, re
 			CourseFeeValue:      param.CourseFeeValue,
 			TransportFeeValue:   param.TransportFeeValue,
 			PenaltyFeeValue:     param.PenaltyFeeValue,
+			DiscountFeeValue:    param.DiscountFeeValue,
 		})
 	}
 
@@ -1714,9 +1716,10 @@ func (s *BackendService) SubmitEnrollmentPaymentHandler(ctx context.Context, req
 		PaymentDate:         req.PaymentDate,
 		BalanceTopUp:        req.BalanceTopUp,
 		BalanceBonus:        req.BalanceBonus,
-		PenaltyFeeValue:     req.PenaltyFeeValue,
 		CourseFeeValue:      req.CourseFeeValue,
 		TransportFeeValue:   req.TransportFeeValue,
+		PenaltyFeeValue:     req.PenaltyFeeValue,
+		DiscountFeeValue:    req.DiscountFeeValue,
 	})
 	if err != nil {
 		return nil, handleUpsertionError(err, "teachingService.SubmitStudentEnrollmentPayment()", "enrollmentPayment")
@@ -1736,6 +1739,7 @@ func (s *BackendService) EditEnrollmentPaymentHandler(ctx context.Context, req *
 		EnrollmentPaymentID: req.EnrollmentPaymentID,
 		PaymentDate:         req.PaymentDate,
 		BalanceBonus:        req.BalanceBonus,
+		DiscountFeeValue:    req.DiscountFeeValue,
 	})
 	if err != nil {
 		return nil, handleReadUpsertError(err, "teachingService.EditEnrollmentPayment()", "enrollmentPayment")

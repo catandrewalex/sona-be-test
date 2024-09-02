@@ -101,6 +101,8 @@ type EnrollmentPayment struct {
 	CourseFeeValue    int32 `json:"courseFeeValue"`
 	TransportFeeValue int32 `json:"transportFeeValue"`
 	PenaltyFeeValue   int32 `json:"penaltyFeeValue"`
+	// DiscountFeeValue is used for modifying top-upped balance, without affecting CourseFeeQuarterValue & TransportFeeQuarterValue. Check teaching/calculation_util.go for more information.
+	DiscountFeeValue int32 `json:"discountFeeValue"`
 }
 
 type StudentLearningToken struct {
@@ -430,6 +432,7 @@ type InsertEnrollmentPaymentSpec struct {
 	CourseFeeValue      int32
 	TransportFeeValue   int32
 	PenaltyFeeValue     int32
+	DiscountFeeValue    int32
 }
 
 type UpdateEnrollmentPaymentSpec struct {
@@ -440,6 +443,7 @@ type UpdateEnrollmentPaymentSpec struct {
 	CourseFeeValue      int32
 	TransportFeeValue   int32
 	PenaltyFeeValue     int32
+	DiscountFeeValue    int32
 }
 
 func (s UpdateEnrollmentPaymentSpec) GetInt64ID() int64 {
