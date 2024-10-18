@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"sonamusica-backend/accessor/relational_db"
 	"sonamusica-backend/accessor/relational_db/mysql"
@@ -1273,6 +1274,8 @@ func (s entityServiceImpl) InsertStudentLearningTokens(ctx context.Context, spec
 				Quota:                    spec.Quota,
 				CourseFeeQuarterValue:    spec.CourseFeeQuarterValue,
 				TransportFeeQuarterValue: spec.TransportFeeQuarterValue,
+				CreatedAt:                time.Now().UTC(),
+				LastUpdatedAt:            time.Now().UTC(),
 				EnrollmentID:             int64(spec.StudentEnrollmentID),
 			})
 			if err != nil {
@@ -1303,6 +1306,7 @@ func (s entityServiceImpl) UpdateStudentLearningTokens(ctx context.Context, spec
 				Quota:                    spec.Quota,
 				CourseFeeQuarterValue:    spec.CourseFeeQuarterValue,
 				TransportFeeQuarterValue: spec.TransportFeeQuarterValue,
+				LastUpdatedAt:            time.Now().UTC(),
 				ID:                       int64(spec.StudentLearningTokenID),
 			})
 			if err != nil {

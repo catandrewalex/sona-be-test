@@ -1778,17 +1778,18 @@ func (q *Queries) GetTeacherPaymentsByTeacherId(ctx context.Context, arg GetTeac
 }
 
 const incrementSLTQuotaById = `-- name: IncrementSLTQuotaById :exec
-UPDATE student_learning_token SET quota = quota + ?
+UPDATE student_learning_token SET quota = quota + ?, last_updated_at = ?
 WHERE id = ?
 `
 
 type IncrementSLTQuotaByIdParams struct {
-	Quota float64
-	ID    int64
+	Quota         float64
+	LastUpdatedAt time.Time
+	ID            int64
 }
 
 func (q *Queries) IncrementSLTQuotaById(ctx context.Context, arg IncrementSLTQuotaByIdParams) error {
-	_, err := q.db.ExecContext(ctx, incrementSLTQuotaById, arg.Quota, arg.ID)
+	_, err := q.db.ExecContext(ctx, incrementSLTQuotaById, arg.Quota, arg.LastUpdatedAt, arg.ID)
 	return err
 }
 
@@ -1830,9 +1831,9 @@ func (q *Queries) InsertEnrollmentPayment(ctx context.Context, arg InsertEnrollm
 
 const insertStudentLearningToken = `-- name: InsertStudentLearningToken :execlastid
 INSERT INTO student_learning_token (
-    quota, course_fee_quarter_value, transport_fee_quarter_value, enrollment_id
+    quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -1840,6 +1841,8 @@ type InsertStudentLearningTokenParams struct {
 	Quota                    float64
 	CourseFeeQuarterValue    int32
 	TransportFeeQuarterValue int32
+	CreatedAt                time.Time
+	LastUpdatedAt            time.Time
 	EnrollmentID             int64
 }
 
@@ -1848,6 +1851,8 @@ func (q *Queries) InsertStudentLearningToken(ctx context.Context, arg InsertStud
 		arg.Quota,
 		arg.CourseFeeQuarterValue,
 		arg.TransportFeeQuarterValue,
+		arg.CreatedAt,
+		arg.LastUpdatedAt,
 		arg.EnrollmentID,
 	)
 	if err != nil {
@@ -1879,18 +1884,24 @@ func (q *Queries) InsertTeacherPayment(ctx context.Context, arg InsertTeacherPay
 }
 
 const resetStudentLearningTokenQuotaByIds = `-- name: ResetStudentLearningTokenQuotaByIds :exec
-UPDATE student_learning_token SET quota = 0
+UPDATE student_learning_token SET quota = 0, last_updated_at = ?
 WHERE id IN (/*SLICE:ids*/?)
 `
 
-func (q *Queries) ResetStudentLearningTokenQuotaByIds(ctx context.Context, ids []int64) error {
+type ResetStudentLearningTokenQuotaByIdsParams struct {
+	LastUpdatedAt time.Time
+	Ids           []int64
+}
+
+func (q *Queries) ResetStudentLearningTokenQuotaByIds(ctx context.Context, arg ResetStudentLearningTokenQuotaByIdsParams) error {
 	query := resetStudentLearningTokenQuotaByIds
 	var queryParams []interface{}
-	if len(ids) > 0 {
-		for _, v := range ids {
+	queryParams = append(queryParams, arg.LastUpdatedAt)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
 	}
@@ -1951,7 +1962,7 @@ func (q *Queries) UpdateEnrollmentPaymentOnSafeAttributes(ctx context.Context, a
 }
 
 const updateStudentLearningToken = `-- name: UpdateStudentLearningToken :exec
-UPDATE student_learning_token SET quota = ?, course_fee_quarter_value = ?, transport_fee_quarter_value = ?
+UPDATE student_learning_token SET quota = ?, course_fee_quarter_value = ?, transport_fee_quarter_value = ?, last_updated_at = ?
 WHERE id = ?
 `
 
@@ -1959,6 +1970,7 @@ type UpdateStudentLearningTokenParams struct {
 	Quota                    float64
 	CourseFeeQuarterValue    int32
 	TransportFeeQuarterValue int32
+	LastUpdatedAt            time.Time
 	ID                       int64
 }
 
@@ -1967,6 +1979,7 @@ func (q *Queries) UpdateStudentLearningToken(ctx context.Context, arg UpdateStud
 		arg.Quota,
 		arg.CourseFeeQuarterValue,
 		arg.TransportFeeQuarterValue,
+		arg.LastUpdatedAt,
 		arg.ID,
 	)
 	return err

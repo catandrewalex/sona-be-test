@@ -199,7 +199,10 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 		}
 		// NOTE: we actually can combine these: (1) sum all negative quotas, and (2) reset the quota to 0 into a single SQL method.
 		//  But, for the sake of better control, I decided to do this separately, with the cost of more DB I/O.
-		err = qtx.ResetStudentLearningTokenQuotaByIds(newCtx, negativeQuotaSLTIDs)
+		err = qtx.ResetStudentLearningTokenQuotaByIds(newCtx, mysql.ResetStudentLearningTokenQuotaByIdsParams{
+			LastUpdatedAt: time.Now().UTC(),
+			Ids:           negativeQuotaSLTIDs,
+		})
 		if err != nil {
 			return fmt.Errorf("qtx.ResetStudentLearningTokenQuotaByIds(): %w", err)
 		}
@@ -234,8 +237,9 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			}
 		} else {
 			err := qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: balanceTopUpMinusPenalty,
-				ID:    existingSLT.ID,
+				Quota:         balanceTopUpMinusPenalty,
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            existingSLT.ID,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
@@ -275,8 +279,9 @@ func (s teachingServiceImpl) EditEnrollmentPayment(ctx context.Context, spec tea
 		if !skipSLTUpdate {
 			quotaChange := float64(spec.BalanceBonus - prevEP.BalanceBonus)
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: quotaChange,
-				ID:    updatedSLT.ID,
+				Quota:         quotaChange,
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            updatedSLT.ID,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
@@ -331,8 +336,9 @@ func (s teachingServiceImpl) RemoveEnrollmentPayment(ctx context.Context, enroll
 		if !skipSLTUpdate {
 			quotaChange := -1 * (prevEP.BalanceTopUp + prevEP.BalanceBonus)
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: float64(quotaChange),
-				ID:    updatedSLT.ID,
+				Quota:         float64(quotaChange),
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            updatedSLT.ID,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
@@ -458,8 +464,9 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 			enrollmentIDToEarliestSLTID[earliestAvailableSLT.EnrollmentID] = entity.StudentLearningTokenID(earliestAvailableSLT.StudentLearningTokenID)
 
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: spec.UsedStudentTokenQuota * -1,
-				ID:    earliestAvailableSLT.StudentLearningTokenID,
+				Quota:         spec.UsedStudentTokenQuota * -1,
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            earliestAvailableSLT.StudentLearningTokenID,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
@@ -571,8 +578,9 @@ func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.E
 		for sltIDInt, usedQuota := range sltIDIntToUsedQuota {
 			quotaChange := float64(usedQuota - spec.UsedStudentTokenQuota)
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: quotaChange,
-				ID:    sltIDInt,
+				Quota:         quotaChange,
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            sltIDInt,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
@@ -617,8 +625,9 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 		for sltIDInt, usedQuota := range sltIDIntToUsedQuota {
 			quotaChange := usedQuota
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota: quotaChange,
-				ID:    sltIDInt,
+				Quota:         quotaChange,
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            sltIDInt,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)

@@ -166,7 +166,7 @@ FROM student_learning_token AS slt
 WHERE slt.enrollment_id IN (sqlc.slice('student_enrollment_ids'));
 
 -- name: IncrementSLTQuotaById :exec
-UPDATE student_learning_token SET quota = quota + ?
+UPDATE student_learning_token SET quota = quota + ?, last_updated_at = ?
 WHERE id = ?;
 
 -- name: GetSLTByClassIdForAttendanceInfo :many
@@ -266,17 +266,17 @@ SELECT Count(id) AS total FROM student_learning_token;
 
 -- name: InsertStudentLearningToken :execlastid
 INSERT INTO student_learning_token (
-    quota, course_fee_quarter_value, transport_fee_quarter_value, enrollment_id
+    quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, enrollment_id
 ) VALUES (
-    ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?
 );
 
 -- name: UpdateStudentLearningToken :exec
-UPDATE student_learning_token SET quota = ?, course_fee_quarter_value = ?, transport_fee_quarter_value = ?
+UPDATE student_learning_token SET quota = ?, course_fee_quarter_value = ?, transport_fee_quarter_value = ?, last_updated_at = ?
 WHERE id = ?;
 
 -- name: ResetStudentLearningTokenQuotaByIds :exec
-UPDATE student_learning_token SET quota = 0
+UPDATE student_learning_token SET quota = 0, last_updated_at = ?
 WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteStudentLearningTokenById :exec
