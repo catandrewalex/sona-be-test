@@ -89,7 +89,7 @@ func (s dashboardServiceImpl) GetExpenseMonthlySummary(ctx context.Context, spec
 	}
 
 	useTeacherFilter := len(teacherIDs) > 0
-	useInstrumentFilter := len(teacherIDs) > 0
+	useInstrumentFilter := len(instrumentIDs) > 0
 
 	var monthlySummaryResultItems []dashboard.MonthlySummaryResultItem
 	switch spec.GroupBy {
@@ -149,7 +149,7 @@ func (s dashboardServiceImpl) GetIncomeOverview(ctx context.Context, spec dashbo
 	}
 
 	useStudentFilter := len(studentIDs) > 0
-	useInstrumentFilter := len(studentIDs) > 0
+	useInstrumentFilter := len(instrumentIDs) > 0
 
 	incomeOverviewRows, err := s.mySQLQueries.GetIncomeOverview(ctx, mysql.GetIncomeOverviewParams{
 		StartDate:           timeFilter.StartDatetime,
@@ -188,7 +188,7 @@ func (s dashboardServiceImpl) GetIncomeMonthlySummary(ctx context.Context, spec 
 	}
 
 	useTeacherFilter := len(studentIDs) > 0
-	useInstrumentFilter := len(studentIDs) > 0
+	useInstrumentFilter := len(instrumentIDs) > 0
 
 	var monthlySummaryResultItems []dashboard.MonthlySummaryResultItem
 	switch spec.GroupBy {
