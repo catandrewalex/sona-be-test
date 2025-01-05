@@ -148,6 +148,10 @@ func main() {
 		authRouter.Delete("/attendances", jsonSerdeWrapper.WrapFunc(backendService.DeleteAttendancesHandler))
 
 		authRouter.Get("/teacherPayments", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentsHandler))
+
+		// This endpoint is more similar with "/classes/{ClassID}/attendances/add", where (1) SLTs are automatically updated, (2) class with n students will get n attendances.
+		// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
+		authRouter.Post("/attendances/add/batch", jsonSerdeWrapper.WrapFunc(backendService.AddAttendancesBatchHandler))
 	})
 
 	// Router group for staff-only (and above) endpoints

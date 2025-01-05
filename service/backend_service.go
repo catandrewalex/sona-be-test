@@ -1673,6 +1673,46 @@ func (s *BackendService) GetTeacherPaymentsHandler(ctx context.Context, req *out
 	}, nil
 }
 
+// AddAttendancesBatchHandler is the batch version of AddAttendance(), but only for admin.
+// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
+func (s *BackendService) AddAttendancesBatchHandler(ctx context.Context, req *output.AddAttendancesBatchRequest) (*output.AddAttendancesBatchResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	allowAutoCreateSLT := configObject.AllowAutoCreateSLTOnAddAttendance
+
+	specs := make([]teaching.AddAttendanceSpec, 0)
+	for _, param := range req.Data {
+		specs = append(specs, teaching.AddAttendanceSpec{
+			ClassID:               param.ClassID,
+			TeacherID:             param.TeacherID,
+			Date:                  param.Date,
+			UsedStudentTokenQuota: param.UsedStudentTokenQuota,
+			Duration:              param.Duration,
+			Note:                  param.Note,
+		})
+	}
+
+	attendanceIDs, err := s.teachingService.AddAttendancesBatch(ctx, specs, allowAutoCreateSLT)
+	if err != nil {
+		errContext := fmt.Errorf("teachingService.AddAttendancesBatch(): %w", err)
+		if errors.Is(err, errs.ErrClassHaveNoStudent) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One of the classes don't have any student, try registering a student first")
+		}
+		if errors.Is(err, errs.ErrStudentEnrollmentHaveNoLearningToken) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One/more students from one of the classses don't have learningToken, try adding students' enrollmentPayment first")
+		}
+
+		return nil, handleUpsertionError(err, errContext.Error(), "attendance")
+	}
+	mainLog.Info("Attendances added: attendanceIDs='%v'", attendanceIDs)
+
+	return &output.AddAttendancesBatchResponse{
+		Message: "Successfully added attendances",
+	}, nil
+}
+
 func (s *BackendService) SearchEnrollmentPaymentHandler(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV

@@ -98,6 +98,8 @@ type TeachingService interface {
 
 	GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]StudentIDToSLTs, error)
 	GetAttendancesByClassID(ctx context.Context, spec GetAttendancesByClassIDSpec) (GetAttendancesByClassIDResult, error)
+	// AddAttendancesBatch is the batch version of AddAttendance().
+	AddAttendancesBatch(ctx context.Context, specs []AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error)
 	// AddAttendance creates attendance(s) based on spec, duplicated for every students who enroll in the class.
 	//
 	// Enabling "autoCreateSLT" will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).

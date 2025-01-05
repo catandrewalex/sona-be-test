@@ -183,7 +183,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			return fmt.Errorf("entityService.InsertEnrollmentPayments(): %w", err)
 		}
 
-		// sum all negative quotas to reduce balanceTUpValue, and reset those SLTs with negative quota to 0
+		// sum all negative quotas to reduce balanceTopUpValue, and reset those SLTs with negative quota to 0
 		var balanceTopUpMinusPenalty = float64(spec.BalanceTopUp + spec.BalanceBonus)
 		slts, err := qtx.GetSLTWithNegativeQuotaByEnrollmentId(newCtx, int64(spec.StudentEnrollmentID))
 		if err != nil {
@@ -433,6 +433,27 @@ func (s teachingServiceImpl) GetAttendancesByClassID(ctx context.Context, spec t
 		Attendances:      getAttendancesResult.Attendances,
 		PaginationResult: getAttendancesResult.PaginationResult,
 	}, nil
+}
+
+func (s teachingServiceImpl) AddAttendancesBatch(ctx context.Context, specs []teaching.AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error) {
+	attendanceIDs := make([]entity.AttendanceID, 0)
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			ids, err := s.AddAttendance(newCtx, spec, autoCreateSLT)
+			if err != nil {
+				return fmt.Errorf("AddAttendance(): %w", err)
+			}
+			attendanceIDs = append(attendanceIDs, ids...)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []entity.AttendanceID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return attendanceIDs, nil
 }
 
 func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error) {

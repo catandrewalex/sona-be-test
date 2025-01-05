@@ -221,6 +221,42 @@ func (r AddAttendanceRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type AddAttendancesBatchRequest struct {
+	Data []AddAttendancesBatchParam `json:"data"`
+}
+type AddAttendancesBatchParam struct {
+	ClassID               entity.ClassID   `json:"classId"`
+	TeacherID             entity.TeacherID `json:"teacherId"`
+	Date                  time.Time        `json:"date"` // in RFC3339 format: "2023-12-30T14:58:10+07:00"
+	UsedStudentTokenQuota float64          `json:"usedStudentTokenQuota,omitempty"`
+	Duration              int32            `json:"duration,omitempty"`
+	Note                  string           `json:"note,omitempty"`
+}
+type AddAttendancesBatchResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r AddAttendancesBatchRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.ClassID < 0 {
+			errorDetail[fmt.Sprintf("data.%d.classId", i)] = "classId must be >= 0"
+		}
+		if datum.UsedStudentTokenQuota < 0 {
+			errorDetail[fmt.Sprintf("data.%d.usedStudentTokenQuota", i)] = "usedStudentTokenQuota must be >= 0"
+		}
+		if datum.Duration < 0 {
+			errorDetail[fmt.Sprintf("data.%d.duration", i)] = "duration must be >= 0"
+		}
+	}
+
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
 type EditAttendanceRequest struct {
 	AttendanceID          entity.AttendanceID `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	TeacherID             entity.TeacherID    `json:"teacherId"`
