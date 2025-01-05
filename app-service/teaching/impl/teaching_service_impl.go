@@ -183,31 +183,8 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			return fmt.Errorf("entityService.InsertEnrollmentPayments(): %w", err)
 		}
 
-		// sum all negative quotas to reduce balanceTopUpValue, and reset those SLTs with negative quota to 0
-		var balanceTopUpMinusPenalty = float64(spec.BalanceTopUp + spec.BalanceBonus)
-		slts, err := qtx.GetSLTWithNegativeQuotaByEnrollmentId(newCtx, int64(spec.StudentEnrollmentID))
-		if err != nil {
-			return fmt.Errorf("qtx.GetSLTWithNegativeQuotaByEnrollmentId(): %w", err)
-		}
-		negativeQuotaSLTIDs := make([]int64, 0, len(slts))
-		for _, slt := range slts {
-			if slt.Quota >= 0 {
-				continue
-			}
-			balanceTopUpMinusPenalty += slt.Quota
-			negativeQuotaSLTIDs = append(negativeQuotaSLTIDs, slt.ID)
-		}
-		// NOTE: we actually can combine these: (1) sum all negative quotas, and (2) reset the quota to 0 into a single SQL method.
-		//  But, for the sake of better control, I decided to do this separately, with the cost of more DB I/O.
-		err = qtx.ResetStudentLearningTokenQuotaByIds(newCtx, mysql.ResetStudentLearningTokenQuotaByIdsParams{
-			LastUpdatedAt: time.Now().UTC(),
-			Ids:           negativeQuotaSLTIDs,
-		})
-		if err != nil {
-			return fmt.Errorf("qtx.ResetStudentLearningTokenQuotaByIds(): %w", err)
-		}
-
 		// Upsert StudentLearningTokens
+		var totalBalanceTopUp = float64(spec.BalanceTopUp + spec.BalanceBonus)
 		courseFeeQuarterValue := teaching.CalculateSLTFeeQuarterFromEP(spec.CourseFeeValue, spec.BalanceTopUp)
 		transportFeeQuarterValue := teaching.CalculateSLTFeeQuarterFromEP(spec.TransportFeeValue, spec.BalanceTopUp)
 		existingSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams{
@@ -227,7 +204,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			_, err = s.entityService.InsertStudentLearningTokens(newCtx, []entity.InsertStudentLearningTokenSpec{
 				{
 					StudentEnrollmentID:      spec.StudentEnrollmentID,
-					Quota:                    balanceTopUpMinusPenalty,
+					Quota:                    totalBalanceTopUp,
 					CourseFeeQuarterValue:    courseFeeQuarterValue,
 					TransportFeeQuarterValue: transportFeeQuarterValue,
 				},
@@ -237,7 +214,7 @@ func (s teachingServiceImpl) SubmitEnrollmentPayment(ctx context.Context, spec t
 			}
 		} else {
 			err := qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
-				Quota:         balanceTopUpMinusPenalty,
+				Quota:         totalBalanceTopUp,
 				LastUpdatedAt: time.Now().UTC(),
 				ID:            existingSLT.ID,
 			})

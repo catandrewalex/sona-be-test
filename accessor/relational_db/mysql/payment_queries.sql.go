@@ -807,6 +807,7 @@ type GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams struct 
 	TransportFeeQuarterValue int32
 }
 
+// ============================== STUDENT_LEARNING_TOKEN ==============================
 func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(ctx context.Context, arg GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams) (StudentLearningToken, error) {
 	row := q.db.QueryRowContext(ctx, getSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter, arg.EnrollmentID, arg.CourseFeeQuarterValue, arg.TransportFeeQuarterValue)
 	var i StudentLearningToken
@@ -820,43 +821,6 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(
 		&i.EnrollmentID,
 	)
 	return i, err
-}
-
-const getSLTWithNegativeQuotaByEnrollmentId = `-- name: GetSLTWithNegativeQuotaByEnrollmentId :many
-SELECT id, quota, course_fee_quarter_value, transport_fee_quarter_value, created_at, last_updated_at, enrollment_id FROM student_learning_token
-WHERE enrollment_id = ? AND quota < 0
-`
-
-// ============================== STUDENT_LEARNING_TOKEN ==============================
-func (q *Queries) GetSLTWithNegativeQuotaByEnrollmentId(ctx context.Context, enrollmentID int64) ([]StudentLearningToken, error) {
-	rows, err := q.db.QueryContext(ctx, getSLTWithNegativeQuotaByEnrollmentId, enrollmentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []StudentLearningToken
-	for rows.Next() {
-		var i StudentLearningToken
-		if err := rows.Scan(
-			&i.ID,
-			&i.Quota,
-			&i.CourseFeeQuarterValue,
-			&i.TransportFeeQuarterValue,
-			&i.CreatedAt,
-			&i.LastUpdatedAt,
-			&i.EnrollmentID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getStudentLearningTokenById = `-- name: GetStudentLearningTokenById :one
@@ -1881,32 +1845,6 @@ func (q *Queries) InsertTeacherPayment(ctx context.Context, arg InsertTeacherPay
 		return 0, err
 	}
 	return result.LastInsertId()
-}
-
-const resetStudentLearningTokenQuotaByIds = `-- name: ResetStudentLearningTokenQuotaByIds :exec
-UPDATE student_learning_token SET quota = 0, last_updated_at = ?
-WHERE id IN (/*SLICE:ids*/?)
-`
-
-type ResetStudentLearningTokenQuotaByIdsParams struct {
-	LastUpdatedAt time.Time
-	Ids           []int64
-}
-
-func (q *Queries) ResetStudentLearningTokenQuotaByIds(ctx context.Context, arg ResetStudentLearningTokenQuotaByIdsParams) error {
-	query := resetStudentLearningTokenQuotaByIds
-	var queryParams []interface{}
-	queryParams = append(queryParams, arg.LastUpdatedAt)
-	if len(arg.Ids) > 0 {
-		for _, v := range arg.Ids {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
-	}
-	_, err := q.db.ExecContext(ctx, query, queryParams...)
-	return err
 }
 
 const updateEnrollmentPayment = `-- name: UpdateEnrollmentPayment :exec
