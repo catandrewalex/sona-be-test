@@ -6,7 +6,7 @@ CREATE TABLE user (
   user_detail json NOT NULL DEFAULT (JSON_OBJECT()),
   privilege_type INT NOT NULL DEFAULT 0,
   is_deactivated TINYINT NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE user_credential (

@@ -65,7 +65,7 @@ CREATE TABLE student_enrollment
 CREATE TABLE enrollment_payment
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  payment_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  payment_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   balance_top_up INT NOT NULL,
   balance_bonus INT NOT NULL DEFAULT 0,
   course_fee_value INT NOT NULL,
@@ -83,8 +83,8 @@ CREATE TABLE student_learning_token
   quota FLOAT NOT NULL DEFAULT 4,
   course_fee_quarter_value INT NOT NULL,
   transport_fee_quarter_value INT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   enrollment_id BIGINT unsigned NOT NULL,
   -- `student_learning_token` has quota, whose value must be transferrable to another `enrollment` before a student `enrollment` is deleted
   FOREIGN KEY (enrollment_id) REFERENCES student_enrollment(id) ON UPDATE CASCADE ON DELETE RESTRICT
@@ -104,7 +104,7 @@ CREATE TABLE teacher_special_fee
 CREATE TABLE attendance
 (
   id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   used_student_token_quota FLOAT NOT NULL,
   duration INT NOT NULL,
   note VARCHAR(255) NOT NULL DEFAULT '',
@@ -128,7 +128,7 @@ CREATE TABLE teacher_payment
   attendance_id BIGINT unsigned NOT NULL UNIQUE,
   paid_course_fee_value INT NOT NULL,
   paid_transport_fee_value INT NOT NULL,
-  added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- `teacher_payment` stores historical records of teacher payment, and must be deleted explicitly
   FOREIGN KEY (attendance_id) REFERENCES attendance(id) ON UPDATE CASCADE ON DELETE RESTRICT
 );
