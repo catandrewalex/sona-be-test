@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,23 +23,6 @@ import (
 var (
 	configObject = config.Get()
 )
-
-func handleSignal(signalChan chan os.Signal, handlers []func()) {
-	sig := <-signalChan
-	switch sig {
-	case syscall.SIGINT:
-		fmt.Println("SIGINT signal is received")
-		for _, fn := range handlers {
-			fn()
-		}
-		break
-	case syscall.SIGTERM:
-		fmt.Println("SIGINT signal is received")
-		for _, fn := range handlers {
-			fn()
-		}
-	}
-}
 
 func main() {
 	backendService := service.NewBackendService()
@@ -226,7 +212,39 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	// Server run context
+	serverCtx, serverStopCtx := context.WithCancel(context.Background())
+
+	// Listen for syscall signals for process to interrupt/quit
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-sig
+
+		// Shutdown signal with grace period of 30 seconds
+		shutdownCtx, _ := context.WithTimeout(serverCtx, 30*time.Second)
+
+		go func() {
+			<-shutdownCtx.Done()
+			if shutdownCtx.Err() == context.DeadlineExceeded {
+				logging.AppLogger.Fatal("graceful shutdown timed out.. forcing exit.")
+			}
+		}()
+
+		// Trigger graceful shutdown
+		err := server.Shutdown(shutdownCtx)
+		if err != nil {
+			logging.AppLogger.Fatal("graceful shutdown error: %v", err)
+		}
+		serverStopCtx()
+	}()
+
 	logging.AppLogger.Info("Server is starting...")
 	logging.AppLogger.Info("Serving on %s", serverAddr)
-	logging.AppLogger.Error("err: %s", server.ListenAndServe())
+	err := server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		logging.AppLogger.Fatal("Server error: %v", err)
+	}
+
+	<-serverCtx.Done()
 }
