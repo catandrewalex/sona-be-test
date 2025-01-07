@@ -127,10 +127,6 @@ DELETE FROM enrollment_payment
 WHERE id IN (sqlc.slice('ids'));
 
 /* ============================== STUDENT_LEARNING_TOKEN ============================== */
--- name: GetSLTWithNegativeQuotaByEnrollmentId :many
-SELECT * FROM student_learning_token
-WHERE enrollment_id = ? AND quota < 0;
-
 -- name: GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter :one
 SELECT * FROM student_learning_token
 WHERE enrollment_id = ? AND course_fee_quarter_value = ? AND transport_fee_quarter_value = ?;
@@ -274,10 +270,6 @@ INSERT INTO student_learning_token (
 -- name: UpdateStudentLearningToken :exec
 UPDATE student_learning_token SET quota = ?, course_fee_quarter_value = ?, transport_fee_quarter_value = ?, last_updated_at = ?
 WHERE id = ?;
-
--- name: ResetStudentLearningTokenQuotaByIds :exec
-UPDATE student_learning_token SET quota = 0, last_updated_at = ?
-WHERE id IN (sqlc.slice('ids'));
 
 -- name: DeleteStudentLearningTokenById :exec
 DELETE FROM student_learning_token
