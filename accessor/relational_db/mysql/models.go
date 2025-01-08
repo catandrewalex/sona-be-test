@@ -113,6 +113,17 @@ type User struct {
 	CreatedAt     sql.NullTime
 }
 
+type UserActionLog struct {
+	ID            int64
+	Date          time.Time
+	UserID        sql.NullInt64
+	PrivilegeType int32
+	Endpoint      string
+	Method        string
+	StatusCode    uint16
+	RequestBody   string
+}
+
 type UserCredential struct {
 	UserID   int64
 	Username string

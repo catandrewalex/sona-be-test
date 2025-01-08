@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"database/sql"
@@ -25,6 +26,8 @@ import (
 	identityImpl "sonamusica-backend/app-service/identity/impl"
 	"sonamusica-backend/app-service/teaching"
 	teachingImpl "sonamusica-backend/app-service/teaching/impl"
+	"sonamusica-backend/app-service/user_action_log"
+	userActionLogImpl "sonamusica-backend/app-service/user_action_log/impl"
 	"sonamusica-backend/app-service/util"
 	"sonamusica-backend/config"
 	"sonamusica-backend/errs"
@@ -45,6 +48,8 @@ type BackendService struct {
 	entityService    entity.EntityService
 	teachingService  teaching.TeachingService
 	dashboardService dashboard.DashboardService
+
+	userActionLogService user_action_log.UserActionLogService
 }
 
 func NewBackendService() *BackendService {
@@ -77,12 +82,15 @@ func NewBackendService() *BackendService {
 
 	dashhboardService := dashboardImpl.NewDashboardServiceImpl(mySqlQueries, entityService)
 
+	userActionLogService := userActionLogImpl.NewUserActionLogImpl(mySqlQueries)
+
 	return &BackendService{
-		jwtService:       jwtService,
-		identityService:  identityService,
-		entityService:    entityService,
-		teachingService:  teachingService,
-		dashboardService: dashhboardService,
+		jwtService:           jwtService,
+		identityService:      identityService,
+		entityService:        entityService,
+		teachingService:      teachingService,
+		dashboardService:     dashhboardService,
+		userActionLogService: userActionLogService,
 	}
 }
 
@@ -124,6 +132,53 @@ func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, tokenString)
+}
+
+func (s *BackendService) UserActionLogsPage(w http.ResponseWriter, r *http.Request) {
+	htmlFilePath := "./service/static/user_action_log.html"
+	file, err := os.Open(htmlFilePath)
+	if err != nil {
+		mainLog.Error("Could not open page UserActionLogsPage:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := os.Stat(htmlFilePath)
+	if err != nil {
+		mainLog.Error("Could not get UserActionLogsPage's page information:", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the file content and serve it
+	http.ServeContent(w, r, "index.html", fileInfo.ModTime(), file)
+}
+
+func (s *BackendService) FetchUserActionLogs(ctx context.Context, req *output.FetchUserActionLogsRequest) (*output.FetchUserActionLogsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	getUserActionLogsResult, err := s.userActionLogService.GetUserActionLogs(ctx, util.PaginationSpec(req.PaginationRequest), user_action_log.GetUserActionLogSpec{
+		TimeSpec:      util.TimeSpec(req.TimeFilter),
+		UserID:        req.UserID,
+		PrivilegeType: req.PrivilegeType,
+		Method:        req.Method,
+		StatusCode:    req.StatusCode,
+	})
+	if err != nil {
+		return nil, handleReadError(err, "identityService.GetUserActionLogs()", "user")
+	}
+
+	paginationResponse := output.NewPaginationResponse(getUserActionLogsResult.PaginationResult)
+
+	return &output.FetchUserActionLogsResponse{
+		Data: output.FetchUserActionLogsResult{
+			Results:            getUserActionLogsResult.UserActionLogs,
+			PaginationResponse: paginationResponse,
+		},
+	}, nil
 }
 
 func (s *BackendService) SignUpHandler(ctx context.Context, req *output.SignUpRequest) (*output.SignUpResponse, errs.HTTPError) {

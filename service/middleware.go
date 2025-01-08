@@ -1,13 +1,17 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"sonamusica-backend/app-service/auth"
 	"sonamusica-backend/app-service/identity"
+	"sonamusica-backend/app-service/user_action_log"
 	"sonamusica-backend/logging"
 	"sonamusica-backend/network"
 )
@@ -85,13 +89,20 @@ func RequestContextMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// LoggingMiddleware is a middleware function for logging all request information
+// LoggingMiddleware is a middleware function for logging all request information.
+// This middlware also injects a custom ResponseWriter into the context, which can be used to fetch status code.
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		ww := responseWriterWithStatus{w, http.StatusOK} // initialize with status = 200 (OK), in case the status is not filled
-		next.ServeHTTP(&ww, r)
+		ww := network.ResponseWriterWithStatus{
+			ResponseWriter: w,
+			Status:         http.StatusOK,
+		} // initialize with status = 200 (OK), in case the status is not filled
+		ctx := r.Context()
+		ctx = network.NewContextWithStatusCodeWriter(ctx, &ww)
+
+		next.ServeHTTP(&ww, r.WithContext(ctx))
 
 		reqID := network.GetRequestID(r)
 		scheme := "http"
@@ -108,20 +119,49 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 			r.RequestURI,
 			r.Proto,
 			r.RemoteAddr,
-			ww.status,
+			ww.Status,
 			float64(time.Since(start).Microseconds()/1000),
 		)
 	})
 }
 
-// responseWriterWithStatus is required to let us access the HTTP status code
-// We can reuse go-chi's NewWrapResponseWriter if we need more information (i.e. bytes written, header, etc.)
-type responseWriterWithStatus struct {
-	http.ResponseWriter
-	status int
-}
+// UserActionLogMiddleware logs request information from non "GET" method.
+//
+// IMPORTANT NOTES:
+//
+// Request body is also logged, so make sure NOT to use this middleware on endpoints that handle SENSITIVE INFORMATION (e.g. credentialS).
+func (s *BackendService) UserActionLogMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// ignore the error, as the error handling of the request body is not this middleware's responsibility
+		requestBody, _ := io.ReadAll(r.Body)
+		if !utf8.Valid(requestBody) {
+			requestBody = bytes.ToValidUTF8(requestBody, []byte("?"))
+			logging.HTTPServerLogger.Warn("UserActionLogMiddleware found invalid utf-8 characters on the request body. replacing invalid characters with '?'.")
+		}
+		requestBodyStr := string(requestBody)
 
-func (rec *responseWriterWithStatus) WriteHeader(code int) {
-	rec.status = code
-	rec.ResponseWriter.WriteHeader(code)
+		// Replace the body with a new reader after reading from the original. To allow the real handler to read the body.
+		r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+		next.ServeHTTP(w, r)
+
+		ctx := r.Context()
+		authInfo := network.GetAuthInfo(ctx)
+		writerWithStatus := network.GetStatusCodeWriter(ctx)
+		if r.Method != "GET" {
+			_, err := s.userActionLogService.InsertUserActionLogs(ctx, []user_action_log.InsertUserActionLogSpec{
+				{
+					Date:          time.Now(),
+					UserID:        authInfo.UserID,
+					PrivilegeType: authInfo.PrivilegeType,
+					Endpoint:      r.URL.Path,
+					Method:        r.Method,
+					StatusCode:    uint16(writerWithStatus.Status),
+					RequestBody:   requestBodyStr,
+				},
+			})
+			if err != nil {
+				logging.HTTPServerLogger.Error("unable to log user action: %v", err)
+			}
+		}
+	})
 }

@@ -58,10 +58,21 @@ func main() {
 	baseRouter.Post("/forgot-password", jsonSerdeWrapper.WrapFunc(backendService.ForgotPasswordHandler))
 	baseRouter.Post("/reset-password", jsonSerdeWrapper.WrapFunc(backendService.ResetPasswordHandler))
 
+	baseRouter.Get("/maintenance/user-action-logs/page", backendService.UserActionLogsPage)
+	// Router group for superAdmin-only endpoints
+	baseRouter.Route("/maintenance", func(authRouter chi.Router) {
+		authRouter.Use(backendService.AuthenticationMiddleware)
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Super_Admin))
+		authRouter.Use(backendService.UserActionLogMiddleware)
+
+		authRouter.Get("/user-action-logs/fetch", jsonSerdeWrapper.WrapFunc(backendService.FetchUserActionLogs))
+	})
+
 	// Router group for admin-only endpoints
 	baseRouter.Route("/admin", func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Admin))
+		authRouter.Use(backendService.UserActionLogMiddleware)
 
 		authRouter.Get("/users", jsonSerdeWrapper.WrapFunc(backendService.GetUsersHandler))
 		authRouter.Get("/users/{UserID}", jsonSerdeWrapper.WrapFunc(backendService.GetUserByIdHandler, "UserID"))
@@ -144,6 +155,7 @@ func main() {
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
+		authRouter.Use(backendService.UserActionLogMiddleware)
 
 		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
 		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
@@ -180,11 +192,19 @@ func main() {
 	})
 
 	// Router group for member endpoints
+	// without UserActionLog
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
 		authRouter.Put("/users/{UserID}/password", jsonSerdeWrapper.WrapFunc(backendService.UpdateUserPasswordHandler, "UserID"))
+	})
+	// with UserActionLog
+	baseRouter.Group(func(authRouter chi.Router) {
+		authRouter.Use(backendService.AuthenticationMiddleware)
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
+		authRouter.Use(backendService.UserActionLogMiddleware)
+
 		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
 		authRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
 
