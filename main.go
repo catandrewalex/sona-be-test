@@ -148,6 +148,7 @@ func main() {
 	})
 
 	// Router group for staff-only (and above) endpoints
+	// non-GET requests (user actions) are logged
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
@@ -178,6 +179,15 @@ func main() {
 		authRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
 		authRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
 
+		// This endpoint is more similar with "/classes/{ClassID}/attendances/add", where (1) SLTs are automatically updated, (2) class with n students will get n attendances.
+		// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
+		authRouter.Post("/attendances/batch", jsonSerdeWrapper.WrapFunc(backendService.AddAttendancesBatchHandler))
+	})
+	// Router group for staff-only (and above) endpoints
+	baseRouter.Group(func(authRouter chi.Router) {
+		authRouter.Use(backendService.AuthenticationMiddleware)
+		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
+
 		authRouter.Post("/dashboard/expense/overview", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardExpenseOverview))
 		authRouter.Post("/dashboard/expense/monthlySummary", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardExpenseMonthlySummary))
 		authRouter.Post("/dashboard/income/overview", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardIncomeOverview))
@@ -185,10 +195,6 @@ func main() {
 		// TODO: properly implement this, as we're reusing admin endpoint?
 		authRouter.Get("/teachersForDashboard", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
 		authRouter.Get("/instrumentsForDashboard", jsonSerdeWrapper.WrapFunc(backendService.GetInstrumentsHandler))
-
-		// This endpoint is more similar with "/classes/{ClassID}/attendances/add", where (1) SLTs are automatically updated, (2) class with n students will get n attendances.
-		// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
-		authRouter.Post("/attendances/batch", jsonSerdeWrapper.WrapFunc(backendService.AddAttendancesBatchHandler))
 	})
 
 	// Router group for member endpoints
