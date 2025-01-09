@@ -267,12 +267,14 @@
             };
         }
 
-        // Set default date range (last 2 weeks)
+        // Set default date range (last 2 weeks + next 2 weeks)
         function setDefaultDateRange() {
-            const d = new Date();    
-            const endDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-            const startDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+            const d = new Date();
+            const timezoneOffset = d.getTimezoneOffset() * 60000;
+            const endDate = new Date(d.getTime() - timezoneOffset);
+            const startDate = new Date(d.getTime() - timezoneOffset);
             startDate.setDate(startDate.getDate() - 14);
+            endDate.setDate(endDate.getDate() + 14);
 
             $('#endDatetime').val(endDate.toISOString().slice(0, 16));
             $('#startDatetime').val(startDate.toISOString().slice(0, 16));
