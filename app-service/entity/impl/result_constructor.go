@@ -1,6 +1,7 @@
 package impl
 
 import (
+	"database/sql"
 	"sonamusica-backend/accessor/relational_db/mysql"
 	"sonamusica-backend/app-service/entity"
 	"sonamusica-backend/app-service/identity"
@@ -128,13 +129,14 @@ func NewClassesFromGetClassesRow(classRows []mysql.GetClassesRow) []entity.Class
 			})[0]
 
 			classes = append(classes, entity.Class{
-				ClassID:              classId,
-				TeacherInfo_Minimal:  teacherInfo,
-				StudentInfos_Minimal: studentInfos,
-				Course:               course,
-				TransportFee:         classRow.TransportFee,
-				TeacherSpecialFee:    classRow.TeacherSpecialFee.Int32,
-				IsDeactivated:        util.Int32ToBool(classRow.IsDeactivated),
+				ClassID:                classId,
+				TeacherInfo_Minimal:    teacherInfo,
+				StudentInfos_Minimal:   studentInfos,
+				Course:                 course,
+				TransportFee:           classRow.TransportFee,
+				TeacherSpecialFee:      classRow.TeacherSpecialFee.Int32,
+				AutoOweAttendanceToken: util.Int32ToBool(classRow.AutoOweAttendanceToken),
+				IsDeactivated:          util.Int32ToBool(classRow.IsDeactivated),
 			})
 			prevClassId = classId
 		} else {
@@ -192,9 +194,10 @@ func NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows []m
 						DefaultDurationMinute: studentEnrollmentRow.Course.DefaultDurationMinute,
 					},
 				})[0],
-				TransportFee:      studentEnrollmentRow.Class.TransportFee,
-				TeacherSpecialFee: studentEnrollmentRow.TeacherSpecialFee.Int32,
-				IsDeactivated:     util.Int32ToBool(studentEnrollmentRow.Class.IsDeactivated),
+				TransportFee:           studentEnrollmentRow.Class.TransportFee,
+				TeacherSpecialFee:      studentEnrollmentRow.TeacherSpecialFee.Int32,
+				AutoOweAttendanceToken: util.Int32ToBool(studentEnrollmentRow.Class.AutoOweAttendanceToken),
+				IsDeactivated:          util.Int32ToBool(studentEnrollmentRow.Class.IsDeactivated),
 			},
 		})
 	}
@@ -268,9 +271,10 @@ func NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows []m
 							DefaultDurationMinute: enrollmentPaymentRow.Course.DefaultDurationMinute,
 						},
 					})[0],
-					TransportFee:      enrollmentPaymentRow.Class.TransportFee,
-					TeacherSpecialFee: enrollmentPaymentRow.TeacherSpecialFee.Int32,
-					IsDeactivated:     util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
+					TransportFee:           enrollmentPaymentRow.Class.TransportFee,
+					TeacherSpecialFee:      enrollmentPaymentRow.TeacherSpecialFee.Int32,
+					AutoOweAttendanceToken: util.Int32ToBool(enrollmentPaymentRow.Class.AutoOweAttendanceToken),
+					IsDeactivated:          util.Int32ToBool(enrollmentPaymentRow.Class.IsDeactivated),
 				},
 			},
 			PaymentDate:       enrollmentPaymentRow.PaymentDate,
@@ -324,9 +328,10 @@ func NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningToke
 							DefaultDurationMinute: sltRow.Course.DefaultDurationMinute,
 						},
 					})[0],
-					TransportFee:      sltRow.Class.TransportFee,
-					TeacherSpecialFee: sltRow.TeacherSpecialFee.Int32,
-					IsDeactivated:     util.Int32ToBool(sltRow.Class.IsDeactivated),
+					TransportFee:           sltRow.Class.TransportFee,
+					TeacherSpecialFee:      sltRow.TeacherSpecialFee.Int32,
+					AutoOweAttendanceToken: util.Int32ToBool(sltRow.Class.AutoOweAttendanceToken),
+					IsDeactivated:          util.Int32ToBool(sltRow.Class.IsDeactivated),
 				},
 			},
 			Quota:             sltRow.Quota,
@@ -371,9 +376,10 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 						DefaultDurationMinute: attendanceRow.Course.DefaultDurationMinute,
 					},
 				})[0],
-				TransportFee:      attendanceRow.Class.TransportFee,
-				TeacherSpecialFee: attendanceRow.TeacherSpecialFee.Int32,
-				IsDeactivated:     util.Int32ToBool(attendanceRow.Class.IsDeactivated),
+				TransportFee:           attendanceRow.Class.TransportFee,
+				TeacherSpecialFee:      attendanceRow.TeacherSpecialFee.Int32,
+				AutoOweAttendanceToken: util.Int32ToBool(attendanceRow.Class.AutoOweAttendanceToken),
+				IsDeactivated:          util.Int32ToBool(attendanceRow.Class.IsDeactivated),
 			}
 		}
 
@@ -402,18 +408,27 @@ func NewAttendancesFromGetAttendancesRow(attendanceRows []mysql.GetAttendancesRo
 			}
 		}
 
+		studentLearningToken := mysql.StudentLearningToken{
+			ID:                       attendanceRow.ID.Int64,
+			Quota:                    attendanceRow.Quota.Float64,
+			CourseFeeQuarterValue:    attendanceRow.CourseFeeQuarterValue.Int32,
+			TransportFeeQuarterValue: attendanceRow.TransportFeeQuarterValue.Int32,
+			CreatedAt:                attendanceRow.CreatedAt.Time,
+			LastUpdatedAt:            attendanceRow.LastUpdatedAt.Time,
+			EnrollmentID:             attendanceRow.EnrollmentID.Int64,
+		}
 		attendances = append(attendances, entity.Attendance{
 			AttendanceID: entity.AttendanceID(attendanceRow.AttendanceID),
 			ClassInfo:    classInfo,
 			TeacherInfo:  teacherInfo,
 			StudentInfo:  studentInfo,
 			StudentLearningToken: entity.StudentLearningToken_Minimal{
-				StudentLearningTokenID: entity.StudentLearningTokenID(attendanceRow.StudentLearningToken.ID),
-				Quota:                  attendanceRow.StudentLearningToken.Quota,
-				CourseFeeValue:         attendanceRow.StudentLearningToken.CourseFeeQuarterValue * 4,
-				TransportFeeValue:      attendanceRow.StudentLearningToken.TransportFeeQuarterValue * 4,
-				CreatedAt:              attendanceRow.StudentLearningToken.CreatedAt,
-				LastUpdatedAt:          attendanceRow.StudentLearningToken.LastUpdatedAt,
+				StudentLearningTokenID: entity.StudentLearningTokenID(studentLearningToken.ID),
+				Quota:                  studentLearningToken.Quota,
+				CourseFeeValue:         studentLearningToken.CourseFeeQuarterValue * 4,
+				TransportFeeValue:      studentLearningToken.TransportFeeQuarterValue * 4,
+				CreatedAt:              studentLearningToken.CreatedAt,
+				LastUpdatedAt:          studentLearningToken.LastUpdatedAt,
 			},
 			Date:                  attendanceRow.Date,
 			UsedStudentTokenQuota: attendanceRow.UsedStudentTokenQuota,
@@ -452,7 +467,15 @@ func NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRows []mysql.GetT
 					ClassTeacherID:        tpRow.ClassTeacherID,
 					ClassTeacherUsername:  tpRow.ClassTeacherUsername,
 					ClassTeacherDetail:    tpRow.ClassTeacherDetail,
-					StudentLearningToken:  tpRow.StudentLearningToken,
+					// an `Attendance` may have a null `StudentLearningToken`. BUT, it is ensured that `TeacherPayment` will only have `Attendance` with non-null `StudentLearningToken`.
+					// Thus, we can set all the "Valid" below to be true.
+					ID:                       sql.NullInt64{Int64: tpRow.StudentLearningToken.ID, Valid: true},
+					Quota:                    sql.NullFloat64{Float64: tpRow.StudentLearningToken.Quota, Valid: true},
+					CourseFeeQuarterValue:    sql.NullInt32{Int32: tpRow.StudentLearningToken.CourseFeeQuarterValue, Valid: true},
+					TransportFeeQuarterValue: sql.NullInt32{Int32: tpRow.StudentLearningToken.TransportFeeQuarterValue, Valid: true},
+					CreatedAt:                sql.NullTime{Time: tpRow.StudentLearningToken.CreatedAt, Valid: true},
+					LastUpdatedAt:            sql.NullTime{Time: tpRow.StudentLearningToken.LastUpdatedAt, Valid: true},
+					EnrollmentID:             sql.NullInt64{Int64: tpRow.StudentLearningToken.EnrollmentID, Valid: true},
 				},
 			})[0],
 			PaidCourseFeeValue:     tpRow.PaidCourseFeeValue,

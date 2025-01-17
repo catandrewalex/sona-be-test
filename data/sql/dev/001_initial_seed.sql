@@ -209,10 +209,10 @@ INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_
 INSERT INTO course ( default_fee, default_duration_minute, instrument_id, grade_id ) VALUES ( 850000, 60, 13, 13 );
 
 /* ============================== CLASS & STUDENT ENROLLMENT ============================== */
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 1, 1, 0 );
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 2, 13, 0 );
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 100000, 3, 16, 0 );
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 50000, 4, 17, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 0, 1, 1, 0, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 0, 2, 13, 0, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 100000, 3, 16, 0, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 50000, 4, 17, 0, 0 );
 
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 1, 1 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 2 );
@@ -220,21 +220,21 @@ INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 3, 3 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 4, 4 );
 
 /* ---------- Class with multiple students ---------- */
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 150000, 4, 44, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 150000, 4, 44, 0, 0 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 1, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 3, 5 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 4, 5 );
 
 /* ---------- Class with teacher, without student ---------- */
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, 4, 3, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 0, 4, 3, 0, 0 );
 
 /* ---------- Class without teacher, with student ---------- */
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 2, 0 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 0, NULL, 2, 0, 0 );
 INSERT INTO student_enrollment ( student_id, class_id ) VALUES ( 2, 7 );
 
 /* ---------- Class without teacher, without student ---------- */
-INSERT INTO class ( transport_fee, teacher_id, course_id, is_deactivated ) VALUES ( 0, NULL, 36, 1 );
+INSERT INTO class ( transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated ) VALUES ( 0, NULL, 36, 0, 1 );
 
 /* ============================== TEACHER_SPECIAL_FEE ============================== */
 INSERT INTO teacher_special_fee ( fee, teacher_id, course_id ) VALUES ( 575000, 3, 1 );

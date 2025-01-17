@@ -135,10 +135,12 @@ func (q *Queries) EditAttendances(ctx context.Context, arg EditAttendancesParams
 
 const getAttendanceById = `-- name: GetAttendanceById :one
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    -- we cannot use sqlc.embed(slt), due to ` + "`" + `Attendance` + "`" + ` may have null ` + "`" + `StudentLearningToken` + "`" + `.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -155,32 +157,38 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id = ? LIMIT 1
 `
 
 type GetAttendanceByIdRow struct {
-	AttendanceID          int64
-	Date                  time.Time
-	UsedStudentTokenQuota float64
-	Duration              int32
-	Note                  string
-	IsPaid                int32
-	Class                 Class
-	TeacherSpecialFee     sql.NullInt32
-	Course                Course
-	Instrument            Instrument
-	Grade                 Grade
-	TeacherID             int64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	StudentID             int64
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	ClassTeacherID        sql.NullInt64
-	ClassTeacherUsername  sql.NullString
-	ClassTeacherDetail    []byte
-	StudentLearningToken  StudentLearningToken
+	AttendanceID             int64
+	Date                     time.Time
+	UsedStudentTokenQuota    float64
+	Duration                 int32
+	Note                     string
+	IsPaid                   int32
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	TeacherID                int64
+	TeacherUsername          sql.NullString
+	TeacherDetail            []byte
+	StudentID                int64
+	StudentUsername          sql.NullString
+	StudentDetail            []byte
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
+	ID                       sql.NullInt64
+	Quota                    sql.NullFloat64
+	CourseFeeQuarterValue    sql.NullInt32
+	TransportFeeQuarterValue sql.NullInt32
+	CreatedAt                sql.NullTime
+	LastUpdatedAt            sql.NullTime
+	EnrollmentID             sql.NullInt64
 }
 
 func (q *Queries) GetAttendanceById(ctx context.Context, id int64) (GetAttendanceByIdRow, error) {
@@ -197,6 +205,7 @@ func (q *Queries) GetAttendanceById(ctx context.Context, id int64) (GetAttendanc
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
+		&i.Class.AutoOweAttendanceToken,
 		&i.Class.IsDeactivated,
 		&i.TeacherSpecialFee,
 		&i.Course.ID,
@@ -217,13 +226,13 @@ func (q *Queries) GetAttendanceById(ctx context.Context, id int64) (GetAttendanc
 		&i.ClassTeacherID,
 		&i.ClassTeacherUsername,
 		&i.ClassTeacherDetail,
-		&i.StudentLearningToken.ID,
-		&i.StudentLearningToken.Quota,
-		&i.StudentLearningToken.CourseFeeQuarterValue,
-		&i.StudentLearningToken.TransportFeeQuarterValue,
-		&i.StudentLearningToken.CreatedAt,
-		&i.StudentLearningToken.LastUpdatedAt,
-		&i.StudentLearningToken.EnrollmentID,
+		&i.ID,
+		&i.Quota,
+		&i.CourseFeeQuarterValue,
+		&i.TransportFeeQuarterValue,
+		&i.CreatedAt,
+		&i.LastUpdatedAt,
+		&i.EnrollmentID,
 	)
 	return i, err
 }
@@ -243,7 +252,7 @@ ORDER by attendance.id
 type GetAttendanceIdsOfSameClassAndDateRow struct {
 	ID                    int64
 	IsPaid                int32
-	TokenID               int64
+	TokenID               sql.NullInt64
 	UsedStudentTokenQuota float64
 }
 
@@ -278,10 +287,12 @@ func (q *Queries) GetAttendanceIdsOfSameClassAndDate(ctx context.Context, id int
 
 const getAttendances = `-- name: GetAttendances :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    -- we cannot use sqlc.embed(slt), due to ` + "`" + `Attendance` + "`" + ` may have null ` + "`" + `StudentLearningToken` + "`" + `.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -298,7 +309,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= ? AND attendance.date <= ?)
     AND (class_id = ? OR ? = false)
@@ -321,27 +332,33 @@ type GetAttendancesParams struct {
 }
 
 type GetAttendancesRow struct {
-	AttendanceID          int64
-	Date                  time.Time
-	UsedStudentTokenQuota float64
-	Duration              int32
-	Note                  string
-	IsPaid                int32
-	Class                 Class
-	TeacherSpecialFee     sql.NullInt32
-	Course                Course
-	Instrument            Instrument
-	Grade                 Grade
-	TeacherID             int64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	StudentID             int64
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	ClassTeacherID        sql.NullInt64
-	ClassTeacherUsername  sql.NullString
-	ClassTeacherDetail    []byte
-	StudentLearningToken  StudentLearningToken
+	AttendanceID             int64
+	Date                     time.Time
+	UsedStudentTokenQuota    float64
+	Duration                 int32
+	Note                     string
+	IsPaid                   int32
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	TeacherID                int64
+	TeacherUsername          sql.NullString
+	TeacherDetail            []byte
+	StudentID                int64
+	StudentUsername          sql.NullString
+	StudentDetail            []byte
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
+	ID                       sql.NullInt64
+	Quota                    sql.NullFloat64
+	CourseFeeQuarterValue    sql.NullInt32
+	TransportFeeQuarterValue sql.NullInt32
+	CreatedAt                sql.NullTime
+	LastUpdatedAt            sql.NullTime
+	EnrollmentID             sql.NullInt64
 }
 
 func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) ([]GetAttendancesRow, error) {
@@ -374,6 +391,7 @@ func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) 
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -394,13 +412,13 @@ func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) 
 			&i.ClassTeacherID,
 			&i.ClassTeacherUsername,
 			&i.ClassTeacherDetail,
-			&i.StudentLearningToken.ID,
-			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeQuarterValue,
-			&i.StudentLearningToken.TransportFeeQuarterValue,
-			&i.StudentLearningToken.CreatedAt,
-			&i.StudentLearningToken.LastUpdatedAt,
-			&i.StudentLearningToken.EnrollmentID,
+			&i.ID,
+			&i.Quota,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.EnrollmentID,
 		); err != nil {
 			return nil, err
 		}
@@ -417,10 +435,12 @@ func (q *Queries) GetAttendances(ctx context.Context, arg GetAttendancesParams) 
 
 const getAttendancesByIds = `-- name: GetAttendancesByIds :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    -- we cannot use sqlc.embed(slt), due to ` + "`" + `Attendance` + "`" + ` may have null ` + "`" + `StudentLearningToken` + "`" + `.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -437,32 +457,38 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id IN (/*SLICE:ids*/?)
 `
 
 type GetAttendancesByIdsRow struct {
-	AttendanceID          int64
-	Date                  time.Time
-	UsedStudentTokenQuota float64
-	Duration              int32
-	Note                  string
-	IsPaid                int32
-	Class                 Class
-	TeacherSpecialFee     sql.NullInt32
-	Course                Course
-	Instrument            Instrument
-	Grade                 Grade
-	TeacherID             int64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	StudentID             int64
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	ClassTeacherID        sql.NullInt64
-	ClassTeacherUsername  sql.NullString
-	ClassTeacherDetail    []byte
-	StudentLearningToken  StudentLearningToken
+	AttendanceID             int64
+	Date                     time.Time
+	UsedStudentTokenQuota    float64
+	Duration                 int32
+	Note                     string
+	IsPaid                   int32
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	TeacherID                int64
+	TeacherUsername          sql.NullString
+	TeacherDetail            []byte
+	StudentID                int64
+	StudentUsername          sql.NullString
+	StudentDetail            []byte
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
+	ID                       sql.NullInt64
+	Quota                    sql.NullFloat64
+	CourseFeeQuarterValue    sql.NullInt32
+	TransportFeeQuarterValue sql.NullInt32
+	CreatedAt                sql.NullTime
+	LastUpdatedAt            sql.NullTime
+	EnrollmentID             sql.NullInt64
 }
 
 func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAttendancesByIdsRow, error) {
@@ -495,6 +521,7 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -515,13 +542,13 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 			&i.ClassTeacherID,
 			&i.ClassTeacherUsername,
 			&i.ClassTeacherDetail,
-			&i.StudentLearningToken.ID,
-			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeQuarterValue,
-			&i.StudentLearningToken.TransportFeeQuarterValue,
-			&i.StudentLearningToken.CreatedAt,
-			&i.StudentLearningToken.LastUpdatedAt,
-			&i.StudentLearningToken.EnrollmentID,
+			&i.ID,
+			&i.Quota,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.EnrollmentID,
 		); err != nil {
 			return nil, err
 		}
@@ -538,10 +565,12 @@ func (q *Queries) GetAttendancesByIds(ctx context.Context, ids []int64) ([]GetAt
 
 const getAttendancesDescendingDate = `-- name: GetAttendancesDescendingDate :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    -- we cannot use sqlc.embed(slt), due to ` + "`" + `Attendance` + "`" + ` may have null ` + "`" + `StudentLearningToken` + "`" + `.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -558,7 +587,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= ? AND attendance.date <= ?)
     AND (class_id = ? OR ? = false)
@@ -581,27 +610,33 @@ type GetAttendancesDescendingDateParams struct {
 }
 
 type GetAttendancesDescendingDateRow struct {
-	AttendanceID          int64
-	Date                  time.Time
-	UsedStudentTokenQuota float64
-	Duration              int32
-	Note                  string
-	IsPaid                int32
-	Class                 Class
-	TeacherSpecialFee     sql.NullInt32
-	Course                Course
-	Instrument            Instrument
-	Grade                 Grade
-	TeacherID             int64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	StudentID             int64
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	ClassTeacherID        sql.NullInt64
-	ClassTeacherUsername  sql.NullString
-	ClassTeacherDetail    []byte
-	StudentLearningToken  StudentLearningToken
+	AttendanceID             int64
+	Date                     time.Time
+	UsedStudentTokenQuota    float64
+	Duration                 int32
+	Note                     string
+	IsPaid                   int32
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	TeacherID                int64
+	TeacherUsername          sql.NullString
+	TeacherDetail            []byte
+	StudentID                int64
+	StudentUsername          sql.NullString
+	StudentDetail            []byte
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
+	ID                       sql.NullInt64
+	Quota                    sql.NullFloat64
+	CourseFeeQuarterValue    sql.NullInt32
+	TransportFeeQuarterValue sql.NullInt32
+	CreatedAt                sql.NullTime
+	LastUpdatedAt            sql.NullTime
+	EnrollmentID             sql.NullInt64
 }
 
 // GetAttendancesDescendingDate is a copy of GetAttendances, with additional sort by date parameter. TODO: find alternative: sqlc's dynamic query which is mature enough, so that we need to do this.
@@ -635,6 +670,7 @@ func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAtten
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -655,13 +691,13 @@ func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAtten
 			&i.ClassTeacherID,
 			&i.ClassTeacherUsername,
 			&i.ClassTeacherDetail,
-			&i.StudentLearningToken.ID,
-			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeQuarterValue,
-			&i.StudentLearningToken.TransportFeeQuarterValue,
-			&i.StudentLearningToken.CreatedAt,
-			&i.StudentLearningToken.LastUpdatedAt,
-			&i.StudentLearningToken.EnrollmentID,
+			&i.ID,
+			&i.Quota,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.EnrollmentID,
 		); err != nil {
 			return nil, err
 		}
@@ -678,10 +714,12 @@ func (q *Queries) GetAttendancesDescendingDate(ctx context.Context, arg GetAtten
 
 const getUnpaidAttendancesByTeacherId = `-- name: GetUnpaidAttendancesByTeacherId :many
 SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration, note, is_paid,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
+    -- we cannot use sqlc.embed(slt), due to ` + "`" + `Attendance` + "`" + ` may have null ` + "`" + `StudentLearningToken` + "`" + `.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
@@ -698,7 +736,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= ? AND attendance.date <= ?)
     AND attendance.teacher_id = ?
@@ -713,27 +751,33 @@ type GetUnpaidAttendancesByTeacherIdParams struct {
 }
 
 type GetUnpaidAttendancesByTeacherIdRow struct {
-	AttendanceID          int64
-	Date                  time.Time
-	UsedStudentTokenQuota float64
-	Duration              int32
-	Note                  string
-	IsPaid                int32
-	Class                 Class
-	TeacherSpecialFee     sql.NullInt32
-	Course                Course
-	Instrument            Instrument
-	Grade                 Grade
-	TeacherID             int64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	StudentID             int64
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	ClassTeacherID        sql.NullInt64
-	ClassTeacherUsername  sql.NullString
-	ClassTeacherDetail    []byte
-	StudentLearningToken  StudentLearningToken
+	AttendanceID             int64
+	Date                     time.Time
+	UsedStudentTokenQuota    float64
+	Duration                 int32
+	Note                     string
+	IsPaid                   int32
+	Class                    Class
+	TeacherSpecialFee        sql.NullInt32
+	Course                   Course
+	Instrument               Instrument
+	Grade                    Grade
+	TeacherID                int64
+	TeacherUsername          sql.NullString
+	TeacherDetail            []byte
+	StudentID                int64
+	StudentUsername          sql.NullString
+	StudentDetail            []byte
+	ClassTeacherID           sql.NullInt64
+	ClassTeacherUsername     sql.NullString
+	ClassTeacherDetail       []byte
+	ID                       sql.NullInt64
+	Quota                    sql.NullFloat64
+	CourseFeeQuarterValue    sql.NullInt32
+	TransportFeeQuarterValue sql.NullInt32
+	CreatedAt                sql.NullTime
+	LastUpdatedAt            sql.NullTime
+	EnrollmentID             sql.NullInt64
 }
 
 func (q *Queries) GetUnpaidAttendancesByTeacherId(ctx context.Context, arg GetUnpaidAttendancesByTeacherIdParams) ([]GetUnpaidAttendancesByTeacherIdRow, error) {
@@ -756,6 +800,7 @@ func (q *Queries) GetUnpaidAttendancesByTeacherId(ctx context.Context, arg GetUn
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -776,13 +821,13 @@ func (q *Queries) GetUnpaidAttendancesByTeacherId(ctx context.Context, arg GetUn
 			&i.ClassTeacherID,
 			&i.ClassTeacherUsername,
 			&i.ClassTeacherDetail,
-			&i.StudentLearningToken.ID,
-			&i.StudentLearningToken.Quota,
-			&i.StudentLearningToken.CourseFeeQuarterValue,
-			&i.StudentLearningToken.TransportFeeQuarterValue,
-			&i.StudentLearningToken.CreatedAt,
-			&i.StudentLearningToken.LastUpdatedAt,
-			&i.StudentLearningToken.EnrollmentID,
+			&i.ID,
+			&i.Quota,
+			&i.CourseFeeQuarterValue,
+			&i.TransportFeeQuarterValue,
+			&i.CreatedAt,
+			&i.LastUpdatedAt,
+			&i.EnrollmentID,
 		); err != nil {
 			return nil, err
 		}
@@ -814,7 +859,7 @@ type InsertAttendanceParams struct {
 	ClassID               int64
 	TeacherID             int64
 	StudentID             int64
-	TokenID               int64
+	TokenID               sql.NullInt64
 }
 
 func (q *Queries) InsertAttendance(ctx context.Context, arg InsertAttendanceParams) (int64, error) {
@@ -876,7 +921,7 @@ type UpdateAttendanceParams struct {
 	ClassID               int64
 	TeacherID             int64
 	StudentID             int64
-	TokenID               int64
+	TokenID               sql.NullInt64
 	ID                    int64
 }
 

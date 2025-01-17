@@ -314,7 +314,7 @@ func (q *Queries) GetEarliestAvailableSLTsByStudentEnrollmentIds(ctx context.Con
 const getEnrollmentPaymentById = `-- name: GetEnrollmentPaymentById :one
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -377,6 +377,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
+		&i.Class.AutoOweAttendanceToken,
 		&i.Class.IsDeactivated,
 		&i.TeacherSpecialFee,
 		&i.Course.ID,
@@ -398,7 +399,7 @@ func (q *Queries) GetEnrollmentPaymentById(ctx context.Context, id int64) (GetEn
 const getEnrollmentPayments = `-- name: GetEnrollmentPayments :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -481,6 +482,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -512,7 +514,7 @@ func (q *Queries) GetEnrollmentPayments(ctx context.Context, arg GetEnrollmentPa
 const getEnrollmentPaymentsByIds = `-- name: GetEnrollmentPaymentsByIds :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -590,6 +592,7 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -621,7 +624,7 @@ func (q *Queries) GetEnrollmentPaymentsByIds(ctx context.Context, ids []int64) (
 const getEnrollmentPaymentsDescendingDate = `-- name: GetEnrollmentPaymentsDescendingDate :many
 SELECT ep.id AS enrollment_payment_id, payment_date, balance_top_up, balance_bonus, course_fee_value, transport_fee_value, penalty_fee_value, discount_fee_value, se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM enrollment_payment AS ep
     JOIN student_enrollment AS se ON ep.enrollment_id = se.id
@@ -705,6 +708,7 @@ func (q *Queries) GetEnrollmentPaymentsDescendingDate(ctx context.Context, arg G
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -826,7 +830,7 @@ func (q *Queries) GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(
 const getStudentLearningTokenById = `-- name: GetStudentLearningTokenById :one
 SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -883,6 +887,7 @@ func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (Ge
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
+		&i.Class.AutoOweAttendanceToken,
 		&i.Class.IsDeactivated,
 		&i.TeacherSpecialFee,
 		&i.Course.ID,
@@ -904,7 +909,7 @@ func (q *Queries) GetStudentLearningTokenById(ctx context.Context, id int64) (Ge
 const getStudentLearningTokens = `-- name: GetStudentLearningTokens :many
 SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -973,6 +978,7 @@ func (q *Queries) GetStudentLearningTokens(ctx context.Context, arg GetStudentLe
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1004,7 +1010,7 @@ func (q *Queries) GetStudentLearningTokens(ctx context.Context, arg GetStudentLe
 const getStudentLearningTokensByEnrollmentId = `-- name: GetStudentLearningTokensByEnrollmentId :many
 SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -1067,6 +1073,7 @@ func (q *Queries) GetStudentLearningTokensByEnrollmentId(ctx context.Context, en
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1098,7 +1105,7 @@ func (q *Queries) GetStudentLearningTokensByEnrollmentId(ctx context.Context, en
 const getStudentLearningTokensByIds = `-- name: GetStudentLearningTokensByIds :many
 SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -1171,6 +1178,7 @@ func (q *Queries) GetStudentLearningTokensByIds(ctx context.Context, ids []int64
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1243,7 +1251,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
@@ -1317,6 +1325,7 @@ func (q *Queries) GetTeacherPaymentById(ctx context.Context, id int64) (GetTeach
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
+		&i.Class.AutoOweAttendanceToken,
 		&i.Class.IsDeactivated,
 		&i.TeacherSpecialFee,
 		&i.Course.ID,
@@ -1347,7 +1356,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
@@ -1447,6 +1456,7 @@ func (q *Queries) GetTeacherPayments(ctx context.Context, arg GetTeacherPayments
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1487,7 +1497,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
@@ -1577,6 +1587,7 @@ func (q *Queries) GetTeacherPaymentsByIds(ctx context.Context, ids []int64) ([]G
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1617,7 +1628,7 @@ SELECT tp.id AS teacher_payment_id, paid_course_fee_value, paid_transport_fee_va
     attendance.id, attendance.date, attendance.used_student_token_quota, attendance.duration, attendance.note, attendance.is_paid, attendance.class_id, attendance.teacher_id, attendance.student_id, attendance.token_id,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
     slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM teacher_payment AS tp
@@ -1706,6 +1717,7 @@ func (q *Queries) GetTeacherPaymentsByTeacherId(ctx context.Context, arg GetTeac
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,

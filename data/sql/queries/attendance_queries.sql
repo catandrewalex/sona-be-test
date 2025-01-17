@@ -20,7 +20,9 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    sqlc.embed(slt)
+    -- we cannot use sqlc.embed(slt), due to `Attendance` may have null `StudentLearningToken`.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -36,7 +38,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
     AND attendance.teacher_id = sqlc.arg('teacher_id')
@@ -49,7 +51,9 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    sqlc.embed(slt)
+    -- we cannot use sqlc.embed(slt), due to `Attendance` may have null `StudentLearningToken`.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -65,7 +69,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id = ? LIMIT 1;
 
 -- name: GetAttendancesByIds :many
@@ -74,7 +78,9 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    sqlc.embed(slt)
+    -- we cannot use sqlc.embed(slt), due to `Attendance` may have null `StudentLearningToken`.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -90,7 +96,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE attendance.id IN (sqlc.slice('ids'));
 
 -- name: GetAttendances :many
@@ -99,7 +105,9 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    sqlc.embed(slt)
+    -- we cannot use sqlc.embed(slt), due to `Attendance` may have null `StudentLearningToken`.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -115,7 +123,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
     AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false)
@@ -131,7 +139,9 @@ SELECT attendance.id AS attendance_id, date, used_student_token_quota, duration,
     attendance.teacher_id AS teacher_id, user_teacher.username AS teacher_username, user_teacher.user_detail AS teacher_detail,
     attendance.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail,
-    sqlc.embed(slt)
+    -- we cannot use sqlc.embed(slt), due to `Attendance` may have null `StudentLearningToken`.
+    -- SQLC has not yet had the capability to create pointer to struct, when the join result could be null.
+    slt.id, slt.quota, slt.course_fee_quarter_value, slt.transport_fee_quarter_value, slt.created_at, slt.last_updated_at, slt.enrollment_id
 FROM attendance
     LEFT JOIN teacher ON attendance.teacher_id = teacher.id
     LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
@@ -147,7 +157,7 @@ FROM attendance
     LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 
-    JOIN student_learning_token as slt ON attendance.token_id = slt.id
+    LEFT JOIN student_learning_token as slt ON attendance.token_id = slt.id
 WHERE
     (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
     AND (class_id = sqlc.arg('class_id') OR sqlc.arg('use_class_filter') = false)

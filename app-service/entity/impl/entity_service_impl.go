@@ -759,11 +759,12 @@ func (s entityServiceImpl) UpdateClasses(ctx context.Context, specs []entity.Upd
 			classId := int64(spec.ClassID)
 			// Updated class
 			err := qtx.UpdateClass(newCtx, mysql.UpdateClassParams{
-				TransportFee:  spec.TransportFee,
-				TeacherID:     sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
-				CourseID:      int64(spec.CourseID),
-				IsDeactivated: util.BoolToInt32(spec.IsDeactivated),
-				ID:            classId,
+				TransportFee:           spec.TransportFee,
+				TeacherID:              sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
+				CourseID:               int64(spec.CourseID),
+				AutoOweAttendanceToken: util.BoolToInt32(spec.AutoOweAttendanceToken),
+				IsDeactivated:          util.BoolToInt32(spec.IsDeactivated),
+				ID:                     classId,
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.UpdateClass(): %w", err)
@@ -1482,7 +1483,10 @@ func (s entityServiceImpl) InsertAttendances(ctx context.Context, specs []entity
 				ClassID:               int64(spec.ClassID),
 				TeacherID:             int64(spec.TeacherID),
 				StudentID:             int64(spec.StudentID),
-				TokenID:               int64(spec.StudentLearningTokenID),
+				TokenID: sql.NullInt64{
+					Int64: int64(spec.StudentLearningTokenID),
+					Valid: spec.StudentLearningTokenID != entity.StudentLearningTokenID_None,
+				},
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.InsertAttendance(): %w", err)
@@ -1516,7 +1520,7 @@ func (s entityServiceImpl) UpdateAttendances(ctx context.Context, specs []entity
 				ClassID:               int64(spec.ClassID),
 				TeacherID:             int64(spec.TeacherID),
 				StudentID:             int64(spec.StudentID),
-				TokenID:               int64(spec.StudentLearningTokenID),
+				TokenID:               sql.NullInt64{Int64: int64(spec.StudentLearningTokenID), Valid: true},
 				ID:                    int64(spec.AttendanceID),
 			})
 			if err != nil {

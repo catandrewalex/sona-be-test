@@ -11,7 +11,7 @@ SELECT EXISTS(
     SELECT user.id, se.class_id
     FROM user 
         JOIN student ON user.id = student.user_id
-        JOIN student_enrollment AS se ON student.id = se.student_id
+        JOIN student_enrollment AS se ON (student.id = se.student_id AND se.is_deleted=0)
     WHERE user.id = sqlc.arg('user_id') AND se.class_id = sqlc.arg('class_id')
     UNION
     -- check whether the user is teaching the class
@@ -305,17 +305,17 @@ WITH class_paginated AS (
     -- class & student_enrollment has a Many-to-many relationship, therefore:
     --   1. we need to join them to be able to filter by student_id
     --   2. we use SELECT DISCTINCT just to be safe
-    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, is_deactivated
+    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated
     FROM class
-        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+        LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     WHERE
         class.is_deactivated IN (sqlc.slice('isDeactivateds'))
         AND (class.teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
-        AND (student_enrollment.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
+        AND (se.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
         AND (class.course_id = sqlc.narg('course_id') OR sqlc.arg('use_course_filter') = false)
     LIMIT ? OFFSET ?
 )
-SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, class_paginated.course_id AS course_id, class_paginated.teacher_id AS teacher_id, se.student_id AS student_id,
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.auto_owe_attendance_token, class_paginated.is_deactivated, class_paginated.course_id AS course_id, class_paginated.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
@@ -345,26 +345,26 @@ WITH class_filtered AS (
     -- class & student_enrollment has a Many-to-many relationship, therefore:
     --   1. we need to join them to be able to filter by student_id
     --   2. we use SELECT DISCTINCT just to be safe
-    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, is_deactivated
+    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated
     FROM class
-        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+        LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     WHERE
         class.is_deactivated IN (sqlc.slice('isDeactivateds'))
         AND (teacher_id = sqlc.arg('teacher_id') OR sqlc.arg('use_teacher_filter') = false)
-        AND (student_enrollment.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
+        AND (se.student_id = sqlc.narg('student_id') OR sqlc.arg('use_student_filter') = false)
         AND (course_id = sqlc.narg('course_id') OR sqlc.arg('use_course_filter') = false)
 )
 SELECT Count(id) AS total FROM class_filtered;
 
 -- name: GetClassesTotalStudentsByClassIds :many
-SELECT class.id AS class_id, Count(student_enrollment.id) AS total_students
+SELECT class.id AS class_id, Count(se.id) AS total_students
     FROM class
-        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+        LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     WHERE class.id IN (sqlc.slice('ids'))
     GROUP BY class.id;
 
 -- name: GetClassesByIds :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.auto_owe_attendance_token, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
@@ -387,7 +387,7 @@ WHERE class.id in (sqlc.slice('ids'))
 ORDER BY class.id;
 
 -- name: GetClassById :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.auto_owe_attendance_token, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     sqlc.embed(instrument), sqlc.embed(grade),
@@ -408,35 +408,36 @@ FROM class
     LEFT JOIN user AS user_student ON student.user_id = user_student.id
 WHERE class.id = ?;
 
+-- name: GetClassAutoOweTokenMode :one
+SELECT class.auto_owe_attendance_token
+FROM class
+WHERE class.id = ?;
+
 -- name: InsertClass :execlastid
 INSERT INTO class (
-    transport_fee, teacher_id, course_id, is_deactivated
+    transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated
 ) VALUES (
-    ?, ?, ?, ?
+    ?, ?, ?, ?, ?
 );
 
 -- name: UpdateClass :exec
-UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, is_deactivated = ?
+UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, auto_owe_attendance_token = ?, is_deactivated = ?
 WHERE id = ?;
 
--- name: UpdateClassInfo :exec
-UPDATE class SET transport_fee = ?
+-- name: UpdateClassConfig :exec
+UPDATE class SET auto_owe_attendance_token = ?, is_deactivated = ?
 WHERE id = ?;
 
--- name: UpdateClassTeacher :exec
-UPDATE class SET teacher_id = ?
+-- name: UpdateClassAutoOweToken :exec
+UPDATE class SET auto_owe_attendance_token = ?
+WHERE id = ?;
+
+-- name: UpdateClassActivation :exec
+UPDATE class SET is_deactivated = ?
 WHERE id = ?;
 
 -- name: UpdateClassCourse :exec
 UPDATE class SET course_id = ?
-WHERE id = ?;
-
--- name: ActivateClass :exec
-UPDATE class SET is_deactivated = 1
-WHERE id = ?;
-
--- name: DeactivateClass :exec
-UPDATE class SET is_deactivated = 0
 WHERE id = ?;
 
 -- name: DeleteClassesByIds :exec

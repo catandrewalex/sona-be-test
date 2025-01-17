@@ -148,45 +148,47 @@ func main() {
 	})
 
 	// Router group for staff-only (and above) endpoints
-	// non-GET requests (user actions) are logged
 	baseRouter.Group(func(authRouter chi.Router) {
 		authRouter.Use(backendService.AuthenticationMiddleware)
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
-		authRouter.Use(backendService.UserActionLogMiddleware)
 
-		authRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
-		authRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
-		authRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
-		authRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
-		authRouter.Get("/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesHandler))
+		// non-GET requests (user actions) are logged
+		authRouter.Group(func(loggedRouter chi.Router) {
+			loggedRouter.Use(backendService.UserActionLogMiddleware)
 
-		authRouter.Get("/enrollmentPayments/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPaymentHandler))
-		authRouter.Get("/enrollmentPayments/invoice/studentEnrollment/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoiceHandler, "StudentEnrollmentID"))
-		authRouter.Post("/enrollmentPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPaymentHandler))
-		authRouter.Post("/enrollmentPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentHandler))
-		authRouter.Post("/enrollmentPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPaymentHandler))
+			loggedRouter.Get("/students", jsonSerdeWrapper.WrapFunc(backendService.GetStudentsHandler))
+			loggedRouter.Get("/teachers", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+			loggedRouter.Get("/courses", jsonSerdeWrapper.WrapFunc(backendService.GetCoursesHandler))
+			loggedRouter.Get("/classes", jsonSerdeWrapper.WrapFunc(backendService.GetClassesHandler))
+			loggedRouter.Get("/studentEnrollments", jsonSerdeWrapper.WrapFunc(backendService.GetStudentEnrollmentsHandler))
+			loggedRouter.Get("/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesHandler))
 
-		authRouter.Get("/teacherPayments/unpaidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetUnpaidTeachersHandler))
-		authRouter.Get("/teacherPayments/paidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetPaidTeachersHandler))
-		// TODO: improve naming for these 2 similar endpoints, as both return TeacherPaymentInvoiceItem.
-		// But, for getting existing TeacherPayment as TeacherPaymentInvoiceItem, the URL doesn't seem to represent it.
-		authRouter.Get("/teacherPayments/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentInvoiceItemsHandler, "TeacherID"))
-		authRouter.Get("/teacherPayments/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentsAsInvoiceItemsHandler, "TeacherID"))
+			loggedRouter.Post("/classes/edit/config", jsonSerdeWrapper.WrapFunc(backendService.EditClassesConfigsHandler))
+			loggedRouter.Post("/classes/edit/course", jsonSerdeWrapper.WrapFunc(backendService.EditClassesCoursesHandler))
 
-		authRouter.Post("/teacherPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherPaymentsHandler))
-		authRouter.Post("/teacherPayments/modify", jsonSerdeWrapper.WrapFunc(backendService.ModifyTeacherPaymentsHandler))
-		// TODO: delete these /edit & /remove. /modify already handles both of the operations
-		authRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
-		authRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
+			loggedRouter.Get("/enrollmentPayments/search", jsonSerdeWrapper.WrapFunc(backendService.SearchEnrollmentPaymentHandler))
+			loggedRouter.Get("/enrollmentPayments/invoice/studentEnrollment/{StudentEnrollmentID}", jsonSerdeWrapper.WrapFunc(backendService.GetEnrollmentPaymentInvoiceHandler, "StudentEnrollmentID"))
+			loggedRouter.Post("/enrollmentPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitEnrollmentPaymentHandler))
+			loggedRouter.Post("/enrollmentPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditEnrollmentPaymentHandler))
+			loggedRouter.Post("/enrollmentPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveEnrollmentPaymentHandler))
 
-		// This endpoint is more similar with "/classes/{ClassID}/attendances/add", where (1) SLTs are automatically updated, (2) class with n students will get n attendances.
-		// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
-		authRouter.Post("/attendances/batch", jsonSerdeWrapper.WrapFunc(backendService.AddAttendancesBatchHandler))
-	})
-	// Router group for staff-only (and above) endpoints
-	baseRouter.Group(func(authRouter chi.Router) {
-		authRouter.Use(backendService.AuthenticationMiddleware)
-		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Staff))
+			loggedRouter.Get("/teacherPayments/unpaidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetUnpaidTeachersHandler))
+			loggedRouter.Get("/teacherPayments/paidTeachers", jsonSerdeWrapper.WrapFunc(backendService.GetPaidTeachersHandler))
+			// TODO: improve naming for these 2 similar endpoints, as both return TeacherPaymentInvoiceItem.
+			// But, for getting existing TeacherPayment as TeacherPaymentInvoiceItem, the URL doesn't seem to represent it.
+			loggedRouter.Get("/teacherPayments/invoiceItems/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentInvoiceItemsHandler, "TeacherID"))
+			loggedRouter.Get("/teacherPayments/teacher/{TeacherID}", jsonSerdeWrapper.WrapFunc(backendService.GetTeacherPaymentsAsInvoiceItemsHandler, "TeacherID"))
+
+			loggedRouter.Post("/teacherPayments/submit", jsonSerdeWrapper.WrapFunc(backendService.SubmitTeacherPaymentsHandler))
+			loggedRouter.Post("/teacherPayments/modify", jsonSerdeWrapper.WrapFunc(backendService.ModifyTeacherPaymentsHandler))
+			// TODO: delete these /edit & /remove. /modify already handles both of the operations
+			loggedRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
+			loggedRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
+
+			// This endpoint is more similar with "/classes/{ClassID}/attendances/add", where (1) SLTs are automatically updated, (2) class with n students will get n attendances.
+			// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
+			loggedRouter.Post("/attendances/batch", jsonSerdeWrapper.WrapFunc(backendService.AddAttendancesBatchHandler))
+		})
 
 		authRouter.Post("/dashboard/expense/overview", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardExpenseOverview))
 		authRouter.Post("/dashboard/expense/monthlySummary", jsonSerdeWrapper.WrapFunc(backendService.GetDashboardExpenseMonthlySummary))
@@ -204,29 +206,27 @@ func main() {
 		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
 
 		authRouter.Put("/users/{UserID}/password", jsonSerdeWrapper.WrapFunc(backendService.UpdateUserPasswordHandler, "UserID"))
-	})
-	// with UserActionLog
-	baseRouter.Group(func(authRouter chi.Router) {
-		authRouter.Use(backendService.AuthenticationMiddleware)
-		authRouter.Use(backendService.AuthorizationMiddleware(identity.UserPrivilegeType_Member))
-		authRouter.Use(backendService.UserActionLogMiddleware)
 
-		authRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
-		authRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
+		authRouter.Group(func(loggedRouter chi.Router) {
+			loggedRouter.Use(backendService.UserActionLogMiddleware)
 
-		// TODO: properly implement this, as we're reusing admin endpoint?
-		authRouter.Get("/teachersForAttendance", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+			loggedRouter.Get("/userProfile", jsonSerdeWrapper.WrapFunc(backendService.GetUserProfile))
+			loggedRouter.Get("/userTeachingInfo", jsonSerdeWrapper.WrapFunc(backendService.GetUserTeachingInfo))
 
-		// these endpoints can be called by all type of members (except Anonymous). The privilege check is done inside the function.
-		authRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
-		authRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
-		authRouter.Get("/classes/{ClassID}/studentLearningTokensDisplay", jsonSerdeWrapper.WrapFunc(backendService.GetStudentLearningTokensByClassIDHandler, "ClassID"))
-		authRouter.Get("/classes/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
-		// for Member, only teachers are allowed to utilize these endpoints
-		// TODO: implement the authorization.
-		authRouter.Post("/classes/{ClassID}/attendances/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
-		authRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
-		authRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
+			// TODO: properly implement this, as we're reusing admin endpoint?
+			loggedRouter.Get("/teachersForAttendance", jsonSerdeWrapper.WrapFunc(backendService.GetTeachersHandler))
+
+			// these endpoints can be called by all type of members (except Anonymous). The privilege check is done inside the function.
+			loggedRouter.Get("/classes/search", jsonSerdeWrapper.WrapFunc(backendService.SearchClass))
+			loggedRouter.Get("/classes/{ClassID}", jsonSerdeWrapper.WrapFunc(backendService.GetClassByIdHandler, "ClassID"))
+			loggedRouter.Get("/classes/{ClassID}/studentLearningTokensDisplay", jsonSerdeWrapper.WrapFunc(backendService.GetStudentLearningTokensByClassIDHandler, "ClassID"))
+			loggedRouter.Get("/classes/{ClassID}/attendances", jsonSerdeWrapper.WrapFunc(backendService.GetAttendancesByClassIDHandler, "ClassID"))
+			// for Member, only teachers are allowed to utilize these endpoints
+			// TODO: implement the authorization.
+			loggedRouter.Post("/classes/{ClassID}/attendances/add", jsonSerdeWrapper.WrapFunc(backendService.AddAttendanceHandler, "ClassID"))
+			loggedRouter.Post("/attendances/{AttendanceID}/edit", jsonSerdeWrapper.WrapFunc(backendService.EditAttendanceHandler, "AttendanceID"))
+			loggedRouter.Post("/attendances/{AttendanceID}/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveAttendanceHandler, "AttendanceID"))
+		})
 	})
 
 	serverAddr := fmt.Sprintf("%s:%s", configObject.Host, configObject.Port)
@@ -248,7 +248,8 @@ func main() {
 		<-sig
 
 		// Shutdown signal with grace period of 30 seconds
-		shutdownCtx, _ := context.WithTimeout(serverCtx, 30*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(serverCtx, 30*time.Second)
+		defer cancel()
 
 		go func() {
 			<-shutdownCtx.Done()

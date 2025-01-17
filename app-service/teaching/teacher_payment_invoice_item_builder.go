@@ -78,6 +78,18 @@ func NewTeacherPaymentInvoiceItemBuilder() *teacherPaymentInvoiceItemBuilder {
 
 func (b *teacherPaymentInvoiceItemBuilder) AddAttendances(attendances []entity.Attendance) {
 	for _, attendance := range attendances {
+		// THIS IS A CODE GUARD, THIS NORMALLY SHOULD NOT HAPPEN.
+		//
+		// There may be Attendance without StudentLearningToken.
+		// This happens when (1) the class configuration of "autoOweToken" is set to false, and (2) the class has new attendance while all of its SLT quota <= 0.
+		//   in this case, the Attendance's SLT is expected to be assigned manually instead of automatically.
+		// As we're calculating TeacherPaymentInvoiceItem, just simply skip the Attendance having no SLT. We cannot know how much to pay anyway.
+		//
+		// The prevention of calculating TPII from attendances-without-SLT, should be done in FE in the first place.
+		// The FE should redirect user to assign SLT to all Attendances-without-SLT first, before going into calculating TPII.
+		if attendance.StudentLearningToken.StudentLearningTokenID == entity.StudentLearningTokenID_None {
+			continue
+		}
 		grossCourseFeeValue, grossTransportFeeValue := calculateGrossCourseAndTransportFeeValue(attendance)
 		b.rawItems = append(b.rawItems, teacherPaymentInvoiceItemRaw{
 			Attendance:             attendance,

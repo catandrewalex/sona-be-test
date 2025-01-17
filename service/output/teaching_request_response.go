@@ -192,6 +192,63 @@ func (r GetAttendancesByClassIDRequest) Validate() errs.ValidationError {
 	return nil
 }
 
+type EditClassesConfigsRequest struct {
+	Data []EditClassesConfigsParam `json:"data"`
+}
+type EditClassesConfigsParam struct {
+	ClassID                entity.ClassID `json:"classId"`
+	IsDeactivated          *bool          `json:"isDeactivated,omitempty"`
+	AutoOweAttendanceToken *bool          `json:"autoOweAttendanceToken,omitempty"`
+}
+type EditClassesConfigsResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r EditClassesConfigsRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.ClassID < 0 {
+			errorDetail[fmt.Sprintf("data.%d.classId", i)] = "classId must be >= 0"
+		}
+		if datum.IsDeactivated == nil && datum.AutoOweAttendanceToken == nil {
+			errorDetail[fmt.Sprintf("data.%d", i)] = "one or both of 'isDeactivated' and 'autoOweAttendanceToken' must be provided"
+		}
+	}
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
+type EditClassesCoursesRequest struct {
+	Data []EditClassesCoursesParam `json:"data"`
+}
+type EditClassesCoursesParam struct {
+	ClassID  entity.ClassID  `json:"classId"`
+	CourseID entity.CourseID `json:"courseId"`
+}
+type EditClassesCoursesResponse struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (r EditClassesCoursesRequest) Validate() errs.ValidationError {
+	errorDetail := make(errs.ValidationErrorDetail, 0)
+
+	for i, datum := range r.Data {
+		if datum.ClassID < 0 {
+			errorDetail[fmt.Sprintf("data.%d.classId", i)] = "classId must be >= 0"
+		}
+		if datum.CourseID < 0 {
+			errorDetail[fmt.Sprintf("data.%d.courseId", i)] = "courseId must be >= 0"
+		}
+	}
+	if len(errorDetail) > 0 {
+		return errs.NewValidationError(errs.ErrInvalidRequest, errorDetail)
+	}
+	return nil
+}
+
 type AddAttendanceRequest struct {
 	ClassID               entity.ClassID   `json:"-"` // we exclude the JSON tag as we'll populate the ID from URL param (not from JSON body or URL query param)
 	TeacherID             entity.TeacherID `json:"teacherId"`

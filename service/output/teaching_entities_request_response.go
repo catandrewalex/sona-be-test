@@ -367,12 +367,13 @@ type UpdateClassesRequest struct {
 	Data []UpdateClassesRequestParam `json:"data"`
 }
 type UpdateClassesRequestParam struct {
-	ClassID       entity.ClassID     `json:"classId"`
-	TeacherID     entity.TeacherID   `json:"teacherId"`
-	StudentIDs    []entity.StudentID `json:"StudentIds"`
-	CourseID      entity.CourseID    `json:"courseId"`
-	TransportFee  int32              `json:"transportFee,omitempty"`
-	IsDeactivated bool               `json:"isDeactivated,omitempty"`
+	ClassID                entity.ClassID     `json:"classId"`
+	TeacherID              entity.TeacherID   `json:"teacherId"`
+	StudentIDs             []entity.StudentID `json:"StudentIds"`
+	CourseID               entity.CourseID    `json:"courseId"`
+	TransportFee           int32              `json:"transportFee,omitempty"`
+	AutoOweAttendanceToken bool               `json:"autoOweAttendanceToken,omitempty"`
+	IsDeactivated          bool               `json:"isDeactivated,omitempty"`
 }
 type UpdateClassesResponse struct {
 	Data    UpsertClassResult `json:"data"`

@@ -1123,12 +1123,13 @@ func (s *BackendService) UpdateClassesHandler(ctx context.Context, req *output.U
 	specs := make([]entity.UpdateClassSpec, 0, len(req.Data))
 	for _, param := range req.Data {
 		specs = append(specs, entity.UpdateClassSpec{
-			ClassID:       param.ClassID,
-			TeacherID:     param.TeacherID,
-			StudentIDs:    param.StudentIDs,
-			CourseID:      param.CourseID,
-			TransportFee:  param.TransportFee,
-			IsDeactivated: param.IsDeactivated,
+			ClassID:                param.ClassID,
+			TeacherID:              param.TeacherID,
+			StudentIDs:             param.StudentIDs,
+			CourseID:               param.CourseID,
+			TransportFee:           param.TransportFee,
+			AutoOweAttendanceToken: param.AutoOweAttendanceToken,
+			IsDeactivated:          param.IsDeactivated,
 		})
 	}
 
@@ -1728,14 +1729,59 @@ func (s *BackendService) GetTeacherPaymentsHandler(ctx context.Context, req *out
 	}, nil
 }
 
+func (s *BackendService) EditClassesConfigsHandler(ctx context.Context, req *output.EditClassesConfigsRequest) (*output.EditClassesConfigsResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.EditClassConfigSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.EditClassConfigSpec{
+			ClassID:                param.ClassID,
+			IsDeactivated:          param.IsDeactivated,
+			AutoOweAttendanceToken: param.AutoOweAttendanceToken,
+		})
+	}
+
+	err := s.teachingService.EditClassesConfigs(ctx, specs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.EditClassesConfigs(): %w", err), nil, "Failed to get courses")
+	}
+
+	return &output.EditClassesConfigsResponse{
+		Message: "Successfully edit classes configs",
+	}, nil
+}
+
+func (s *BackendService) EditClassesCoursesHandler(ctx context.Context, req *output.EditClassesCoursesRequest) (*output.EditClassesCoursesResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.EditClassCourseSpec, 0, len(req.Data))
+	for _, param := range req.Data {
+		specs = append(specs, teaching.EditClassCourseSpec{
+			ClassID:  param.ClassID,
+			CourseID: param.CourseID,
+		})
+	}
+
+	err := s.teachingService.EditClassesCourses(ctx, specs)
+	if err != nil {
+		return nil, errs.NewHTTPError(http.StatusInternalServerError, fmt.Errorf("teachingService.EditClassesCourses(): %w", err), nil, "Failed to get courses")
+	}
+
+	return &output.EditClassesCoursesResponse{
+		Message: "Successfully edit classes courses",
+	}, nil
+}
+
 // AddAttendancesBatchHandler is the batch version of AddAttendance(), but only for admin.
 // The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
 func (s *BackendService) AddAttendancesBatchHandler(ctx context.Context, req *output.AddAttendancesBatchRequest) (*output.AddAttendancesBatchResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
 	}
-
-	allowAutoCreateSLT := configObject.AllowAutoCreateSLTOnAddAttendance
 
 	specs := make([]teaching.AddAttendanceSpec, 0)
 	for _, param := range req.Data {
@@ -1749,14 +1795,11 @@ func (s *BackendService) AddAttendancesBatchHandler(ctx context.Context, req *ou
 		})
 	}
 
-	attendanceIDs, err := s.teachingService.AddAttendancesBatch(ctx, specs, allowAutoCreateSLT)
+	attendanceIDs, err := s.teachingService.AddAttendancesBatch(ctx, specs)
 	if err != nil {
 		errContext := fmt.Errorf("teachingService.AddAttendancesBatch(): %w", err)
 		if errors.Is(err, errs.ErrClassHaveNoStudent) {
 			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One of the classes don't have any student, try registering a student first")
-		}
-		if errors.Is(err, errs.ErrStudentEnrollmentHaveNoLearningToken) {
-			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One/more students from one of the classses don't have learningToken, try adding students' enrollmentPayment first")
 		}
 
 		return nil, handleUpsertionError(err, errContext.Error(), "attendance")
@@ -1992,8 +2035,6 @@ func (s *BackendService) AddAttendanceHandler(ctx context.Context, req *output.A
 		}
 	}
 
-	allowAutoCreateSLT := configObject.AllowAutoCreateSLTOnAddAttendance
-
 	attendanceIDs, err := s.teachingService.AddAttendance(ctx, teaching.AddAttendanceSpec{
 		ClassID:               req.ClassID,
 		TeacherID:             req.TeacherID,
@@ -2001,14 +2042,11 @@ func (s *BackendService) AddAttendanceHandler(ctx context.Context, req *output.A
 		UsedStudentTokenQuota: req.UsedStudentTokenQuota,
 		Duration:              req.Duration,
 		Note:                  req.Note,
-	}, allowAutoCreateSLT)
+	})
 	if err != nil {
 		errContext := fmt.Errorf("teachingService.AddAttendance(): %w", err)
 		if errors.Is(err, errs.ErrClassHaveNoStudent) {
 			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "This class doesn't have any student, try registering a student first")
-		}
-		if errors.Is(err, errs.ErrStudentEnrollmentHaveNoLearningToken) {
-			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One/more students of this class don't have learningToken, try adding students' enrollmentPayment first")
 		}
 
 		return nil, handleUpsertionError(err, errContext.Error(), "attendance")

@@ -95,15 +95,17 @@ type TeachingService interface {
 	RemoveEnrollmentPayment(ctx context.Context, enrollmentPaymentID entity.EnrollmentPaymentID) error
 
 	SearchClass(ctx context.Context, spec SearchClassSpec) ([]entity.Class, error)
+	EditClassesConfigs(ctx context.Context, specs []EditClassConfigSpec) error
+	EditClassesCourses(ctx context.Context, specs []EditClassCourseSpec) error
 
 	GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]StudentIDToSLTs, error)
 	GetAttendancesByClassID(ctx context.Context, spec GetAttendancesByClassIDSpec) (GetAttendancesByClassIDResult, error)
 	// AddAttendancesBatch is the batch version of AddAttendance().
-	AddAttendancesBatch(ctx context.Context, specs []AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error)
+	AddAttendancesBatch(ctx context.Context, specs []AddAttendanceSpec) ([]entity.AttendanceID, error)
 	// AddAttendance creates attendance(s) based on spec, duplicated for every students who enroll in the class.
 	//
-	// Enabling "autoCreateSLT" will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).
-	AddAttendance(ctx context.Context, spec AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error)
+	// Depend on the `Class` setting ("autoOweAttendanceToken"), by default this will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).
+	AddAttendance(ctx context.Context, spec AddAttendanceSpec) ([]entity.AttendanceID, error)
 	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
 	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
@@ -141,6 +143,17 @@ type SearchClassSpec struct {
 	TeacherID entity.TeacherID
 	StudentID entity.StudentID
 	CourseID  entity.CourseID
+}
+
+type EditClassCourseSpec struct {
+	ClassID  entity.ClassID
+	CourseID entity.CourseID
+}
+
+type EditClassConfigSpec struct {
+	ClassID                entity.ClassID
+	IsDeactivated          *bool
+	AutoOweAttendanceToken *bool
 }
 
 type GetAttendancesByClassIDSpec struct {

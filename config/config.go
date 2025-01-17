@@ -37,8 +37,6 @@ type Config struct {
 	DBPassword          string `envconfig:"DB_PASSWORD" default:"p4ssw0rd"`
 	DBMaxOpenConnection int    `envconfig:"DB_MAX_OPEN_CONNECTION" default:"3"`
 
-	AllowAutoCreateSLTOnAddAttendance bool `envconfig:"ALLOW_AUTO_CREATE_SLT_ON_ADD_ATTENDANCE" default:"true"`
-
 	LogLevel string `envconfig:"LOG_LEVEL" default:"WARN"`
 }
 

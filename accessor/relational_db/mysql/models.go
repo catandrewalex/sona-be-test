@@ -20,15 +20,16 @@ type Attendance struct {
 	ClassID               int64
 	TeacherID             int64
 	StudentID             int64
-	TokenID               int64
+	TokenID               sql.NullInt64
 }
 
 type Class struct {
-	ID            int64
-	TransportFee  int32
-	TeacherID     sql.NullInt64
-	CourseID      int64
-	IsDeactivated int32
+	ID                     int64
+	TransportFee           int32
+	TeacherID              sql.NullInt64
+	CourseID               int64
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
 }
 
 type Course struct {

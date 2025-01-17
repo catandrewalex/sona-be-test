@@ -357,6 +357,73 @@ func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.Sear
 	return getClassResult.Classes, nil
 }
 
+func (s teachingServiceImpl) EditClassesConfigs(ctx context.Context, specs []teaching.EditClassConfigSpec) error {
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			// no changes, skip the spec
+			if spec.IsDeactivated == nil && spec.AutoOweAttendanceToken == nil {
+				continue
+			}
+			var err error
+			classId := int64(spec.ClassID)
+
+			// route to corresponding SQL update query, based on available fields in the spec
+			if spec.IsDeactivated != nil && spec.AutoOweAttendanceToken != nil {
+				err = qtx.UpdateClassConfig(newCtx, mysql.UpdateClassConfigParams{
+					AutoOweAttendanceToken: util.BoolToInt32(*spec.AutoOweAttendanceToken),
+					IsDeactivated:          util.BoolToInt32(*spec.IsDeactivated),
+					ID:                     classId,
+				})
+				if err != nil {
+					return fmt.Errorf("qtx.UpdateClassConfig(): %w", err)
+				}
+			} else if spec.IsDeactivated != nil {
+				err = qtx.UpdateClassActivation(newCtx, mysql.UpdateClassActivationParams{
+					IsDeactivated: util.BoolToInt32(*spec.IsDeactivated),
+					ID:            classId,
+				})
+				if err != nil {
+					return fmt.Errorf("qtx.UpdateClassActivation(): %w", err)
+				}
+			} else if spec.AutoOweAttendanceToken != nil {
+				err = qtx.UpdateClassAutoOweToken(newCtx, mysql.UpdateClassAutoOweTokenParams{
+					AutoOweAttendanceToken: util.BoolToInt32(*spec.AutoOweAttendanceToken),
+					ID:                     classId,
+				})
+				if err != nil {
+					return fmt.Errorf("qtx.UpdateClassAutoOweToken(): %w", err)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
+}
+func (s teachingServiceImpl) EditClassesCourses(ctx context.Context, specs []teaching.EditClassCourseSpec) error {
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, spec := range specs {
+			classId := int64(spec.ClassID)
+			err := qtx.UpdateClassCourse(newCtx, mysql.UpdateClassCourseParams{
+				CourseID: int64(spec.CourseID),
+				ID:       classId,
+			})
+			if err != nil {
+				return fmt.Errorf("qtx.UpdateClassCourse(): %w", err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
+}
+
 func (s teachingServiceImpl) GetSLTsByClassID(ctx context.Context, classID entity.ClassID) ([]teaching.StudentIDToSLTs, error) {
 	studentLearningTokenRows, err := s.mySQLQueries.GetSLTByClassIdForAttendanceInfo(ctx, int64(classID))
 	if err != nil {
@@ -412,12 +479,12 @@ func (s teachingServiceImpl) GetAttendancesByClassID(ctx context.Context, spec t
 	}, nil
 }
 
-func (s teachingServiceImpl) AddAttendancesBatch(ctx context.Context, specs []teaching.AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error) {
+func (s teachingServiceImpl) AddAttendancesBatch(ctx context.Context, specs []teaching.AddAttendanceSpec) ([]entity.AttendanceID, error) {
 	attendanceIDs := make([]entity.AttendanceID, 0)
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			ids, err := s.AddAttendance(newCtx, spec, autoCreateSLT)
+			ids, err := s.AddAttendance(newCtx, spec)
 			if err != nil {
 				return fmt.Errorf("AddAttendance(): %w", err)
 			}
@@ -433,10 +500,16 @@ func (s teachingServiceImpl) AddAttendancesBatch(ctx context.Context, specs []te
 	return attendanceIDs, nil
 }
 
-func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.AddAttendanceSpec, autoCreateSLT bool) ([]entity.AttendanceID, error) {
+func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.AddAttendanceSpec) ([]entity.AttendanceID, error) {
 	attendanceIDs := make([]entity.AttendanceID, 0)
 
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		autoOweTokenMode, err := qtx.GetClassAutoOweTokenMode(newCtx, int64(spec.ClassID))
+		if err != nil {
+			return fmt.Errorf("qtx.GetClassAutoOweTokenMode(): %w", err)
+		}
+		autoOweSLT := util.Int32ToBool(autoOweTokenMode)
+
 		studentEnrollments, err := qtx.GetStudentEnrollmentsByClassId(newCtx, int64(spec.ClassID))
 		if err != nil {
 			return fmt.Errorf("qtx.GetStudentEnrollmentsByClassId(): %w", err)
@@ -459,6 +532,11 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 		}
 
 		for _, earliestAvailableSLT := range earliestAvailableSLTs {
+			// if `Class` "autoOweAttendanceToken" is false, we will not let the resulting SLT quota (currentQuota - usedQuota) to be < 0.
+			// instead, we will let the `Attendance` to have no SLT. We expect admin to assign the SLT manually.
+			if !autoOweSLT && earliestAvailableSLT.Quota-spec.UsedStudentTokenQuota < 0 {
+				continue
+			}
 			enrollmentIDToEarliestSLTID[earliestAvailableSLT.EnrollmentID] = entity.StudentLearningTokenID(earliestAvailableSLT.StudentLearningTokenID)
 
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
@@ -476,16 +554,16 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 		for _, studentEnrollment := range studentEnrollments {
 			sltID, ok := enrollmentIDToEarliestSLTID[studentEnrollment.StudentEnrollmentID]
 			if !ok {
-				if !autoCreateSLT {
-					return fmt.Errorf("studentEnrollment='%d': %w", studentEnrollment.StudentEnrollmentID, errs.ErrStudentEnrollmentHaveNoLearningToken)
+				// only autoRegisterSLT with negative quota, if the `Class` "autoOweAttendanceToken" mode is true.
+				// else, we let the `Attendance` to have no SLT. We expect admin to assign the SLT manually.
+				if autoOweSLT {
+					mainLog.Warn("studentEnrollment='%d' doesn't have any studentLearningToken (SLT). Creating a new negative quota SLT as 'autoCreateSLT' is true.", studentEnrollment.StudentEnrollmentID)
+					newSLTID, err := s.autoRegisterSLT(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID), spec.UsedStudentTokenQuota*-1)
+					if err != nil {
+						return fmt.Errorf("autoRegisterSLT(): %w", err)
+					}
+					sltID = newSLTID
 				}
-
-				mainLog.Warn("studentEnrollment='%d' doesn't have any studentLearningToken (SLT). Creating a new negative quota SLT as 'autoCreateSLT' is true.", studentEnrollment.StudentEnrollmentID)
-				newSLTID, err := s.autoRegisterSLT(newCtx, entity.StudentEnrollmentID(studentEnrollment.StudentEnrollmentID), spec.UsedStudentTokenQuota*-1)
-				if err != nil {
-					return fmt.Errorf("autoRegisterSLT(): %w", err)
-				}
-				sltID = newSLTID
 			}
 
 			specs = append(specs, entity.InsertAttendanceSpec{
@@ -558,7 +636,9 @@ func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.E
 			attendanceIDs = append(attendanceIDs, entity.AttendanceID(rowResult.ID))
 			attendanceIDsInt = append(attendanceIDsInt, rowResult.ID)
 
-			sltIDIntToUsedQuota[rowResult.TokenID] = rowResult.UsedStudentTokenQuota
+			if rowResult.TokenID.Valid {
+				sltIDIntToUsedQuota[rowResult.TokenID.Int64] = rowResult.UsedStudentTokenQuota
+			}
 		}
 
 		err = qtx.EditAttendances(newCtx, mysql.EditAttendancesParams{
@@ -612,7 +692,9 @@ func (s teachingServiceImpl) RemoveAttendance(ctx context.Context, attendanceID 
 			deletedAttendanceIDs = append(deletedAttendanceIDs, entity.AttendanceID(rowResult.ID))
 			attendanceIDsInt = append(attendanceIDsInt, rowResult.ID)
 
-			sltIDIntToUsedQuota[rowResult.TokenID] = rowResult.UsedStudentTokenQuota
+			if rowResult.TokenID.Valid {
+				sltIDIntToUsedQuota[rowResult.TokenID.Int64] = rowResult.UsedStudentTokenQuota
+			}
 		}
 
 		err = qtx.DeleteAttendancesByIds(newCtx, attendanceIDsInt)

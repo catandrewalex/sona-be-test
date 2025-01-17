@@ -43,6 +43,9 @@ CREATE TABLE class
   transport_fee INT NOT NULL,
   teacher_id BIGINT unsigned,
   course_id BIGINT unsigned NOT NULL,
+  -- auto_owe_attendance_token determines whether a newly added `attendance` will automatically be assigned to the latest `student_learning_token` (or automatically create one) when the remaining quota is <= 0.
+  -- the resulting `student_learning_token` quota will be negative, thus the term "owing".
+  auto_owe_attendance_token TINYINT NOT NULL DEFAULT 1,
   is_deactivated TINYINT NOT NULL DEFAULT 0,
   -- a `class` may temporarily have no `teacher`
   FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE SET NULL,
@@ -112,12 +115,15 @@ CREATE TABLE attendance
   class_id BIGINT unsigned NOT NULL,
   teacher_id BIGINT unsigned NOT NULL,
   student_id BIGINT unsigned NOT NULL,
-  token_id BIGINT unsigned NOT NULL,
+  -- an `attendance` may have null `student_learning_token` when the class is NOT on "auto_owe_attendance_token". That mode allows adding "dangling" `attendance`, whose `student_learning_token` will be assigned later.
+  -- this is mostly useful in the period of course level up, or price change. In this scenario, some `attendance`'s `student_learning_token` are preferred to be assigned manually, instead of automatically.
+  -- therefore, we need to be able to insert the `attendance` having no `student_learning_token`.
+  token_id BIGINT unsigned,
   -- `attendance` stores historical records, and requires all existing used `attendance` to be deleted before deleting the parent entities.
   FOREIGN KEY (class_id) REFERENCES class(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   FOREIGN KEY (teacher_id) REFERENCES teacher(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   FOREIGN KEY (student_id) REFERENCES student(id) ON UPDATE CASCADE ON DELETE RESTRICT,
-  -- an `attendance` must have a `student_learning_token` for calculating `attendance` fee. If one wishes to delete a token ID, we force the `attendance` to migrate to use another token.
+  -- an `attendance` normally will have a `student_learning_token` for calculating `attendance` fee. If one wishes to delete a token ID, we force the `attendance` to migrate to use another token.
   FOREIGN KEY (token_id) REFERENCES student_learning_token(id) ON UPDATE CASCADE ON DELETE RESTRICT,
   UNIQUE KEY `class_id--student_id--date` (`class_id`, `student_id`, `date`)
 );

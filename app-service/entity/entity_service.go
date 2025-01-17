@@ -54,23 +54,25 @@ type Course struct {
 }
 
 type Class struct {
-	ClassID              ClassID               `json:"classId"`
-	TeacherInfo_Minimal  *TeacherInfo_Minimal  `json:"teacher,omitempty"` // class without teacher is a valid class
-	StudentInfos_Minimal []StudentInfo_Minimal `json:"students"`
-	Course               Course                `json:"course"`
-	TransportFee         int32                 `json:"transportFee"`
-	TeacherSpecialFee    int32                 `json:"teacherSpecialFee,omitempty"` // this is only populated when the class' teacher has a special fee
-	IsDeactivated        bool                  `json:"isDeactivated"`
+	ClassID                ClassID               `json:"classId"`
+	TeacherInfo_Minimal    *TeacherInfo_Minimal  `json:"teacher,omitempty"` // class without teacher is a valid class
+	StudentInfos_Minimal   []StudentInfo_Minimal `json:"students"`
+	Course                 Course                `json:"course"`
+	TransportFee           int32                 `json:"transportFee"`
+	TeacherSpecialFee      int32                 `json:"teacherSpecialFee,omitempty"` // this is only populated when the class' teacher has a special fee
+	AutoOweAttendanceToken bool                  `json:"autoOweAttendanceToken"`
+	IsDeactivated          bool                  `json:"isDeactivated"`
 }
 
 // ClassInfo_Minimal is a subset of struct Class that must have the same schema.
 type ClassInfo_Minimal struct {
-	ClassID             ClassID              `json:"classId"`
-	TeacherInfo_Minimal *TeacherInfo_Minimal `json:"teacher,omitempty"` // class without teacher is a valid class
-	Course              Course               `json:"course"`
-	TransportFee        int32                `json:"transportFee"`
-	TeacherSpecialFee   int32                `json:"teacherSpecialFee,omitempty"` // this is only populated when the class' teacher has a special fee
-	IsDeactivated       bool                 `json:"isDeactivated"`
+	ClassID                ClassID              `json:"classId"`
+	TeacherInfo_Minimal    *TeacherInfo_Minimal `json:"teacher,omitempty"` // class without teacher is a valid class
+	Course                 Course               `json:"course"`
+	TransportFee           int32                `json:"transportFee"`
+	TeacherSpecialFee      int32                `json:"teacherSpecialFee,omitempty"` // this is only populated when the class' teacher has a special fee
+	AutoOweAttendanceToken bool                 `json:"autoOweAttendanceToken"`
+	IsDeactivated          bool                 `json:"isDeactivated"`
 }
 
 func (c ClassInfo_Minimal) String() string {
@@ -130,7 +132,7 @@ type Attendance struct {
 	ClassInfo             ClassInfo_Minimal            `json:"class,omitempty"`
 	TeacherInfo           TeacherInfo_Minimal          `json:"teacher,omitempty"`
 	StudentInfo           StudentInfo_Minimal          `json:"student,omitempty"`
-	StudentLearningToken  StudentLearningToken_Minimal `json:"studentLearningToken"`
+	StudentLearningToken  StudentLearningToken_Minimal `json:"studentLearningToken,omitempty"`
 	Date                  time.Time                    `json:"date"`
 	UsedStudentTokenQuota float64                      `json:"usedStudentTokenQuota"`
 	Duration              int32                        `json:"duration"`
@@ -376,12 +378,13 @@ type InsertClassSpec struct {
 }
 
 type UpdateClassSpec struct {
-	ClassID       ClassID
-	TeacherID     TeacherID
-	StudentIDs    []StudentID
-	CourseID      CourseID
-	TransportFee  int32
-	IsDeactivated bool
+	ClassID                ClassID
+	TeacherID              TeacherID
+	StudentIDs             []StudentID
+	CourseID               CourseID
+	TransportFee           int32
+	AutoOweAttendanceToken bool
+	IsDeactivated          bool
 }
 
 func (s UpdateClassSpec) GetInt64ID() int64 {

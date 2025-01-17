@@ -13,28 +13,18 @@ import (
 	"time"
 )
 
-const activateClass = `-- name: ActivateClass :exec
-UPDATE class SET is_deactivated = 1
-WHERE id = ?
-`
-
-func (q *Queries) ActivateClass(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, activateClass, id)
-	return err
-}
-
 const countClasses = `-- name: CountClasses :one
 WITH class_filtered AS (
     -- class & student_enrollment has a Many-to-many relationship, therefore:
     --   1. we need to join them to be able to filter by student_id
     --   2. we use SELECT DISCTINCT just to be safe
-    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, is_deactivated
+    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated
     FROM class
-        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+        LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     WHERE
         class.is_deactivated IN (/*SLICE:isDeactivateds*/?)
         AND (teacher_id = ? OR ? = false)
-        AND (student_enrollment.student_id = ? OR ? = false)
+        AND (se.student_id = ? OR ? = false)
         AND (course_id = ? OR ? = false)
 )
 SELECT Count(id) AS total FROM class_filtered
@@ -355,16 +345,6 @@ func (q *Queries) CountUnpaidTeachers(ctx context.Context, arg CountUnpaidTeache
 	return total, err
 }
 
-const deactivateClass = `-- name: DeactivateClass :exec
-UPDATE class SET is_deactivated = 0
-WHERE id = ?
-`
-
-func (q *Queries) DeactivateClass(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deactivateClass, id)
-	return err
-}
-
 const deleteClassesByIds = `-- name: DeleteClassesByIds :exec
 DELETE FROM class
 WHERE id IN (/*SLICE:ids*/?)
@@ -635,8 +615,21 @@ func (q *Queries) EnableStudentEnrollment(ctx context.Context, id int64) error {
 	return err
 }
 
+const getClassAutoOweTokenMode = `-- name: GetClassAutoOweTokenMode :one
+SELECT class.auto_owe_attendance_token
+FROM class
+WHERE class.id = ?
+`
+
+func (q *Queries) GetClassAutoOweTokenMode(ctx context.Context, id int64) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getClassAutoOweTokenMode, id)
+	var auto_owe_attendance_token int32
+	err := row.Scan(&auto_owe_attendance_token)
+	return auto_owe_attendance_token, err
+}
+
 const getClassById = `-- name: GetClassById :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.auto_owe_attendance_token, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -659,21 +652,22 @@ WHERE class.id = ?
 `
 
 type GetClassByIdRow struct {
-	ClassID               int64
-	TransportFee          int32
-	IsDeactivated         int32
-	CourseID              int64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	Instrument            Instrument
-	Grade                 Grade
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	DefaultFee            int32
-	DefaultDurationMinute int32
-	TeacherSpecialFee     sql.NullInt32
+	ClassID                int64
+	TransportFee           int32
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
+	CourseID               int64
+	TeacherID              sql.NullInt64
+	StudentID              sql.NullInt64
+	TeacherUsername        sql.NullString
+	TeacherDetail          []byte
+	Instrument             Instrument
+	Grade                  Grade
+	StudentUsername        sql.NullString
+	StudentDetail          []byte
+	DefaultFee             int32
+	DefaultDurationMinute  int32
+	TeacherSpecialFee      sql.NullInt32
 }
 
 func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow, error) {
@@ -688,6 +682,7 @@ func (q *Queries) GetClassById(ctx context.Context, id int64) ([]GetClassByIdRow
 		if err := rows.Scan(
 			&i.ClassID,
 			&i.TransportFee,
+			&i.AutoOweAttendanceToken,
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.TeacherID,
@@ -736,17 +731,17 @@ WITH class_paginated AS (
     -- class & student_enrollment has a Many-to-many relationship, therefore:
     --   1. we need to join them to be able to filter by student_id
     --   2. we use SELECT DISCTINCT just to be safe
-    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, is_deactivated
+    SELECT DISTINCT class.id AS id, transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated
     FROM class
-        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+        LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     WHERE
         class.is_deactivated IN (/*SLICE:isDeactivateds*/?)
         AND (class.teacher_id = ? OR ? = false)
-        AND (student_enrollment.student_id = ? OR ? = false)
+        AND (se.student_id = ? OR ? = false)
         AND (class.course_id = ? OR ? = false)
     LIMIT ? OFFSET ?
 )
-SELECT class_paginated.id AS class_id, transport_fee, class_paginated.is_deactivated, class_paginated.course_id AS course_id, class_paginated.teacher_id AS teacher_id, se.student_id AS student_id,
+SELECT class_paginated.id AS class_id, transport_fee, class_paginated.auto_owe_attendance_token, class_paginated.is_deactivated, class_paginated.course_id AS course_id, class_paginated.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -781,21 +776,22 @@ type GetClassesParams struct {
 }
 
 type GetClassesRow struct {
-	ClassID               int64
-	TransportFee          int32
-	IsDeactivated         int32
-	CourseID              int64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	Instrument            Instrument
-	Grade                 Grade
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	DefaultFee            int32
-	DefaultDurationMinute int32
-	TeacherSpecialFee     sql.NullInt32
+	ClassID                int64
+	TransportFee           int32
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
+	CourseID               int64
+	TeacherID              sql.NullInt64
+	StudentID              sql.NullInt64
+	TeacherUsername        sql.NullString
+	TeacherDetail          []byte
+	Instrument             Instrument
+	Grade                  Grade
+	StudentUsername        sql.NullString
+	StudentDetail          []byte
+	DefaultFee             int32
+	DefaultDurationMinute  int32
+	TeacherSpecialFee      sql.NullInt32
 }
 
 func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetClassesRow, error) {
@@ -828,6 +824,7 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 		if err := rows.Scan(
 			&i.ClassID,
 			&i.TransportFee,
+			&i.AutoOweAttendanceToken,
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.TeacherID,
@@ -858,7 +855,7 @@ func (q *Queries) GetClasses(ctx context.Context, arg GetClassesParams) ([]GetCl
 }
 
 const getClassesByIds = `-- name: GetClassesByIds :many
-SELECT class.id AS class_id, transport_fee, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
+SELECT class.id AS class_id, transport_fee, class.auto_owe_attendance_token, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
     user_teacher.username AS teacher_username,
     user_teacher.user_detail AS teacher_detail,
     instrument.id, instrument.name, grade.id, grade.name,
@@ -882,21 +879,22 @@ ORDER BY class.id
 `
 
 type GetClassesByIdsRow struct {
-	ClassID               int64
-	TransportFee          int32
-	IsDeactivated         int32
-	CourseID              int64
-	TeacherID             sql.NullInt64
-	StudentID             sql.NullInt64
-	TeacherUsername       sql.NullString
-	TeacherDetail         []byte
-	Instrument            Instrument
-	Grade                 Grade
-	StudentUsername       sql.NullString
-	StudentDetail         []byte
-	DefaultFee            int32
-	DefaultDurationMinute int32
-	TeacherSpecialFee     sql.NullInt32
+	ClassID                int64
+	TransportFee           int32
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
+	CourseID               int64
+	TeacherID              sql.NullInt64
+	StudentID              sql.NullInt64
+	TeacherUsername        sql.NullString
+	TeacherDetail          []byte
+	Instrument             Instrument
+	Grade                  Grade
+	StudentUsername        sql.NullString
+	StudentDetail          []byte
+	DefaultFee             int32
+	DefaultDurationMinute  int32
+	TeacherSpecialFee      sql.NullInt32
 }
 
 func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClassesByIdsRow, error) {
@@ -921,6 +919,7 @@ func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClasse
 		if err := rows.Scan(
 			&i.ClassID,
 			&i.TransportFee,
+			&i.AutoOweAttendanceToken,
 			&i.IsDeactivated,
 			&i.CourseID,
 			&i.TeacherID,
@@ -951,9 +950,9 @@ func (q *Queries) GetClassesByIds(ctx context.Context, ids []int64) ([]GetClasse
 }
 
 const getClassesTotalStudentsByClassIds = `-- name: GetClassesTotalStudentsByClassIds :many
-SELECT class.id AS class_id, Count(student_enrollment.id) AS total_students
+SELECT class.id AS class_id, Count(se.id) AS total_students
     FROM class
-        LEFT JOIN student_enrollment ON class.id = student_enrollment.class_id
+        LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
     WHERE class.id IN (/*SLICE:ids*/?)
     GROUP BY class.id
 `
@@ -1558,7 +1557,7 @@ func (q *Queries) GetStudentByUserId(ctx context.Context, userID int64) (GetStud
 const getStudentEnrollmentById = `-- name: GetStudentEnrollmentById :one
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN student ON se.student_id = student.id
@@ -1603,6 +1602,7 @@ func (q *Queries) GetStudentEnrollmentById(ctx context.Context, id int64) (GetSt
 		&i.Class.TransportFee,
 		&i.Class.TeacherID,
 		&i.Class.CourseID,
+		&i.Class.AutoOweAttendanceToken,
 		&i.Class.IsDeactivated,
 		&i.TeacherSpecialFee,
 		&i.Course.ID,
@@ -1624,7 +1624,7 @@ func (q *Queries) GetStudentEnrollmentById(ctx context.Context, id int64) (GetSt
 const getStudentEnrollments = `-- name: GetStudentEnrollments :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN student ON se.student_id = student.id
@@ -1681,6 +1681,7 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrol
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1712,7 +1713,7 @@ func (q *Queries) GetStudentEnrollments(ctx context.Context, arg GetStudentEnrol
 const getStudentEnrollmentsByClassId = `-- name: GetStudentEnrollmentsByClassId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN student ON se.student_id = student.id
@@ -1762,6 +1763,7 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1793,7 +1795,7 @@ func (q *Queries) GetStudentEnrollmentsByClassId(ctx context.Context, classID in
 const getStudentEnrollmentsByIds = `-- name: GetStudentEnrollmentsByIds :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN student ON se.student_id = student.id
@@ -1853,6 +1855,7 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -1884,7 +1887,7 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 const getStudentEnrollmentsByStudentId = `-- name: GetStudentEnrollmentsByStudentId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
+    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
     class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
 FROM student_enrollment AS se
     JOIN student ON se.student_id = student.id
@@ -1934,6 +1937,7 @@ func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentI
 			&i.Class.TransportFee,
 			&i.Class.TeacherID,
 			&i.Class.CourseID,
+			&i.Class.AutoOweAttendanceToken,
 			&i.Class.IsDeactivated,
 			&i.TeacherSpecialFee,
 			&i.Course.ID,
@@ -2622,17 +2626,18 @@ func (q *Queries) GetUserTeacherIdAndStudentId(ctx context.Context, id int64) (G
 
 const insertClass = `-- name: InsertClass :execlastid
 INSERT INTO class (
-    transport_fee, teacher_id, course_id, is_deactivated
+    transport_fee, teacher_id, course_id, auto_owe_attendance_token, is_deactivated
 ) VALUES (
-    ?, ?, ?, ?
+    ?, ?, ?, ?, ?
 )
 `
 
 type InsertClassParams struct {
-	TransportFee  int32
-	TeacherID     sql.NullInt64
-	CourseID      int64
-	IsDeactivated int32
+	TransportFee           int32
+	TeacherID              sql.NullInt64
+	CourseID               int64
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
 }
 
 func (q *Queries) InsertClass(ctx context.Context, arg InsertClassParams) (int64, error) {
@@ -2640,6 +2645,7 @@ func (q *Queries) InsertClass(ctx context.Context, arg InsertClassParams) (int64
 		arg.TransportFee,
 		arg.TeacherID,
 		arg.CourseID,
+		arg.AutoOweAttendanceToken,
 		arg.IsDeactivated,
 	)
 	if err != nil {
@@ -2805,7 +2811,7 @@ SELECT EXISTS(
     SELECT user.id, se.class_id
     FROM user 
         JOIN student ON user.id = student.user_id
-        JOIN student_enrollment AS se ON student.id = se.student_id
+        JOIN student_enrollment AS se ON (student.id = se.student_id AND se.is_deleted=0)
     WHERE user.id = ? AND se.class_id = ?
     UNION
     -- check whether the user is teaching the class
@@ -2835,16 +2841,17 @@ func (q *Queries) IsUserIdInvolvedInClassId(ctx context.Context, arg IsUserIdInv
 }
 
 const updateClass = `-- name: UpdateClass :exec
-UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, is_deactivated = ?
+UPDATE class SET transport_fee = ?, teacher_id = ?, course_id = ?, auto_owe_attendance_token = ?, is_deactivated = ?
 WHERE id = ?
 `
 
 type UpdateClassParams struct {
-	TransportFee  int32
-	TeacherID     sql.NullInt64
-	CourseID      int64
-	IsDeactivated int32
-	ID            int64
+	TransportFee           int32
+	TeacherID              sql.NullInt64
+	CourseID               int64
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
+	ID                     int64
 }
 
 func (q *Queries) UpdateClass(ctx context.Context, arg UpdateClassParams) error {
@@ -2852,9 +2859,56 @@ func (q *Queries) UpdateClass(ctx context.Context, arg UpdateClassParams) error 
 		arg.TransportFee,
 		arg.TeacherID,
 		arg.CourseID,
+		arg.AutoOweAttendanceToken,
 		arg.IsDeactivated,
 		arg.ID,
 	)
+	return err
+}
+
+const updateClassActivation = `-- name: UpdateClassActivation :exec
+UPDATE class SET is_deactivated = ?
+WHERE id = ?
+`
+
+type UpdateClassActivationParams struct {
+	IsDeactivated int32
+	ID            int64
+}
+
+func (q *Queries) UpdateClassActivation(ctx context.Context, arg UpdateClassActivationParams) error {
+	_, err := q.db.ExecContext(ctx, updateClassActivation, arg.IsDeactivated, arg.ID)
+	return err
+}
+
+const updateClassAutoOweToken = `-- name: UpdateClassAutoOweToken :exec
+UPDATE class SET auto_owe_attendance_token = ?
+WHERE id = ?
+`
+
+type UpdateClassAutoOweTokenParams struct {
+	AutoOweAttendanceToken int32
+	ID                     int64
+}
+
+func (q *Queries) UpdateClassAutoOweToken(ctx context.Context, arg UpdateClassAutoOweTokenParams) error {
+	_, err := q.db.ExecContext(ctx, updateClassAutoOweToken, arg.AutoOweAttendanceToken, arg.ID)
+	return err
+}
+
+const updateClassConfig = `-- name: UpdateClassConfig :exec
+UPDATE class SET auto_owe_attendance_token = ?, is_deactivated = ?
+WHERE id = ?
+`
+
+type UpdateClassConfigParams struct {
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
+	ID                     int64
+}
+
+func (q *Queries) UpdateClassConfig(ctx context.Context, arg UpdateClassConfigParams) error {
+	_, err := q.db.ExecContext(ctx, updateClassConfig, arg.AutoOweAttendanceToken, arg.IsDeactivated, arg.ID)
 	return err
 }
 
@@ -2870,36 +2924,6 @@ type UpdateClassCourseParams struct {
 
 func (q *Queries) UpdateClassCourse(ctx context.Context, arg UpdateClassCourseParams) error {
 	_, err := q.db.ExecContext(ctx, updateClassCourse, arg.CourseID, arg.ID)
-	return err
-}
-
-const updateClassInfo = `-- name: UpdateClassInfo :exec
-UPDATE class SET transport_fee = ?
-WHERE id = ?
-`
-
-type UpdateClassInfoParams struct {
-	TransportFee int32
-	ID           int64
-}
-
-func (q *Queries) UpdateClassInfo(ctx context.Context, arg UpdateClassInfoParams) error {
-	_, err := q.db.ExecContext(ctx, updateClassInfo, arg.TransportFee, arg.ID)
-	return err
-}
-
-const updateClassTeacher = `-- name: UpdateClassTeacher :exec
-UPDATE class SET teacher_id = ?
-WHERE id = ?
-`
-
-type UpdateClassTeacherParams struct {
-	TeacherID sql.NullInt64
-	ID        int64
-}
-
-func (q *Queries) UpdateClassTeacher(ctx context.Context, arg UpdateClassTeacherParams) error {
-	_, err := q.db.ExecContext(ctx, updateClassTeacher, arg.TeacherID, arg.ID)
 	return err
 }
 
