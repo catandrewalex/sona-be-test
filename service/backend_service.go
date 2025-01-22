@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"database/sql"
 
@@ -99,6 +100,13 @@ func (s *BackendService) HomepageHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
+	headerDevelopmentKey := r.Header.Get("x-development-key")
+	if headerDevelopmentKey != configObject.DevelopmentKey {
+		mainLog.Error("Invalid x-development-key: %s", headerDevelopmentKey)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	userIDStr := r.URL.Query().Get("id")
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
@@ -121,9 +129,16 @@ func (s *BackendService) GetJWTHandler(w http.ResponseWriter, r *http.Request) {
 		tokenPurposeType = int(auth.JWTTokenPurposeType_Auth)
 	}
 
+	expiryTimeStr := r.URL.Query().Get("expiryTime")
+	expiryTime, err := time.ParseDuration(expiryTimeStr)
+	if err != nil {
+		mainLog.Warn("Failed to parse expiryTime: %v. Defaulting to server configuration's default value", err)
+		expiryTime = auth.JWTToken_ExpiryTime_SetDefault
+	}
+
 	tokenString, err := s.jwtService.CreateJWTToken(
 		identity.UserID(userID), identity.UserPrivilegeType(privilegeType),
-		auth.JWTTokenPurposeType(tokenPurposeType), auth.JWTToken_ExpiryTime_SetDefault,
+		auth.JWTTokenPurposeType(tokenPurposeType), expiryTime,
 	)
 	if err != nil {
 		mainLog.Error("Failed to create JWT token:", err)
