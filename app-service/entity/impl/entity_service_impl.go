@@ -38,20 +38,30 @@ func NewEntityServiceImpl(mySQLQueries *relational_db.MySQLQueries, identityServ
 func (s entityServiceImpl) GetTeachers(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeachersResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	teacherRows, err := s.mySQLQueries.GetTeachers(ctx, mysql.GetTeachersParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var teacherRows = make([]mysql.GetTeachersRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherRows, err = s.mySQLQueries.GetTeachers(newCtx, mysql.GetTeachersParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeachers(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountTeachers(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountTeachers(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetTeachersResult{}, fmt.Errorf("mySQLQueries.GetTeachers(): %w", err)
+		return entity.GetTeachersResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teachers := NewTeachersFromGetTeachersRow(teacherRows)
-
-	totalResults, err := s.mySQLQueries.CountTeachers(ctx)
-	if err != nil {
-		return entity.GetTeachersResult{}, fmt.Errorf("mySQLQueries.CountTeachers(): %w", err)
-	}
 
 	return entity.GetTeachersResult{
 		Teachers:         teachers,
@@ -60,9 +70,17 @@ func (s entityServiceImpl) GetTeachers(ctx context.Context, pagination util.Pagi
 }
 
 func (s entityServiceImpl) GetTeacherById(ctx context.Context, id entity.TeacherID) (entity.Teacher, error) {
-	teacherRow, err := s.mySQLQueries.GetTeacherById(ctx, int64(id))
+	var teacherRow mysql.GetTeacherByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherRow, err = s.mySQLQueries.GetTeacherById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Teacher{}, fmt.Errorf("mySQLQueries.GetTeacherById(): %w", err)
+		return entity.Teacher{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacher := NewTeachersFromGetTeachersRow([]mysql.GetTeachersRow{teacherRow.ToGetTeachersRow()})[0]
@@ -76,9 +94,17 @@ func (s entityServiceImpl) GetTeachersByIds(ctx context.Context, ids []entity.Te
 		idsInt = append(idsInt, int64(id))
 	}
 
-	teacherRows, err := s.mySQLQueries.GetTeachersByIds(ctx, idsInt)
+	var teacherRows = make([]mysql.GetTeachersByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherRows, err = s.mySQLQueries.GetTeachersByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeachersByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.Teacher{}, fmt.Errorf("mySQLQueries.GetTeachersByIds(): %w", err)
+		return []entity.Teacher{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherRowsConverted := make([]mysql.GetTeachersRow, 0, len(teacherRows))
@@ -143,9 +169,15 @@ func (s entityServiceImpl) DeleteTeachers(ctx context.Context, ids []entity.Teac
 		teacherIdsInt64 = append(teacherIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteTeachersByIds(ctx, teacherIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteTeachersByIds(newCtx, teacherIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteTeacherByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteTeacherByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -154,20 +186,30 @@ func (s entityServiceImpl) DeleteTeachers(ctx context.Context, ids []entity.Teac
 func (s entityServiceImpl) GetStudents(ctx context.Context, pagination util.PaginationSpec) (entity.GetStudentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	studentRows, err := s.mySQLQueries.GetStudents(ctx, mysql.GetStudentsParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var studentRows = make([]mysql.GetStudentsRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentRows, err = s.mySQLQueries.GetStudents(newCtx, mysql.GetStudentsParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudents(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountStudents(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetStudentsResult{}, fmt.Errorf("mySQLQueries.GetStudents(): %w", err)
+		return entity.GetStudentsResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	students := NewStudentsFromGetStudentsRow(studentRows)
-
-	totalResults, err := s.mySQLQueries.CountStudents(ctx)
-	if err != nil {
-		return entity.GetStudentsResult{}, fmt.Errorf("mySQLQueries.CountStudents(): %w", err)
-	}
 
 	return entity.GetStudentsResult{
 		Students:         students,
@@ -176,9 +218,17 @@ func (s entityServiceImpl) GetStudents(ctx context.Context, pagination util.Pagi
 }
 
 func (s entityServiceImpl) GetStudentById(ctx context.Context, id entity.StudentID) (entity.Student, error) {
-	studentRow, err := s.mySQLQueries.GetStudentById(ctx, int64(id))
+	var studentRow mysql.GetStudentByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentRow, err = s.mySQLQueries.GetStudentById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Student{}, fmt.Errorf("mySQLQueries.GetStudentById(): %w", err)
+		return entity.Student{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	student := NewStudentsFromGetStudentsRow([]mysql.GetStudentsRow{studentRow.ToGetStudentsRow()})[0]
@@ -192,9 +242,17 @@ func (s entityServiceImpl) GetStudentsByIds(ctx context.Context, ids []entity.St
 		idsInt = append(idsInt, int64(id))
 	}
 
-	studentRows, err := s.mySQLQueries.GetStudentsByIds(ctx, idsInt)
+	var studentRows = make([]mysql.GetStudentsByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentRows, err = s.mySQLQueries.GetStudentsByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentsByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.Student{}, fmt.Errorf("mySQLQueries.GetStudentsByIds(): %w", err)
+		return []entity.Student{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	studentRowsConverted := make([]mysql.GetStudentsRow, 0, len(studentRows))
@@ -210,12 +268,18 @@ func (s entityServiceImpl) GetStudentsByIds(ctx context.Context, ids []entity.St
 func (s entityServiceImpl) InsertStudents(ctx context.Context, userIDs []identity.UserID) ([]entity.StudentID, error) {
 	studentIDs := make([]entity.StudentID, 0, len(userIDs))
 
-	for _, userID := range userIDs {
-		studentID, err := s.mySQLQueries.InsertStudent(ctx, int64(userID))
-		if err != nil {
-			return []entity.StudentID{}, fmt.Errorf("qtx.InsertStudent(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		for _, userID := range userIDs {
+			studentID, err := s.mySQLQueries.InsertStudent(newCtx, int64(userID))
+			if err != nil {
+				return fmt.Errorf("qtx.InsertStudent(): %w", err)
+			}
+			studentIDs = append(studentIDs, entity.StudentID(studentID))
 		}
-		studentIDs = append(studentIDs, entity.StudentID(studentID))
+		return nil
+	})
+	if err != nil {
+		return []entity.StudentID{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return studentIDs, nil
@@ -253,9 +317,15 @@ func (s entityServiceImpl) DeleteStudents(ctx context.Context, ids []entity.Stud
 		studentIdsInt64 = append(studentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteStudentsByIds(ctx, studentIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteStudentsByIds(newCtx, studentIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteStudentByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteStudentByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -264,20 +334,30 @@ func (s entityServiceImpl) DeleteStudents(ctx context.Context, ids []entity.Stud
 func (s entityServiceImpl) GetInstruments(ctx context.Context, pagination util.PaginationSpec) (entity.GetInstrumentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	instrumentRows, err := s.mySQLQueries.GetInstruments(ctx, mysql.GetInstrumentsParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var instrumentRows = make([]mysql.Instrument, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		instrumentRows, err = s.mySQLQueries.GetInstruments(newCtx, mysql.GetInstrumentsParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountInstruments(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountInstruments(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.GetInstruments(): %w", err)
+		return entity.GetInstrumentsResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	instruments := NewInstrumentsFromMySQLInstruments(instrumentRows)
-
-	totalResults, err := s.mySQLQueries.CountInstruments(ctx)
-	if err != nil {
-		return entity.GetInstrumentsResult{}, fmt.Errorf("mySQLQueries.CountInstruments(): %w", err)
-	}
 
 	return entity.GetInstrumentsResult{
 		Instruments:      instruments,
@@ -286,9 +366,17 @@ func (s entityServiceImpl) GetInstruments(ctx context.Context, pagination util.P
 }
 
 func (s entityServiceImpl) GetInstrumentById(ctx context.Context, id entity.InstrumentID) (entity.Instrument, error) {
-	instrumentRow, err := s.mySQLQueries.GetInstrumentById(ctx, int64(id))
+	var instrumentRow mysql.Instrument
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		instrumentRow, err = s.mySQLQueries.GetInstrumentById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentById(): %w", err)
+		return entity.Instrument{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	instrument := NewInstrumentsFromMySQLInstruments([]mysql.Instrument{instrumentRow})[0]
@@ -302,9 +390,17 @@ func (s entityServiceImpl) GetInstrumentsByIds(ctx context.Context, ids []entity
 		idsInt = append(idsInt, int64(id))
 	}
 
-	instrumentRows, err := s.mySQLQueries.GetInstrumentsByIds(ctx, idsInt)
+	var instrumentRows = make([]mysql.Instrument, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		instrumentRows, err = s.mySQLQueries.GetInstrumentsByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.Instrument{}, fmt.Errorf("mySQLQueries.GetInstrumentsByIds(): %w", err)
+		return []entity.Instrument{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	instruments := NewInstrumentsFromMySQLInstruments(instrumentRows)
@@ -368,9 +464,15 @@ func (s entityServiceImpl) DeleteInstruments(ctx context.Context, ids []entity.I
 		instrumentIdsInt64 = append(instrumentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteInstrumentsByIds(ctx, instrumentIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteInstrumentsByIds(newCtx, instrumentIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteInstrumentsByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteInstrumentsByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -379,20 +481,30 @@ func (s entityServiceImpl) DeleteInstruments(ctx context.Context, ids []entity.I
 func (s entityServiceImpl) GetGrades(ctx context.Context, pagination util.PaginationSpec) (entity.GetGradesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	gradeRows, err := s.mySQLQueries.GetGrades(ctx, mysql.GetGradesParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var gradeRows = make([]mysql.Grade, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		gradeRows, err = s.mySQLQueries.GetGrades(newCtx, mysql.GetGradesParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountGrades(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountGrades(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetGradesResult{}, fmt.Errorf("mySQLQueries.GetGrades(): %w", err)
+		return entity.GetGradesResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	grades := NewGradesFromMySQLGrades(gradeRows)
-
-	totalResults, err := s.mySQLQueries.CountGrades(ctx)
-	if err != nil {
-		return entity.GetGradesResult{}, fmt.Errorf("mySQLQueries.CountGrades(): %w", err)
-	}
 
 	return entity.GetGradesResult{
 		Grades:           grades,
@@ -401,9 +513,17 @@ func (s entityServiceImpl) GetGrades(ctx context.Context, pagination util.Pagina
 }
 
 func (s entityServiceImpl) GetGradeById(ctx context.Context, id entity.GradeID) (entity.Grade, error) {
-	gradeRow, err := s.mySQLQueries.GetGradeById(ctx, int64(id))
+	var gradeRow mysql.Grade
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		gradeRow, err = s.mySQLQueries.GetGradeById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Grade{}, fmt.Errorf("mySQLQueries.GetGradeById(): %w", err)
+		return entity.Grade{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	grade := NewGradesFromMySQLGrades([]mysql.Grade{gradeRow})[0]
@@ -417,9 +537,17 @@ func (s entityServiceImpl) GetGradesByIds(ctx context.Context, ids []entity.Grad
 		idsInt = append(idsInt, int64(id))
 	}
 
-	gradeRows, err := s.mySQLQueries.GetGradesByIds(ctx, idsInt)
+	var gradeRows = make([]mysql.Grade, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		gradeRows, err = s.mySQLQueries.GetGradesByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.Grade{}, fmt.Errorf("mySQLQueries.GetGradesByIds(): %w", err)
+		return []entity.Grade{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	grades := NewGradesFromMySQLGrades(gradeRows)
@@ -483,9 +611,15 @@ func (s entityServiceImpl) DeleteGrades(ctx context.Context, ids []entity.GradeI
 		gradeIdsInt64 = append(gradeIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteGradesByIds(ctx, gradeIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteGradesByIds(newCtx, gradeIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteGradesByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteGradesByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -494,20 +628,30 @@ func (s entityServiceImpl) DeleteGrades(ctx context.Context, ids []entity.GradeI
 func (s entityServiceImpl) GetCourses(ctx context.Context, pagination util.PaginationSpec) (entity.GetCoursesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	courseRows, err := s.mySQLQueries.GetCourses(ctx, mysql.GetCoursesParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var courseRows = make([]mysql.GetCoursesRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		courseRows, err = s.mySQLQueries.GetCourses(newCtx, mysql.GetCoursesParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetCourses(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountCourses(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountCourses(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetCoursesResult{}, fmt.Errorf("mySQLQueries.GetCourses(): %w", err)
+		return entity.GetCoursesResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	courses := NewCoursesFromGetCoursesRow(courseRows)
-
-	totalResults, err := s.mySQLQueries.CountCourses(ctx)
-	if err != nil {
-		return entity.GetCoursesResult{}, fmt.Errorf("mySQLQueries.CountCourses(): %w", err)
-	}
 
 	return entity.GetCoursesResult{
 		Courses:          courses,
@@ -516,9 +660,17 @@ func (s entityServiceImpl) GetCourses(ctx context.Context, pagination util.Pagin
 }
 
 func (s entityServiceImpl) GetCourseById(ctx context.Context, id entity.CourseID) (entity.Course, error) {
-	courseRow, err := s.mySQLQueries.GetCourseById(ctx, int64(id))
+	var courseRow mysql.GetCourseByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		courseRow, err = s.mySQLQueries.GetCourseById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetCourseById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Course{}, fmt.Errorf("mySQLQueries.GetCourseById(): %w", err)
+		return entity.Course{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	course := NewCoursesFromGetCoursesRow([]mysql.GetCoursesRow{courseRow.ToGetCoursesRow()})[0]
@@ -532,9 +684,17 @@ func (s entityServiceImpl) GetCoursesByIds(ctx context.Context, ids []entity.Cou
 		idsInt = append(idsInt, int64(id))
 	}
 
-	courseRows, err := s.mySQLQueries.GetCoursesByIds(ctx, idsInt)
+	var courseRows = make([]mysql.GetCoursesByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		courseRows, err = s.mySQLQueries.GetCoursesByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetCoursesByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.Course{}, fmt.Errorf("mySQLQueries.GetCoursesByIds(): %w", err)
+		return []entity.Course{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	courseRowsConverted := make([]mysql.GetCoursesRow, 0, len(courseRows))
@@ -609,9 +769,15 @@ func (s entityServiceImpl) DeleteCourses(ctx context.Context, ids []entity.Cours
 		courseIdsInt64 = append(courseIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteCoursesByIds(ctx, courseIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteCoursesByIds(newCtx, courseIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteCourseByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteCourseByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -633,35 +799,44 @@ func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.Pagin
 	useStudentFilter := spec.StudentID != entity.StudentID_None
 	useCourseFilter := spec.CourseID != entity.CourseID_None
 
-	classRows, err := s.mySQLQueries.GetClasses(ctx, mysql.GetClassesParams{
-		IsDeactivateds:   isDeactivatedFilters,
-		TeacherID:        teacherID,
-		UseTeacherFilter: useTeacherFilter,
-		StudentID:        studentID,
-		UseStudentFilter: useStudentFilter,
-		CourseID:         courseID,
-		UseCourseFilter:  useCourseFilter,
-		Limit:            int32(limit),
-		Offset:           int32(offset),
+	var classRows = make([]mysql.GetClassesRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		classRows, err = s.mySQLQueries.GetClasses(newCtx, mysql.GetClassesParams{
+			IsDeactivateds:   isDeactivatedFilters,
+			TeacherID:        teacherID,
+			UseTeacherFilter: useTeacherFilter,
+			StudentID:        studentID,
+			UseStudentFilter: useStudentFilter,
+			CourseID:         courseID,
+			UseCourseFilter:  useCourseFilter,
+			Limit:            int32(limit),
+			Offset:           int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountClasses(newCtx, mysql.CountClassesParams{
+			IsDeactivateds:   isDeactivatedFilters,
+			TeacherID:        teacherID,
+			UseTeacherFilter: useTeacherFilter,
+			StudentID:        studentID,
+			UseStudentFilter: useStudentFilter,
+			CourseID:         courseID,
+			UseCourseFilter:  useCourseFilter,
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountClasses(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetClassesResult{}, fmt.Errorf("mySQLQueries.GetClasses(): %w", err)
+		return entity.GetClassesResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	classes := NewClassesFromGetClassesRow(classRows)
-
-	totalResults, err := s.mySQLQueries.CountClasses(ctx, mysql.CountClassesParams{
-		IsDeactivateds:   isDeactivatedFilters,
-		TeacherID:        teacherID,
-		UseTeacherFilter: useTeacherFilter,
-		StudentID:        studentID,
-		UseStudentFilter: useStudentFilter,
-		CourseID:         courseID,
-		UseCourseFilter:  useCourseFilter,
-	})
-	if err != nil {
-		return entity.GetClassesResult{}, fmt.Errorf("mySQLQueries.CountClasses(): %w", err)
-	}
 
 	return entity.GetClassesResult{
 		Classes:          classes,
@@ -670,9 +845,17 @@ func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.Pagin
 }
 
 func (s entityServiceImpl) GetClassById(ctx context.Context, id entity.ClassID) (entity.Class, error) {
-	classRows, err := s.mySQLQueries.GetClassById(ctx, int64(id))
+	var classRows = make([]mysql.GetClassByIdRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		classRows, err = s.mySQLQueries.GetClassById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetClassById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Class{}, fmt.Errorf("mySQLQueries.GetClassById(): %w", err)
+		return entity.Class{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	if len(classRows) == 0 {
@@ -695,9 +878,17 @@ func (s entityServiceImpl) GetClassesByIds(ctx context.Context, ids []entity.Cla
 		idsInt = append(idsInt, int64(id))
 	}
 
-	classRows, err := s.mySQLQueries.GetClassesByIds(ctx, idsInt)
+	var classRows = make([]mysql.GetClassesByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		classRows, err = s.mySQLQueries.GetClassesByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetClassesByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.Class{}, fmt.Errorf("mySQLQueries.GetClassesByIds(): %w", err)
+		return []entity.Class{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	classRowsConverted := make([]mysql.GetClassesRow, 0, len(classRows))
@@ -898,20 +1089,30 @@ func (s entityServiceImpl) DeleteClasses(ctx context.Context, ids []entity.Class
 func (s entityServiceImpl) GetStudentEnrollments(ctx context.Context, pagination util.PaginationSpec) (entity.GetStudentEnrollmentsResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	studentEnrollmentRows, err := s.mySQLQueries.GetStudentEnrollments(ctx, mysql.GetStudentEnrollmentsParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var studentEnrollmentRows = make([]mysql.GetStudentEnrollmentsRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentEnrollmentRows, err = s.mySQLQueries.GetStudentEnrollments(newCtx, mysql.GetStudentEnrollmentsParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentEnrollments(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountStudentEnrollments(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountStudentEnrollments(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetStudentEnrollmentsResult{}, fmt.Errorf("mySQLQueries.GetStudentEnrollments(): %w", err)
+		return entity.GetStudentEnrollmentsResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	studentEnrollments := NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRows)
-
-	totalResults, err := s.mySQLQueries.CountStudentEnrollments(ctx)
-	if err != nil {
-		return entity.GetStudentEnrollmentsResult{}, fmt.Errorf("mySQLQueries.CountStudentEnrollments(): %w", err)
-	}
 
 	return entity.GetStudentEnrollmentsResult{
 		StudentEnrollments: studentEnrollments,
@@ -920,9 +1121,17 @@ func (s entityServiceImpl) GetStudentEnrollments(ctx context.Context, pagination
 }
 
 func (s entityServiceImpl) GetStudentEnrollmentById(ctx context.Context, id entity.StudentEnrollmentID) (entity.StudentEnrollment, error) {
-	studentEnrollmentRow, err := s.mySQLQueries.GetStudentEnrollmentById(ctx, int64(id))
+	var studentEnrollmentRow mysql.GetStudentEnrollmentByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentEnrollmentRow, err = s.mySQLQueries.GetStudentEnrollmentById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentEnrollmentById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.StudentEnrollment{}, fmt.Errorf("mySQLQueries.GetStudentEnrollmentById(): %w", err)
+		return entity.StudentEnrollment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherSpecialFee := NewStudentEnrollmentsFromGetStudentEnrollmentsRow([]mysql.GetStudentEnrollmentsRow{studentEnrollmentRow.ToGetStudentEnrollmentsRow()})[0]
@@ -933,20 +1142,30 @@ func (s entityServiceImpl) GetStudentEnrollmentById(ctx context.Context, id enti
 func (s entityServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeacherSpecialFeesResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	teacherSpecialFeeRows, err := s.mySQLQueries.GetTeacherSpecialFees(ctx, mysql.GetTeacherSpecialFeesParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var teacherSpecialFeeRows = make([]mysql.GetTeacherSpecialFeesRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherSpecialFeeRows, err = s.mySQLQueries.GetTeacherSpecialFees(newCtx, mysql.GetTeacherSpecialFeesParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherSpecialFees(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountTeacherSpecialFees(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountTeacherSpecialFees(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFees(): %w", err)
+		return entity.GetTeacherSpecialFeesResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherSpecialFees := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow(teacherSpecialFeeRows)
-
-	totalResults, err := s.mySQLQueries.CountTeacherSpecialFees(ctx)
-	if err != nil {
-		return entity.GetTeacherSpecialFeesResult{}, fmt.Errorf("mySQLQueries.CountTeacherSpecialFees(): %w", err)
-	}
 
 	return entity.GetTeacherSpecialFeesResult{
 		TeacherSpecialFees: teacherSpecialFees,
@@ -955,9 +1174,17 @@ func (s entityServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination
 }
 
 func (s entityServiceImpl) GetTeacherSpecialFeeById(ctx context.Context, id entity.TeacherSpecialFeeID) (entity.TeacherSpecialFee, error) {
-	teacherSpecialFeeRow, err := s.mySQLQueries.GetTeacherSpecialFeeById(ctx, int64(id))
+	var teacherSpecialFeeRow mysql.GetTeacherSpecialFeeByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherSpecialFeeRow, err = s.mySQLQueries.GetTeacherSpecialFeeById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherSpecialFeeById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeeById(): %w", err)
+		return entity.TeacherSpecialFee{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherSpecialFee := NewTeacherSpecialFeesFromGetTeacherSpecialFeesRow([]mysql.GetTeacherSpecialFeesRow{teacherSpecialFeeRow.ToGetTeacherSpecialFeesRow()})[0]
@@ -971,9 +1198,17 @@ func (s entityServiceImpl) GetTeacherSpecialFeesByIds(ctx context.Context, ids [
 		idsInt = append(idsInt, int64(id))
 	}
 
-	teacherSpecialFeeRows, err := s.mySQLQueries.GetTeacherSpecialFeesByIds(ctx, idsInt)
+	var teacherSpecialFeeRows = make([]mysql.GetTeacherSpecialFeesByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherSpecialFeeRows, err = s.mySQLQueries.GetTeacherSpecialFeesByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.TeacherSpecialFee{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByIds(): %w", err)
+		return []entity.TeacherSpecialFee{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherSpecialFeeRowsConverted := make([]mysql.GetTeacherSpecialFeesRow, 0, len(teacherSpecialFeeRows))
@@ -1046,9 +1281,15 @@ func (s entityServiceImpl) DeleteTeacherSpecialFees(ctx context.Context, ids []e
 		teacherSpecialFeeIdsInt64 = append(teacherSpecialFeeIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteTeacherSpecialFeesByIds(ctx, teacherSpecialFeeIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteTeacherSpecialFeesByIds(newCtx, teacherSpecialFeeIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteTeacherSpecialFeeByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteTeacherSpecialFeeByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -1059,42 +1300,49 @@ func (s entityServiceImpl) GetEnrollmentPayments(ctx context.Context, pagination
 	limit, offset := pagination.GetLimitAndOffset()
 
 	timeFilter.SetDefaultForZeroValues()
-	enrollmentPayments := make([]entity.EnrollmentPayment, 0)
 
-	if !sortRecent { // TODO: find alternative: currently sqlc dynamic query is so bad that we need to do this :(
-		enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPayments(ctx, mysql.GetEnrollmentPaymentsParams{
-			StartDate: timeFilter.StartDatetime,
-			EndDate:   timeFilter.EndDatetime,
-			Limit:     int32(limit),
-			Offset:    int32(offset),
-		})
+	var enrollmentPaymentRows = make([]mysql.GetEnrollmentPaymentsRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		if !sortRecent { // TODO: find alternative: currently sqlc dynamic query is so bad that we need to do this :(
+			enrollmentPaymentRows, err = s.mySQLQueries.GetEnrollmentPayments(newCtx, mysql.GetEnrollmentPaymentsParams{
+				StartDate: timeFilter.StartDatetime,
+				EndDate:   timeFilter.EndDatetime,
+				Limit:     int32(limit),
+				Offset:    int32(offset),
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetEnrollmentPayments(): %w", err)
+			}
+
+		} else {
+			enrollmentPaymentDescendingDateRows, err := s.mySQLQueries.GetEnrollmentPaymentsDescendingDate(newCtx, mysql.GetEnrollmentPaymentsDescendingDateParams{
+				StartDate: timeFilter.StartDatetime,
+				EndDate:   timeFilter.EndDatetime,
+				Limit:     int32(limit),
+				Offset:    int32(offset),
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetEnrollmentPaymentsDescendingDate(): %w", err)
+			}
+
+			for _, row := range enrollmentPaymentDescendingDateRows {
+				enrollmentPaymentRows = append(enrollmentPaymentRows, row.ToGetEnrollmentPaymentsRow())
+			}
+		}
+
+		totalResults, err = s.mySQLQueries.CountEnrollmentPayments(newCtx)
 		if err != nil {
-			return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.GetEnrollmentPayments(): %w", err)
+			return fmt.Errorf("mySQLQueries.CountEnrollmentPayments(): %w", err)
 		}
-		enrollmentPayments = NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows)
-
-	} else {
-		enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPaymentsDescendingDate(ctx, mysql.GetEnrollmentPaymentsDescendingDateParams{
-			StartDate: timeFilter.StartDatetime,
-			EndDate:   timeFilter.EndDatetime,
-			Limit:     int32(limit),
-			Offset:    int32(offset),
-		})
-		if err != nil {
-			return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.GetEnrollmentPaymentsDescendingDate(): %w", err)
-		}
-
-		enrollmentPaymentRowsConverted := make([]mysql.GetEnrollmentPaymentsRow, 0, len(enrollmentPaymentRows))
-		for _, row := range enrollmentPaymentRows {
-			enrollmentPaymentRowsConverted = append(enrollmentPaymentRowsConverted, row.ToGetEnrollmentPaymentsRow())
-		}
-		enrollmentPayments = NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRowsConverted)
-	}
-
-	totalResults, err := s.mySQLQueries.CountEnrollmentPayments(ctx)
+		return nil
+	})
 	if err != nil {
-		return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("mySQLQueries.CountEnrollmentPayments(): %w", err)
+		return entity.GetEnrollmentPaymentsResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
+
+	enrollmentPayments := NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow(enrollmentPaymentRows)
 
 	return entity.GetEnrollmentPaymentsResult{
 		EnrollmentPayments: enrollmentPayments,
@@ -1103,9 +1351,17 @@ func (s entityServiceImpl) GetEnrollmentPayments(ctx context.Context, pagination
 }
 
 func (s entityServiceImpl) GetEnrollmentPaymentById(ctx context.Context, id entity.EnrollmentPaymentID) (entity.EnrollmentPayment, error) {
-	enrollmentPaymentRow, err := s.mySQLQueries.GetEnrollmentPaymentById(ctx, int64(id))
+	var enrollmentPaymentRow mysql.GetEnrollmentPaymentByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		enrollmentPaymentRow, err = s.mySQLQueries.GetEnrollmentPaymentById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetEnrollmentPaymentById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.EnrollmentPayment{}, fmt.Errorf("mySQLQueries.GetEnrollmentPaymentById(): %w", err)
+		return entity.EnrollmentPayment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	enrollmentPayment := NewEnrollmentPaymentsFromGetEnrollmentPaymentsRow([]mysql.GetEnrollmentPaymentsRow{enrollmentPaymentRow.ToGetEnrollmentPaymentsRow()})[0]
@@ -1119,9 +1375,17 @@ func (s entityServiceImpl) GetEnrollmentPaymentsByIds(ctx context.Context, ids [
 		idsInt = append(idsInt, int64(id))
 	}
 
-	enrollmentPaymentRows, err := s.mySQLQueries.GetEnrollmentPaymentsByIds(ctx, idsInt)
+	var enrollmentPaymentRows = make([]mysql.GetEnrollmentPaymentsByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		enrollmentPaymentRows, err = s.mySQLQueries.GetEnrollmentPaymentsByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetEnrollmentPaymentsByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.EnrollmentPayment{}, fmt.Errorf("mySQLQueries.GetEnrollmentPaymentsByIds(): %w", err)
+		return []entity.EnrollmentPayment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	enrollmentPaymentRowsConverted := make([]mysql.GetEnrollmentPaymentsRow, 0, len(enrollmentPaymentRows))
@@ -1202,9 +1466,15 @@ func (s entityServiceImpl) DeleteEnrollmentPayments(ctx context.Context, ids []e
 		enrollmentPaymentIdsInt64 = append(enrollmentPaymentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteEnrollmentPaymentsByIds(ctx, enrollmentPaymentIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteEnrollmentPaymentsByIds(newCtx, enrollmentPaymentIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteEnrollmentPaymentByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteEnrollmentPaymentByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -1213,20 +1483,30 @@ func (s entityServiceImpl) DeleteEnrollmentPayments(ctx context.Context, ids []e
 func (s entityServiceImpl) GetStudentLearningTokens(ctx context.Context, pagination util.PaginationSpec) (entity.GetStudentLearningTokensResult, error) {
 	pagination.SetDefaultOnInvalidValues()
 	limit, offset := pagination.GetLimitAndOffset()
-	studentLearningTokenRows, err := s.mySQLQueries.GetStudentLearningTokens(ctx, mysql.GetStudentLearningTokensParams{
-		Limit:  int32(limit),
-		Offset: int32(offset),
+
+	var studentLearningTokenRows = make([]mysql.GetStudentLearningTokensRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentLearningTokenRows, err = s.mySQLQueries.GetStudentLearningTokens(newCtx, mysql.GetStudentLearningTokensParams{
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentLearningTokens(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountStudentLearningTokens(newCtx)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountStudentLearningTokens(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetStudentLearningTokensResult{}, fmt.Errorf("mySQLQueries.GetStudentLearningTokens(): %w", err)
+		return entity.GetStudentLearningTokensResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	studentLearningTokens := NewStudentLearningTokensFromGetStudentLearningTokensRow(studentLearningTokenRows)
-
-	totalResults, err := s.mySQLQueries.CountStudentLearningTokens(ctx)
-	if err != nil {
-		return entity.GetStudentLearningTokensResult{}, fmt.Errorf("mySQLQueries.CountStudentLearningTokens(): %w", err)
-	}
 
 	return entity.GetStudentLearningTokensResult{
 		StudentLearningTokens: studentLearningTokens,
@@ -1235,9 +1515,17 @@ func (s entityServiceImpl) GetStudentLearningTokens(ctx context.Context, paginat
 }
 
 func (s entityServiceImpl) GetStudentLearningTokenById(ctx context.Context, id entity.StudentLearningTokenID) (entity.StudentLearningToken, error) {
-	studentLearningTokenRow, err := s.mySQLQueries.GetStudentLearningTokenById(ctx, int64(id))
+	var studentLearningTokenRow mysql.GetStudentLearningTokenByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentLearningTokenRow, err = s.mySQLQueries.GetStudentLearningTokenById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentLearningTokenById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.StudentLearningToken{}, fmt.Errorf("mySQLQueries.GetStudentLearningTokenById(): %w", err)
+		return entity.StudentLearningToken{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	studentLearningToken := NewStudentLearningTokensFromGetStudentLearningTokensRow([]mysql.GetStudentLearningTokensRow{studentLearningTokenRow.ToGetStudentLearningTokensRow()})[0]
@@ -1251,9 +1539,17 @@ func (s entityServiceImpl) GetStudentLearningTokensByIds(ctx context.Context, id
 		idsInt = append(idsInt, int64(id))
 	}
 
-	studentLearningTokenRows, err := s.mySQLQueries.GetStudentLearningTokensByIds(ctx, idsInt)
+	var studentLearningTokenRows = make([]mysql.GetStudentLearningTokensByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentLearningTokenRows, err = s.mySQLQueries.GetStudentLearningTokensByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentLearningTokensByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.StudentLearningToken{}, fmt.Errorf("mySQLQueries.GetStudentLearningTokensByIds(): %w", err)
+		return []entity.StudentLearningToken{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	studentLearningTokenRowsConverted := make([]mysql.GetStudentLearningTokensRow, 0, len(studentLearningTokenRows))
@@ -1330,9 +1626,15 @@ func (s entityServiceImpl) DeleteStudentLearningTokens(ctx context.Context, ids 
 		studentLearningTokenIdsInt64 = append(studentLearningTokenIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteStudentLearningTokensByIds(ctx, studentLearningTokenIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteStudentLearningTokensByIds(newCtx, studentLearningTokenIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteStudentLearningTokenByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteStudentLearningTokenByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -1353,9 +1655,47 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 
 	useUnpaidFilter := spec.UnpaidOnly
 
-	var attendances []entity.Attendance
-	if !sortRecent { // TODO: find alternative: currently sqlc dynamic query is so bad that we need to do this :(
-		attendanceRows, err := s.mySQLQueries.GetAttendances(ctx, mysql.GetAttendancesParams{
+	var attendanceRows = make([]mysql.GetAttendancesRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		if !sortRecent { // TODO: find alternative: currently sqlc dynamic query is so bad that we need to do this :(
+			attendanceRows, err = s.mySQLQueries.GetAttendances(newCtx, mysql.GetAttendancesParams{
+				StartDate:        timeFilter.StartDatetime,
+				EndDate:          timeFilter.EndDatetime,
+				ClassID:          classID,
+				UseClassFilter:   useClassFilter,
+				StudentID:        studentID,
+				UseStudentFilter: useStudentFilter,
+				UseUnpaidFilter:  useUnpaidFilter,
+				Limit:            int32(limit),
+				Offset:           int32(offset),
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetAttendances(): %w", err)
+			}
+		} else {
+			attendanceDescendingdateRows, err := s.mySQLQueries.GetAttendancesDescendingDate(newCtx, mysql.GetAttendancesDescendingDateParams{
+				StartDate:        timeFilter.StartDatetime,
+				EndDate:          timeFilter.EndDatetime,
+				ClassID:          classID,
+				UseClassFilter:   useClassFilter,
+				StudentID:        studentID,
+				UseStudentFilter: useStudentFilter,
+				UseUnpaidFilter:  useUnpaidFilter,
+				Limit:            int32(limit),
+				Offset:           int32(offset),
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetAttendancesDescendingDate(): %w", err)
+			}
+
+			for _, row := range attendanceDescendingdateRows {
+				attendanceRows = append(attendanceRows, row.ToGetAttendancesRow())
+			}
+		}
+
+		totalResults, err = s.mySQLQueries.CountAttendances(newCtx, mysql.CountAttendancesParams{
 			StartDate:        timeFilter.StartDatetime,
 			EndDate:          timeFilter.EndDatetime,
 			ClassID:          classID,
@@ -1363,51 +1703,16 @@ func (s entityServiceImpl) GetAttendances(ctx context.Context, pagination util.P
 			StudentID:        studentID,
 			UseStudentFilter: useStudentFilter,
 			UseUnpaidFilter:  useUnpaidFilter,
-			Limit:            int32(limit),
-			Offset:           int32(offset),
 		})
 		if err != nil {
-			return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.GetAttendances(): %w", err)
+			return fmt.Errorf("mySQLQueries.CountAttendances(): %w", err)
 		}
-
-		attendances = NewAttendancesFromGetAttendancesRow(attendanceRows)
-
-	} else {
-		attendanceRows, err := s.mySQLQueries.GetAttendancesDescendingDate(ctx, mysql.GetAttendancesDescendingDateParams{
-			StartDate:        timeFilter.StartDatetime,
-			EndDate:          timeFilter.EndDatetime,
-			ClassID:          classID,
-			UseClassFilter:   useClassFilter,
-			StudentID:        studentID,
-			UseStudentFilter: useStudentFilter,
-			UseUnpaidFilter:  useUnpaidFilter,
-			Limit:            int32(limit),
-			Offset:           int32(offset),
-		})
-		if err != nil {
-			return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.GetAttendancesDescendingDate(): %w", err)
-		}
-
-		attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
-		for _, row := range attendanceRows {
-			attendanceRowsConverted = append(attendanceRowsConverted, row.ToGetAttendancesRow())
-		}
-
-		attendances = NewAttendancesFromGetAttendancesRow(attendanceRowsConverted)
-	}
-
-	totalResults, err := s.mySQLQueries.CountAttendances(ctx, mysql.CountAttendancesParams{
-		StartDate:        timeFilter.StartDatetime,
-		EndDate:          timeFilter.EndDatetime,
-		ClassID:          classID,
-		UseClassFilter:   useClassFilter,
-		StudentID:        studentID,
-		UseStudentFilter: useStudentFilter,
-		UseUnpaidFilter:  useUnpaidFilter,
+		return nil
 	})
 	if err != nil {
-		return entity.GetAttendancesResult{}, fmt.Errorf("mySQLQueries.CountAttendances(): %w", err)
+		return entity.GetAttendancesResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
+	attendances := NewAttendancesFromGetAttendancesRow(attendanceRows)
 
 	return entity.GetAttendancesResult{
 		Attendances:      attendances,
@@ -1419,13 +1724,21 @@ func (s entityServiceImpl) GetUnpaidAttendancesByTeacherId(ctx context.Context, 
 	timeFilter := spec.TimeSpec
 	timeFilter.SetDefaultForZeroValues()
 
-	attendanceRows, err := s.mySQLQueries.GetUnpaidAttendancesByTeacherId(ctx, mysql.GetUnpaidAttendancesByTeacherIdParams{
-		StartDate: timeFilter.StartDatetime,
-		EndDate:   timeFilter.EndDatetime,
-		TeacherID: int64(spec.TeacherID),
+	var attendanceRows = make([]mysql.GetUnpaidAttendancesByTeacherIdRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		attendanceRows, err = s.mySQLQueries.GetUnpaidAttendancesByTeacherId(newCtx, mysql.GetUnpaidAttendancesByTeacherIdParams{
+			StartDate: timeFilter.StartDatetime,
+			EndDate:   timeFilter.EndDatetime,
+			TeacherID: int64(spec.TeacherID),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetUnpaidAttendancesByTeacherId(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetUnpaidAttendancesByTeacherId(): %w", err)
+		return []entity.Attendance{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
@@ -1439,9 +1752,17 @@ func (s entityServiceImpl) GetUnpaidAttendancesByTeacherId(ctx context.Context, 
 }
 
 func (s entityServiceImpl) GetAttendanceById(ctx context.Context, id entity.AttendanceID) (entity.Attendance, error) {
-	attendanceRow, err := s.mySQLQueries.GetAttendanceById(ctx, int64(id))
+	var attendanceRow mysql.GetAttendanceByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		attendanceRow, err = s.mySQLQueries.GetAttendanceById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetAttendanceById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendanceById(): %w", err)
+		return entity.Attendance{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	attendance := NewAttendancesFromGetAttendancesRow([]mysql.GetAttendancesRow{attendanceRow.ToGetAttendancesRow()})[0]
@@ -1455,9 +1776,18 @@ func (s entityServiceImpl) GetAttendancesByIds(ctx context.Context, ids []entity
 		idsInt = append(idsInt, int64(id))
 	}
 
-	attendanceRows, err := s.mySQLQueries.GetAttendancesByIds(ctx, idsInt)
+	var attendanceRows = make([]mysql.GetAttendancesByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		attendanceRows, err = s.mySQLQueries.GetAttendancesByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetAttendancesByIds(): %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return []entity.Attendance{}, fmt.Errorf("mySQLQueries.GetAttendancesByIds(): %w", err)
+		return []entity.Attendance{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	attendanceRowsConverted := make([]mysql.GetAttendancesRow, 0, len(attendanceRows))
@@ -1543,9 +1873,15 @@ func (s entityServiceImpl) DeleteAttendances(ctx context.Context, ids []entity.A
 		attendanceIdsInt64 = append(attendanceIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteAttendancesByIds(ctx, attendanceIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteAttendancesByIds(newCtx, attendanceIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteAttendanceByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteAttendanceByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -1561,27 +1897,36 @@ func (s entityServiceImpl) GetTeacherPayments(ctx context.Context, pagination ut
 	teacherID := int64(spec.TeacherID)
 	useTeacherFilter := spec.TeacherID != entity.TeacherID_None
 
-	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPayments(ctx, mysql.GetTeacherPaymentsParams{
-		StartDate:        timeFilter.StartDatetime,
-		EndDate:          timeFilter.EndDatetime,
-		TeacherID:        teacherID,
-		UseTeacherFilter: useTeacherFilter,
-		Limit:            int32(limit),
-		Offset:           int32(offset),
+	var teacherPaymentRows = make([]mysql.GetTeacherPaymentsRow, 0)
+	var totalResults int64 = 0
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherPaymentRows, err = s.mySQLQueries.GetTeacherPayments(newCtx, mysql.GetTeacherPaymentsParams{
+			StartDate:        timeFilter.StartDatetime,
+			EndDate:          timeFilter.EndDatetime,
+			TeacherID:        teacherID,
+			UseTeacherFilter: useTeacherFilter,
+			Limit:            int32(limit),
+			Offset:           int32(offset),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherPayments(): %w", err)
+		}
+
+		totalResults, err = s.mySQLQueries.CountTeacherPayments(newCtx, mysql.CountTeacherPaymentsParams{
+			TeacherID:        teacherID,
+			UseTeacherFilter: useTeacherFilter,
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.CountTeacherPayments(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return entity.GetTeacherPaymentsResult{}, fmt.Errorf("mySQLQueries.GetTeacherPayments(): %w", err)
+		return entity.GetTeacherPaymentsResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherPayments := NewTeacherPaymentsFromGetTeacherPaymentsRow(teacherPaymentRows)
-
-	totalResults, err := s.mySQLQueries.CountTeacherPayments(ctx, mysql.CountTeacherPaymentsParams{
-		TeacherID:        teacherID,
-		UseTeacherFilter: useTeacherFilter,
-	})
-	if err != nil {
-		return entity.GetTeacherPaymentsResult{}, fmt.Errorf("mySQLQueries.CountTeacherPayments(): %w", err)
-	}
 
 	return entity.GetTeacherPaymentsResult{
 		TeacherPayments:  teacherPayments,
@@ -1595,13 +1940,21 @@ func (s entityServiceImpl) GetTeacherPaymentsByTeacherId(ctx context.Context, sp
 
 	teacherID := int64(spec.TeacherID)
 
-	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPaymentsByTeacherId(ctx, mysql.GetTeacherPaymentsByTeacherIdParams{
-		StartDate: timeFilter.StartDatetime,
-		EndDate:   timeFilter.EndDatetime,
-		TeacherID: teacherID,
+	var teacherPaymentRows = make([]mysql.GetTeacherPaymentsByTeacherIdRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherPaymentRows, err = s.mySQLQueries.GetTeacherPaymentsByTeacherId(newCtx, mysql.GetTeacherPaymentsByTeacherIdParams{
+			StartDate: timeFilter.StartDatetime,
+			EndDate:   timeFilter.EndDatetime,
+			TeacherID: teacherID,
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherPaymentsByTeacherId(): %w", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return []entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentsByTeacherId(): %w", err)
+		return []entity.TeacherPayment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherPaymentRowsConverted := make([]mysql.GetTeacherPaymentsRow, 0, len(teacherPaymentRows))
@@ -1615,9 +1968,17 @@ func (s entityServiceImpl) GetTeacherPaymentsByTeacherId(ctx context.Context, sp
 }
 
 func (s entityServiceImpl) GetTeacherPaymentById(ctx context.Context, id entity.TeacherPaymentID) (entity.TeacherPayment, error) {
-	teacherPaymentRow, err := s.mySQLQueries.GetTeacherPaymentById(ctx, int64(id))
+	var teacherPaymentRow mysql.GetTeacherPaymentByIdRow
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherPaymentRow, err = s.mySQLQueries.GetTeacherPaymentById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherPaymentById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentById(): %w", err)
+		return entity.TeacherPayment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherPayment := NewTeacherPaymentsFromGetTeacherPaymentsRow([]mysql.GetTeacherPaymentsRow{teacherPaymentRow.ToGetTeacherPaymentsRow()})[0]
@@ -1631,9 +1992,17 @@ func (s entityServiceImpl) GetTeacherPaymentsByIds(ctx context.Context, ids []en
 		idsInt = append(idsInt, int64(id))
 	}
 
-	teacherPaymentRows, err := s.mySQLQueries.GetTeacherPaymentsByIds(ctx, idsInt)
+	var teacherPaymentRows = make([]mysql.GetTeacherPaymentsByIdsRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		teacherPaymentRows, err = s.mySQLQueries.GetTeacherPaymentsByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetTeacherPaymentsByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []entity.TeacherPayment{}, fmt.Errorf("mySQLQueries.GetTeacherPaymentsByIds(): %w", err)
+		return []entity.TeacherPayment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	teacherPaymentRowsConverted := make([]mysql.GetTeacherPaymentsRow, 0, len(teacherPaymentRows))
@@ -1707,9 +2076,15 @@ func (s entityServiceImpl) DeleteTeacherPayments(ctx context.Context, ids []enti
 		teacherPaymentIdsInt64 = append(teacherPaymentIdsInt64, int64(id))
 	}
 
-	err := s.mySQLQueries.DeleteTeacherPaymentsByIds(ctx, teacherPaymentIdsInt64)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.DeleteTeacherPaymentsByIds(newCtx, teacherPaymentIdsInt64)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.DeleteTeacherPaymentsByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.DeleteTeacherPaymentsByIds(): %w", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil

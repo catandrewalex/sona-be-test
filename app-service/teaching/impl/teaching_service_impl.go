@@ -98,70 +98,90 @@ func (s teachingServiceImpl) SearchEnrollmentPayment(ctx context.Context, timeFi
 }
 
 func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID) (teaching.StudentEnrollmentInvoice, error) {
-	studentEnrollment, err := s.entityService.GetStudentEnrollmentById(ctx, studentEnrollmentID)
-	if err != nil {
-		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("entityService.GetStudentEnrollmentById(): %w", err)
-	}
+	var courseFeeValueFinal int32
+	var splittedTransportFeeFinal int32
+	var penaltyFeeValueFinal int32
+	var lastPaymentDateFinal *time.Time
+	var daysLateFinal int32
 
-	// calculate Course Fee
-	courseFeeValue := studentEnrollment.ClassInfo.Course.DefaultFee
-	teacherID, err := s.mySQLQueries.GetClassTeacherId(ctx, int64(studentEnrollment.ClassInfo.ClassID))
-	if err != nil {
-		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetClassTeacherId(): %w", err)
-	}
-	if teacherID.Valid {
-		teacherSpecialFee, err := s.mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx, mysql.GetTeacherSpecialFeesByTeacherIdAndCourseIdParams{
-			TeacherID: teacherID.Int64,
-			CourseID:  int64(studentEnrollment.ClassInfo.Course.CourseID),
-		})
-		if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore not found error, and use the default course value
-			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(): %w", err)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		studentEnrollment, err := s.entityService.GetStudentEnrollmentById(ctx, studentEnrollmentID)
+		if err != nil {
+			return fmt.Errorf("entityService.GetStudentEnrollmentById(): %w", err)
 		}
-		if teacherSpecialFee.ID > 0 {
-			courseFeeValue = teacherSpecialFee.Fee
+
+		// calculate Course Fee
+		courseFeeValue := studentEnrollment.ClassInfo.Course.DefaultFee
+		teacherID, err := s.mySQLQueries.GetClassTeacherId(ctx, int64(studentEnrollment.ClassInfo.ClassID))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetClassTeacherId(): %w", err)
 		}
-	}
-
-	// calculate Course Fee Penalty (e.g. due to late payment)
-	latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx, sql.NullInt64{Int64: int64(studentEnrollmentID), Valid: true})
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(): %w", err)
+		if teacherID.Valid {
+			teacherSpecialFee, err := s.mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx, mysql.GetTeacherSpecialFeesByTeacherIdAndCourseIdParams{
+				TeacherID: teacherID.Int64,
+				CourseID:  int64(studentEnrollment.ClassInfo.Course.CourseID),
+			})
+			if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore not found error, and use the default course value
+				return fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(): %w", err)
+			}
+			if teacherSpecialFee.ID > 0 {
+				courseFeeValue = teacherSpecialFee.Fee
+			}
 		}
-	}
 
-	var lastPaymentDate *time.Time = nil
-	lastDateBeforePenalty := util.MaxDateTime
-	if latestPaymentDate != nil {
-		temp := latestPaymentDate.(time.Time)
-		lastPaymentDate = &temp
-		lastDateBeforePenalty = time.Date(lastPaymentDate.Year(), lastPaymentDate.AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, util.DefaultTimezone)
-	}
-	daysLate := int32(time.Since(lastDateBeforePenalty).Hours() / 24)
-	var penaltyFeeValue int32 = 0
-	if daysLate > 0 {
-		penaltyFeeValue = teaching.Default_PenaltyFeeValue * daysLate
-	}
+		// calculate Course Fee Penalty (e.g. due to late payment)
+		latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx, sql.NullInt64{Int64: int64(studentEnrollmentID), Valid: true})
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(): %w", err)
+			}
+		}
 
-	// calculate transport fee (splitted unionly across all class students)
-	splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
-	classIdToTotalStudents, err := s.mySQLQueries.GetClassesTotalStudentsByClassIds(ctx, []int64{int64(studentEnrollment.ClassInfo.ClassID)})
+		var lastPaymentDate *time.Time = nil
+		lastDateBeforePenalty := util.MaxDateTime
+		if latestPaymentDate != nil {
+			temp := latestPaymentDate.(time.Time)
+			lastPaymentDate = &temp
+			lastDateBeforePenalty = time.Date(lastPaymentDate.Year(), lastPaymentDate.AddDate(0, 1, 0).Month(), 10, 0, 0, 0, 0, util.DefaultTimezone)
+		}
+		daysLate := int32(time.Since(lastDateBeforePenalty).Hours() / 24)
+		var penaltyFeeValue int32 = 0
+		if daysLate > 0 {
+			penaltyFeeValue = teaching.Default_PenaltyFeeValue * daysLate
+		}
+
+		// calculate transport fee (splitted unionly across all class students)
+		splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
+		classIdToTotalStudents, err := s.mySQLQueries.GetClassesTotalStudentsByClassIds(ctx, []int64{int64(studentEnrollment.ClassInfo.ClassID)})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetClassesTotalStudentsByClassIds(): %w", err)
+		}
+		if len(classIdToTotalStudents) > 0 && classIdToTotalStudents[0].TotalStudents > 1 {
+			splittedTransportFee /= int32(classIdToTotalStudents[0].TotalStudents)
+		}
+
+		// assign to the top level variable, to be used outside logic block of the ExecuteInTransaction()
+		courseFeeValueFinal = courseFeeValue
+		splittedTransportFeeFinal = splittedTransportFee
+		penaltyFeeValueFinal = penaltyFeeValue
+		lastPaymentDateFinal = lastPaymentDate
+		daysLateFinal = daysLate
+
+		return nil
+	})
 	if err != nil {
-		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("mySQLQueries.GetClassesTotalStudentsByClassIds(): %w", err)
-	}
-	if len(classIdToTotalStudents) > 0 && classIdToTotalStudents[0].TotalStudents > 1 {
-		splittedTransportFee /= int32(classIdToTotalStudents[0].TotalStudents)
+		return teaching.StudentEnrollmentInvoice{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return teaching.StudentEnrollmentInvoice{
 		BalanceTopUp:      teaching.Default_BalanceTopUp,
 		BalanceBonus:      0,
-		CourseFeeValue:    courseFeeValue,
-		TransportFeeValue: splittedTransportFee,
-		PenaltyFeeValue:   penaltyFeeValue,
+		CourseFeeValue:    courseFeeValueFinal,
+		TransportFeeValue: splittedTransportFeeFinal,
+		PenaltyFeeValue:   penaltyFeeValueFinal,
 		DiscountFeeValue:  0,
-		LastPaymentDate:   lastPaymentDate,
-		DaysLate:          daysLate,
+		LastPaymentDate:   lastPaymentDateFinal,
+		DaysLate:          daysLateFinal,
 	}, nil
 }
 
@@ -404,6 +424,8 @@ func (s teachingServiceImpl) EditClassesConfigs(ctx context.Context, specs []tea
 	return nil
 }
 func (s teachingServiceImpl) EditClassesCourses(ctx context.Context, specs []teaching.EditClassCourseSpec) error {
+	// TODO(FerdiantJoshua): also automatically add new SLT, which correspond to the new course price.
+	// if it already exists, use IncrementSLTQuotaById(), with incrementedQuota==0, so that it becomes the latest SLT.
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			classId := int64(spec.ClassID)
@@ -593,24 +615,33 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 }
 
 func (s teachingServiceImpl) autoRegisterSLT(ctx context.Context, studentEnrollmentID entity.StudentEnrollmentID, quota float64) (entity.StudentLearningTokenID, error) {
-	invoice, err := s.GetEnrollmentPaymentInvoice(ctx, studentEnrollmentID)
-	if err != nil {
-		return entity.StudentLearningTokenID_None, fmt.Errorf("GetEnrollmentPaymentInvoice(): %w", err)
-	}
+	var newSLTID entity.StudentLearningTokenID
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		invoice, err := s.GetEnrollmentPaymentInvoice(ctx, studentEnrollmentID)
+		if err != nil {
+			return fmt.Errorf("GetEnrollmentPaymentInvoice(): %w", err)
+		}
 
-	newSLTIDs, err := s.entityService.InsertStudentLearningTokens(ctx, []entity.InsertStudentLearningTokenSpec{
-		{
-			StudentEnrollmentID:      studentEnrollmentID,
-			Quota:                    quota,
-			CourseFeeQuarterValue:    teaching.CalculateSLTFeeQuarterFromEP(invoice.CourseFeeValue, invoice.BalanceTopUp),
-			TransportFeeQuarterValue: teaching.CalculateSLTFeeQuarterFromEP(invoice.TransportFeeValue, invoice.BalanceTopUp),
-		},
+		newSLTIDs, err := s.entityService.InsertStudentLearningTokens(ctx, []entity.InsertStudentLearningTokenSpec{
+			{
+				StudentEnrollmentID:      studentEnrollmentID,
+				Quota:                    quota,
+				CourseFeeQuarterValue:    teaching.CalculateSLTFeeQuarterFromEP(invoice.CourseFeeValue, invoice.BalanceTopUp),
+				TransportFeeQuarterValue: teaching.CalculateSLTFeeQuarterFromEP(invoice.TransportFeeValue, invoice.BalanceTopUp),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("entityService.InsertStudentLearningTokens(): %w", err)
+		}
+
+		newSLTID = newSLTIDs[0]
+		return nil
 	})
 	if err != nil {
-		return entity.StudentLearningTokenID_None, fmt.Errorf("entityService.InsertStudentLearningTokens(): %w", err)
+		return entity.StudentLearningTokenID_None, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	return newSLTIDs[0], nil
+	return newSLTID, nil
 }
 
 func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.EditAttendanceSpec) ([]entity.AttendanceID, error) {
@@ -732,46 +763,60 @@ func (s teachingServiceImpl) GetTeachersForPayment(ctx context.Context, spec tea
 	var teachersForPayments []teaching.TeacherForPayment
 	var totalResults int64
 	if spec.IsPaid { // for paid teachers, we fetch data from `TeacherPayment`
-		teacherRows, err := s.mySQLQueries.GetPaidTeachers(ctx, mysql.GetPaidTeachersParams{
-			StartDate: spec.StartDatetime,
-			EndDate:   spec.EndDatetime,
-			Limit:     int32(limit),
-			Offset:    int32(offset),
+		var teacherRows = make([]mysql.GetPaidTeachersRow, 0)
+		err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+			var err error
+			teacherRows, err = s.mySQLQueries.GetPaidTeachers(newCtx, mysql.GetPaidTeachersParams{
+				StartDate: spec.StartDatetime,
+				EndDate:   spec.EndDatetime,
+				Limit:     int32(limit),
+				Offset:    int32(offset),
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetPaidTeachers(): %w", err)
+			}
+
+			totalResults, err = s.mySQLQueries.CountUnpaidTeachers(newCtx, mysql.CountUnpaidTeachersParams{
+				StartDate: spec.StartDatetime,
+				EndDate:   spec.EndDatetime,
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
+			}
+			return nil
 		})
 		if err != nil {
-			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.GetPaidTeachers(): %w", err)
+			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 		}
-
 		teachersForPayments = NewTeacherForPaymentsFromGetPaidTeachersRow(teacherRows)
 
-		totalResults, err = s.mySQLQueries.CountUnpaidTeachers(ctx, mysql.CountUnpaidTeachersParams{
-			StartDate: spec.StartDatetime,
-			EndDate:   spec.EndDatetime,
-		})
-		if err != nil {
-			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
-		}
-
 	} else { // for unpaid teachers, we fetch data from `Attendance`
-		teacherRows, err := s.mySQLQueries.GetUnpaidTeachers(ctx, mysql.GetUnpaidTeachersParams{
-			StartDate: spec.StartDatetime,
-			EndDate:   spec.EndDatetime,
-			Limit:     int32(limit),
-			Offset:    int32(offset),
+		var teacherRows = make([]mysql.GetUnpaidTeachersRow, 0)
+		err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+			var err error
+			teacherRows, err = s.mySQLQueries.GetUnpaidTeachers(newCtx, mysql.GetUnpaidTeachersParams{
+				StartDate: spec.StartDatetime,
+				EndDate:   spec.EndDatetime,
+				Limit:     int32(limit),
+				Offset:    int32(offset),
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetUnpaidTeachers(): %w", err)
+			}
+
+			totalResults, err = s.mySQLQueries.CountUnpaidTeachers(newCtx, mysql.CountUnpaidTeachersParams{
+				StartDate: spec.StartDatetime,
+				EndDate:   spec.EndDatetime,
+			})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
+			}
+			return nil
 		})
 		if err != nil {
-			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.GetUnpaidTeachers(): %w", err)
+			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 		}
-
 		teachersForPayments = NewTeacherForPaymentsFromGetUnpaidTeachersRow(teacherRows)
-
-		totalResults, err = s.mySQLQueries.CountUnpaidTeachers(ctx, mysql.CountUnpaidTeachersParams{
-			StartDate: spec.StartDatetime,
-			EndDate:   spec.EndDatetime,
-		})
-		if err != nil {
-			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("mySQLQueries.CountUnpaidTeachers(): %w", err)
-		}
 	}
 
 	return teaching.GetTeachersForPaymentResult{

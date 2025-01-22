@@ -20,8 +20,8 @@ type MySQLQueries struct {
 }
 
 func NewMySQLQueries(db *sql.DB) *MySQLQueries {
-	wrappedDB := &mysql.DBTXWrappedError{DB: db}
-	queries := mysql.New(wrappedDB)
+	wrappedDBTX := &mysql.DBTXWrappedError{DB: db}
+	queries := mysql.New(wrappedDBTX)
 	return &MySQLQueries{*queries, db}
 }
 
@@ -39,9 +39,9 @@ func (q MySQLQueries) ExecuteInTransaction(ctx context.Context, wrappedFunc func
 		tx = existingTx
 		isReusingExistingTx = true
 	} else {
-		tx, err = q.db.Begin()
+		tx, err = q.db.BeginTx(ctx, nil)
 		if err != nil {
-			return fmt.Errorf("db.Begin(): %w", err)
+			return fmt.Errorf("db.BeginTx(): %w", err)
 		}
 		newCtx = NewContextWithSQLTx(ctx, tx)
 		defer tx.Rollback()

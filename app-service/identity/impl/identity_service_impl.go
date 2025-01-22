@@ -76,57 +76,73 @@ func (s identityServiceImpl) GetUsers(ctx context.Context, pagination util.Pagin
 func (s identityServiceImpl) getUsersWithFilter(ctx context.Context, limit, offset int, filter identity.GetUsersFilter, isDeactivatedFilters []int32) ([]mysql.User, int64, error) {
 	var userRows []mysql.User
 	var totalResults int64
-	var err error
-	var errCount error
 
-	switch filter {
-	case identity.GetUsersFilter_None:
-		userRows, err = s.mySQLQueries.GetUsers(ctx, mysql.GetUsersParams{
-			IsDeactivateds: isDeactivatedFilters,
-			Limit:          int32(limit),
-			Offset:         int32(offset),
-		})
-		totalResults, errCount = s.mySQLQueries.CountUsers(ctx, isDeactivatedFilters)
-	case identity.GetUsersFilter_NotTeacher:
-		userNotTeacherRows, err2 := s.mySQLQueries.GetUsersNotTeacher(ctx, mysql.GetUsersNotTeacherParams{
-			IsDeactivateds: isDeactivatedFilters,
-			Limit:          int32(limit),
-			Offset:         int32(offset),
-		})
-		err = err2
-		for _, row := range userNotTeacherRows {
-			userRows = append(userRows, row.User)
-		}
-		totalResults, errCount = s.mySQLQueries.CountUsersNotTeacher(ctx, isDeactivatedFilters)
-	case identity.GetUsersFilter_NotStudent:
-		userNotStudentRows, err2 := s.mySQLQueries.GetUsersNotStudent(ctx, mysql.GetUsersNotStudentParams{
-			IsDeactivateds: isDeactivatedFilters,
-			Limit:          int32(limit),
-			Offset:         int32(offset),
-		})
-		err = err2
-		for _, row := range userNotStudentRows {
-			userRows = append(userRows, row.User)
-		}
-		totalResults, errCount = s.mySQLQueries.CountUsersNotStudent(ctx, isDeactivatedFilters)
-	default:
-		panic(fmt.Sprintf("unhandled GetUsersFilter = '%s'", filter))
-	}
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		var errCount error
 
+		switch filter {
+		case identity.GetUsersFilter_None:
+			userRows, err = s.mySQLQueries.GetUsers(newCtx, mysql.GetUsersParams{
+				IsDeactivateds: isDeactivatedFilters,
+				Limit:          int32(limit),
+				Offset:         int32(offset),
+			})
+			totalResults, errCount = s.mySQLQueries.CountUsers(newCtx, isDeactivatedFilters)
+		case identity.GetUsersFilter_NotTeacher:
+			userNotTeacherRows, err2 := s.mySQLQueries.GetUsersNotTeacher(newCtx, mysql.GetUsersNotTeacherParams{
+				IsDeactivateds: isDeactivatedFilters,
+				Limit:          int32(limit),
+				Offset:         int32(offset),
+			})
+			err = err2
+			for _, row := range userNotTeacherRows {
+				userRows = append(userRows, row.User)
+			}
+			totalResults, errCount = s.mySQLQueries.CountUsersNotTeacher(newCtx, isDeactivatedFilters)
+		case identity.GetUsersFilter_NotStudent:
+			userNotStudentRows, err2 := s.mySQLQueries.GetUsersNotStudent(newCtx, mysql.GetUsersNotStudentParams{
+				IsDeactivateds: isDeactivatedFilters,
+				Limit:          int32(limit),
+				Offset:         int32(offset),
+			})
+			err = err2
+			for _, row := range userNotStudentRows {
+				userRows = append(userRows, row.User)
+			}
+			totalResults, errCount = s.mySQLQueries.CountUsersNotStudent(newCtx, isDeactivatedFilters)
+		default:
+			panic(fmt.Sprintf("unhandled GetUsersFilter = '%s'", filter))
+		}
+
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetUsers() with filter = '%s': %w", filter, err)
+		}
+		if errCount != nil {
+			return fmt.Errorf("mySQLQueries.CountUsers() with filter = '%s': %w", filter, err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return []mysql.User{}, 0, fmt.Errorf("mySQLQueries.GetUsers() with filter = '%s': %w", filter, err)
-	}
-	if errCount != nil {
-		return []mysql.User{}, 0, fmt.Errorf("mySQLQueries.CountUsers() with filter = '%s': %w", filter, err)
+		return []mysql.User{}, 0, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return userRows, totalResults, nil
 }
 
 func (s identityServiceImpl) GetUserById(ctx context.Context, id identity.UserID) (identity.User, error) {
-	userRow, err := s.mySQLQueries.GetUserById(ctx, int64(id))
+	var userRow mysql.User
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		userRow, err = s.mySQLQueries.GetUserById(newCtx, int64(id))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetUserById(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return identity.User{}, fmt.Errorf("mySQLQueries.GetUserById(): %w", err)
+		return identity.User{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	user := NewUsersFromMySQLUsers([]mysql.User{userRow})[0]
@@ -140,9 +156,17 @@ func (s identityServiceImpl) GetUsersByIds(ctx context.Context, ids []identity.U
 		idsInt = append(idsInt, int64(id))
 	}
 
-	userRows, err := s.mySQLQueries.GetUsersByIds(ctx, idsInt)
+	var userRows = make([]mysql.User, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		userRows, err = s.mySQLQueries.GetUsersByIds(newCtx, idsInt)
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetUsersByIds(): %w", err)
+		}
+		return nil
+	})
 	if err != nil {
-		return []identity.User{}, fmt.Errorf("mySQLQueries.GetUsersByIds(): %w", err)
+		return []identity.User{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	users := NewUsersFromMySQLUsers(userRows)
@@ -316,12 +340,18 @@ func (s identityServiceImpl) UpdateUserPassword(ctx context.Context, spec identi
 		return fmt.Errorf("hashPassword(): %w", err)
 	}
 
-	err = s.mySQLQueries.UpdatePasswordByUserId(ctx, mysql.UpdatePasswordByUserIdParams{
-		Password: hashedPassword,
-		UserID:   int64(spec.UserID),
+	err = s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		err := s.mySQLQueries.UpdatePasswordByUserId(newCtx, mysql.UpdatePasswordByUserIdParams{
+			Password: hashedPassword,
+			UserID:   int64(spec.UserID),
+		})
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.UpdatePasswordByUserId(): %v", err)
+		}
+		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("mySQLQueries.UpdatePasswordByUserId(): %v", err)
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	return nil
@@ -345,16 +375,24 @@ func (s identityServiceImpl) SignUpUser(ctx context.Context, spec identity.SignU
 }
 
 func (s identityServiceImpl) LoginUser(ctx context.Context, spec identity.LoginUserSpec) (identity.LoginUserResult, error) {
-	userCredential, err := s.mySQLQueries.GetUserCredentialByEmail(ctx, sql.NullString{String: spec.UsernameOrEmail, Valid: true})
-	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
-		}
-
-		userCredential, err = s.mySQLQueries.GetUserCredentialByUsername(ctx, spec.UsernameOrEmail)
+	var userCredential mysql.UserCredential
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		userCredential, err = s.mySQLQueries.GetUserCredentialByUsername(newCtx, spec.UsernameOrEmail)
 		if err != nil {
-			return identity.LoginUserResult{}, fmt.Errorf("mySQLQueries.GetUserCredentialByUsername(): %w", err)
+			if !errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("mySQLQueries.GetUserCredentialByUsername(): %w", err)
+			}
+
+			userCredential, err = s.mySQLQueries.GetUserCredentialByEmail(newCtx, sql.NullString{String: spec.UsernameOrEmail, Valid: true})
+			if err != nil {
+				return fmt.Errorf("mySQLQueries.GetUserCredentialByEmail(): %w", err)
+			}
 		}
+		return nil
+	})
+	if err != nil {
+		return identity.LoginUserResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
 	// Compare the hashed password with the input password
