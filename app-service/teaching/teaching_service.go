@@ -106,6 +106,7 @@ type TeachingService interface {
 	//
 	// Depend on the `Class` setting ("autoOweAttendanceToken"), by default this will automatically create StudentLearningToken (SLT) with negative quota when any of the class' students have no SLT (due to no payment yet).
 	AddAttendance(ctx context.Context, spec AddAttendanceSpec) ([]entity.AttendanceID, error)
+	AssignAttendanceToken(ctx context.Context, spec AssignAttendanceTokenSpec) error
 	EditAttendance(ctx context.Context, spec EditAttendanceSpec) ([]entity.AttendanceID, error)
 	RemoveAttendance(ctx context.Context, attendanceID entity.AttendanceID) ([]entity.AttendanceID, error)
 
@@ -175,6 +176,15 @@ type AddAttendanceSpec struct {
 	UsedStudentTokenQuota float64
 	Duration              int32
 	Note                  string
+}
+
+type AssignAttendanceTokenSpec struct {
+	AttendanceID           entity.AttendanceID
+	StudentLearningTokenID entity.StudentLearningTokenID
+}
+
+func (s AssignAttendanceTokenSpec) GetInt64ID() int64 {
+	return int64(s.AttendanceID)
 }
 
 type EditAttendanceSpec struct {

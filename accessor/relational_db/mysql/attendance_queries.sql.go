@@ -12,6 +12,22 @@ import (
 	"time"
 )
 
+const assignAttendanceToken = `-- name: AssignAttendanceToken :exec
+UPDATE attendance
+SET token_id = ?
+WHERE id = ?
+`
+
+type AssignAttendanceTokenParams struct {
+	TokenID sql.NullInt64
+	ID      int64
+}
+
+func (q *Queries) AssignAttendanceToken(ctx context.Context, arg AssignAttendanceTokenParams) error {
+	_, err := q.db.ExecContext(ctx, assignAttendanceToken, arg.TokenID, arg.ID)
+	return err
+}
+
 const countAttendances = `-- name: CountAttendances :one
 SELECT Count(id) AS total FROM attendance
 WHERE
@@ -234,6 +250,26 @@ func (q *Queries) GetAttendanceById(ctx context.Context, id int64) (GetAttendanc
 		&i.LastUpdatedAt,
 		&i.EnrollmentID,
 	)
+	return i, err
+}
+
+const getAttendanceForTokenAssignment = `-- name: GetAttendanceForTokenAssignment :one
+SELECT used_student_token_quota, is_paid, token_id
+FROM attendance
+WHERE id = ? FOR UPDATE
+`
+
+type GetAttendanceForTokenAssignmentRow struct {
+	UsedStudentTokenQuota float64
+	IsPaid                int32
+	TokenID               sql.NullInt64
+}
+
+// note that as this query use "FOR UPDATE", it will block other query from reading this attendance record.
+func (q *Queries) GetAttendanceForTokenAssignment(ctx context.Context, id int64) (GetAttendanceForTokenAssignmentRow, error) {
+	row := q.db.QueryRowContext(ctx, getAttendanceForTokenAssignment, id)
+	var i GetAttendanceForTokenAssignmentRow
+	err := row.Scan(&i.UsedStudentTokenQuota, &i.IsPaid, &i.TokenID)
 	return i, err
 }
 

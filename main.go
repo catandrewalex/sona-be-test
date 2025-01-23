@@ -185,6 +185,7 @@ func main() {
 			loggedRouter.Post("/teacherPayments/edit", jsonSerdeWrapper.WrapFunc(backendService.EditTeacherPaymentsHandler))
 			loggedRouter.Post("/teacherPayments/remove", jsonSerdeWrapper.WrapFunc(backendService.RemoveTeacherPaymentsHandler))
 
+			loggedRouter.Post("/attendances/{AttendanceID}/assignToken", jsonSerdeWrapper.WrapFunc(backendService.AssignAttendanceTokenHandler, "AttendanceID"))
 			// This endpoint is more similar with "/classes/{ClassID}/attendances/add", where (1) SLTs are automatically updated, (2) class with n students will get n attendances.
 			// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
 			loggedRouter.Post("/attendances/batch", jsonSerdeWrapper.WrapFunc(backendService.AddAttendancesBatchHandler))

@@ -1791,41 +1791,6 @@ func (s *BackendService) EditClassesCoursesHandler(ctx context.Context, req *out
 	}, nil
 }
 
-// AddAttendancesBatchHandler is the batch version of AddAttendance(), but only for admin.
-// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
-func (s *BackendService) AddAttendancesBatchHandler(ctx context.Context, req *output.AddAttendancesBatchRequest) (*output.AddAttendancesBatchResponse, errs.HTTPError) {
-	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
-		return nil, errV
-	}
-
-	specs := make([]teaching.AddAttendanceSpec, 0)
-	for _, param := range req.Data {
-		specs = append(specs, teaching.AddAttendanceSpec{
-			ClassID:               param.ClassID,
-			TeacherID:             param.TeacherID,
-			Date:                  param.Date,
-			UsedStudentTokenQuota: param.UsedStudentTokenQuota,
-			Duration:              param.Duration,
-			Note:                  param.Note,
-		})
-	}
-
-	attendanceIDs, err := s.teachingService.AddAttendancesBatch(ctx, specs)
-	if err != nil {
-		errContext := fmt.Errorf("teachingService.AddAttendancesBatch(): %w", err)
-		if errors.Is(err, errs.ErrClassHaveNoStudent) {
-			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One of the classes don't have any student, try registering a student first")
-		}
-
-		return nil, handleUpsertionError(err, errContext.Error(), "attendance")
-	}
-	mainLog.Info("Attendances added: attendanceIDs='%v'", attendanceIDs)
-
-	return &output.AddAttendancesBatchResponse{
-		Message: "Successfully added attendances",
-	}, nil
-}
-
 func (s *BackendService) SearchEnrollmentPaymentHandler(ctx context.Context, req *output.SearchEnrollmentPaymentsRequest) (*output.SearchEnrollmentPaymentsResponse, errs.HTTPError) {
 	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
 		return nil, errV
@@ -2030,6 +1995,77 @@ func (s *BackendService) GetAttendancesByClassIDHandler(ctx context.Context, req
 				CurrentPage:  getAttendancesResult.PaginationResult.CurrentPage,
 			},
 		},
+	}, nil
+}
+
+// AddAttendancesBatchHandler is the batch version of AddAttendance(), but only for admin.
+// The goal is to simplify admin day-to-day work. Inputting in batch is simpler than navigating between pages and inserting the attendances one-by-one.
+func (s *BackendService) AddAttendancesBatchHandler(ctx context.Context, req *output.AddAttendancesBatchRequest) (*output.AddAttendancesBatchResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	specs := make([]teaching.AddAttendanceSpec, 0)
+	for _, param := range req.Data {
+		specs = append(specs, teaching.AddAttendanceSpec{
+			ClassID:               param.ClassID,
+			TeacherID:             param.TeacherID,
+			Date:                  param.Date,
+			UsedStudentTokenQuota: param.UsedStudentTokenQuota,
+			Duration:              param.Duration,
+			Note:                  param.Note,
+		})
+	}
+
+	attendanceIDs, err := s.teachingService.AddAttendancesBatch(ctx, specs)
+	if err != nil {
+		errContext := fmt.Errorf("teachingService.AddAttendancesBatch(): %w", err)
+		if errors.Is(err, errs.ErrClassHaveNoStudent) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "One of the classes don't have any student, try registering a student first")
+		}
+
+		return nil, handleUpsertionError(err, errContext.Error(), "attendance")
+	}
+	mainLog.Info("Attendances added: attendanceIDs='%v'", attendanceIDs)
+
+	return &output.AddAttendancesBatchResponse{
+		Message: "Successfully added attendances",
+	}, nil
+}
+
+func (s *BackendService) AssignAttendanceTokenHandler(ctx context.Context, req *output.AssignAttendanceTokenRequest) (*output.AssignAttendanceTokenResponse, errs.HTTPError) {
+	if errV := errs.ValidateHTTPRequest(req, false); errV != nil {
+		return nil, errV
+	}
+
+	authInfo := network.GetAuthInfo(ctx)
+	if authInfo.PrivilegeType < identity.UserPrivilegeType_Staff {
+		isInvolved, err := s.teachingService.IsUserInvolvedInAttendance(ctx, authInfo.UserID, req.AttendanceID)
+		if err != nil {
+			return nil, handleReadError(err, "teachingService.IsUserInvolvedInAttendance()", "userInvolvementInAttendance")
+		}
+		if !isInvolved {
+			errContext := fmt.Errorf("unauthorized GetAttendancesByAttendanceIDHandler(): userId='%d', requestedAttendanceId='%d'", authInfo.UserID, req.AttendanceID)
+			return nil, errs.NewHTTPError(http.StatusForbidden, errContext, nil, "You're not involved in this attendance as a teacher to edit. Please contact the system administrator for further information.")
+		}
+	}
+
+	err := s.teachingService.AssignAttendanceToken(ctx, teaching.AssignAttendanceTokenSpec{
+		AttendanceID:           req.AttendanceID,
+		StudentLearningTokenID: req.StudentLearningTokenID,
+	})
+	if err != nil {
+		errContext := fmt.Errorf("teachingService.AssignAttendanceToken(): %w", err)
+		if errors.Is(err, errs.ErrModifyingPaidAttendance) {
+			return nil, errs.NewHTTPError(http.StatusUnprocessableEntity, errContext, nil, "You are editing a paid attendance, try de-registering the attendance from teacher payment first")
+		}
+
+		return nil, handleUpsertionError(err, errContext.Error(), "attendance")
+	}
+	mainLog.Info("Attendance's token assigned: studentLearningTokenID='%d' to attendanceID='%d'", req.StudentLearningTokenID, req.AttendanceID)
+
+	return &output.AssignAttendanceTokenResponse{
+		Message: "Successfully assigned attendance's token",
 	}, nil
 }
 

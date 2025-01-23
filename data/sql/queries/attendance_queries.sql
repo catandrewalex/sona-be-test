@@ -190,6 +190,17 @@ UPDATE attendance
 SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, is_paid = ?, class_id = ?, teacher_id = ?, student_id = ?, token_id = ?
 WHERE id = ?;
 
+-- note that as this query use "FOR UPDATE", it will block other query from reading this attendance record.
+-- name: GetAttendanceForTokenAssignment :one
+SELECT used_student_token_quota, is_paid, token_id
+FROM attendance
+WHERE id = ? FOR UPDATE;
+
+-- name: AssignAttendanceToken :exec
+UPDATE attendance
+SET token_id = ?
+WHERE id = ?;
+
 -- name: EditAttendances :exec
 UPDATE attendance
 SET date = ?, used_student_token_quota = ?, duration = ?, note = ?, teacher_id = ?

@@ -644,6 +644,59 @@ func (s teachingServiceImpl) autoRegisterSLT(ctx context.Context, studentEnrollm
 	return newSLTID, nil
 }
 
+func (s teachingServiceImpl) AssignAttendanceToken(ctx context.Context, spec teaching.AssignAttendanceTokenSpec) error {
+	errV := util.ValidateUpdateSpecs(ctx, []teaching.AssignAttendanceTokenSpec{spec}, s.mySQLQueries.CountAttendancesByIds)
+	if errV != nil {
+		return errV
+	}
+
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		rowResult, err := qtx.GetAttendanceForTokenAssignment(newCtx, spec.GetInt64ID())
+		if err != nil {
+			return fmt.Errorf("GetAttendanceForTokenAssignment(): %w", err)
+		}
+		if util.Int32ToBool(rowResult.IsPaid) {
+			return errs.ErrModifyingPaidAttendance
+		}
+
+		// update (1) previous token's quota, and (2) new token's quota
+		if rowResult.TokenID.Valid {
+			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+				Quota:         rowResult.UsedStudentTokenQuota,
+				LastUpdatedAt: time.Now().UTC(),
+				ID:            rowResult.TokenID.Int64,
+			})
+			if err != nil {
+				return fmt.Errorf("IncrementSLTQuotaById(): %w", err)
+			}
+		}
+		err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+			Quota:         -1 * rowResult.UsedStudentTokenQuota,
+			LastUpdatedAt: time.Now().UTC(),
+			ID:            int64(spec.StudentLearningTokenID),
+		})
+		if err != nil {
+			return fmt.Errorf("IncrementSLTQuotaById(): %w", err)
+		}
+
+		// assign the new token to the attendance
+		err = qtx.AssignAttendanceToken(newCtx, mysql.AssignAttendanceTokenParams{
+			ID:      spec.GetInt64ID(),
+			TokenID: sql.NullInt64{Int64: int64(spec.StudentLearningTokenID), Valid: true},
+		})
+		if err != nil {
+			return fmt.Errorf("AssignAttendanceToken(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	return nil
+}
+
 func (s teachingServiceImpl) EditAttendance(ctx context.Context, spec teaching.EditAttendanceSpec) ([]entity.AttendanceID, error) {
 	errV := util.ValidateUpdateSpecs(ctx, []teaching.EditAttendanceSpec{spec}, s.mySQLQueries.CountAttendancesByIds)
 	if errV != nil {
