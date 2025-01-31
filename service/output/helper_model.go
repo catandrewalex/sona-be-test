@@ -17,7 +17,7 @@ type YearMonthFilterType string
 
 const (
 	YearMonthFilterType_Standard          YearMonthFilterType = "STANDARD" // First to last day of current month
-	YearMonthFilterType_CalculatingSalary YearMonthFilterType = "SALARY"   // 28th previous month to 27th current month
+	YearMonthFilterType_CalculatingSalary YearMonthFilterType = "SALARY"   // 26th previous month to 25th current month
 )
 
 type ErrorResponse struct {
@@ -131,8 +131,8 @@ func (d YearMonthFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter
 			}
 		case YearMonthFilterType_CalculatingSalary:
 			timeFilter = TimeFilter{
-				StartDatetime: time.Date(d.Year, time.Month(d.Month), 28, 0, 0, 0, 0, util.DefaultTimezone).AddDate(0, -1, 0),
-				EndDatetime:   time.Date(d.Year, time.Month(d.Month), 27, 23, 59, 59, 0, util.DefaultTimezone),
+				StartDatetime: time.Date(d.Year, time.Month(d.Month), 26, 0, 0, 0, 0, util.DefaultTimezone).AddDate(0, -1, 0),
+				EndDatetime:   time.Date(d.Year, time.Month(d.Month), 25, 23, 59, 59, 0, util.DefaultTimezone),
 			}
 		}
 	}
