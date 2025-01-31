@@ -186,7 +186,7 @@ func (r YearMonthRangeFilter) Validate() errs.ValidationError {
 
 func (r YearMonthRangeFilter) ToTimeFilter(filterType YearMonthFilterType) TimeFilter {
 	return TimeFilter{
-		StartDatetime: time.Date(r.StartDate.Year, time.Month(r.StartDate.Month), 0, 0, 0, 0, 0, util.DefaultTimezone),
-		EndDatetime:   time.Date(r.EndDate.Year, time.Month(r.EndDate.Month), 0, 0, 0, 0, 0, util.DefaultTimezone),
+		StartDatetime: time.Date(r.StartDate.Year, time.Month(r.StartDate.Month), 1, 0, 0, 0, 0, util.DefaultTimezone),
+		EndDatetime:   time.Date(r.EndDate.Year, time.Month(r.EndDate.Month), 1, 23, 59, 59, 0, util.DefaultTimezone).AddDate(0, 1, -1),
 	}
 }
