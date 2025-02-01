@@ -42,7 +42,11 @@ type StudentIDToSLTs struct {
 
 type TeacherForPayment struct {
 	entity.TeacherInfo_Minimal
-	TotalAttendances int32 `json:"totalAttendances"`
+	TotalAttendances float64 `json:"totalAttendances"`
+
+	// these two fields are only populated when there exists `Attendance` with null `StudentLearningToken`
+	TotalAttendancesWithoutToken float64        `json:"totalAttendancesWithoutToken,omitempty"`
+	ClassesNeedTokenAssignment   []entity.Class `json:"classesNeedTokenAssignment,omitempty"` // this is useful in FE for displaying direct link to the classes that contain the attendances-without-SLT
 }
 
 // TeacherPaymentInvoiceItem is an "Attendance"/"TeacherPayment" which is reshaped (grouped-by in multi-level) for a rendering requirement in FE's TeacherPayment page.

@@ -858,12 +858,12 @@ func (s teachingServiceImpl) GetTeachersForPayment(ctx context.Context, spec tea
 				return fmt.Errorf("qtx.GetPaidTeachers(): %w", err)
 			}
 
-			totalResults, err = qtx.CountUnpaidTeachers(newCtx, mysql.CountUnpaidTeachersParams{
+			totalResults, err = qtx.CountPaidTeachers(newCtx, mysql.CountPaidTeachersParams{
 				StartDate: spec.StartDatetime,
 				EndDate:   spec.EndDatetime,
 			})
 			if err != nil {
-				return fmt.Errorf("qtx.CountUnpaidTeachers(): %w", err)
+				return fmt.Errorf("qtx.CountPaidTeachers(): %w", err)
 			}
 			return nil
 		})
@@ -874,6 +874,7 @@ func (s teachingServiceImpl) GetTeachersForPayment(ctx context.Context, spec tea
 
 	} else { // for unpaid teachers, we fetch data from `Attendance`
 		var teacherRows = make([]mysql.GetUnpaidTeachersRow, 0)
+		var classesWithoutToken = make([]entity.Class, 0)
 		err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 			var err error
 			teacherRows, err = qtx.GetUnpaidTeachers(newCtx, mysql.GetUnpaidTeachersParams{
@@ -893,18 +894,40 @@ func (s teachingServiceImpl) GetTeachersForPayment(ctx context.Context, spec tea
 			if err != nil {
 				return fmt.Errorf("qtx.CountUnpaidTeachers(): %w", err)
 			}
+
+			classesWithoutToken, err = s.entityService.GetClassesWithoutToken(newCtx, spec.TimeSpec)
+			if err != nil {
+				return fmt.Errorf("entityService.GetClassesWithoutToken(): %w", err)
+			}
+
 			return nil
 		})
 		if err != nil {
 			return teaching.GetTeachersForPaymentResult{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 		}
 		teachersForPayments = NewTeacherForPaymentsFromGetUnpaidTeachersRow(teacherRows)
+		assignClassesNeedTokenToTeachersForPayments(teachersForPayments, classesWithoutToken)
 	}
 
 	return teaching.GetTeachersForPaymentResult{
 		TeachersForPayment: teachersForPayments,
 		PaginationResult:   *util.NewPaginationResult(int(totalResults), spec.Pagination.ResultsPerPage, spec.Pagination.Page),
 	}, nil
+}
+
+func assignClassesNeedTokenToTeachersForPayments(teachersForPayments []teaching.TeacherForPayment, classesWithoutToken []entity.Class) {
+	var teacherIdToClasses = make(map[entity.TeacherID][]entity.Class, 0)
+	for _, class := range classesWithoutToken {
+		if classes, ok := teacherIdToClasses[class.TeacherInfo_Minimal.TeacherID]; !ok {
+			teacherIdToClasses[class.TeacherInfo_Minimal.TeacherID] = []entity.Class{class}
+		} else {
+			teacherIdToClasses[class.TeacherInfo_Minimal.TeacherID] = append(classes, class)
+		}
+	}
+
+	for i, teacherForPayment := range teachersForPayments {
+		teachersForPayments[i].ClassesNeedTokenAssignment = teacherIdToClasses[teacherForPayment.TeacherID]
+	}
 }
 
 func (s teachingServiceImpl) GetTeacherPaymentInvoiceItems(ctx context.Context, spec teaching.GetTeacherPaymentInvoiceItemsSpec) ([]teaching.TeacherPaymentInvoiceItem, error) {

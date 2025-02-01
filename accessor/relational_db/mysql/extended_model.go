@@ -33,6 +33,9 @@ func (r GetClassByIdRow) ToGetClassesRow() GetClassesRow {
 func (r GetClassesByIdsRow) ToGetClassesRow() GetClassesRow {
 	return GetClassesRow(r)
 }
+func (r GetClassesWithoutTokenForTeacherPaymentRow) ToGetClassesRow() GetClassesRow {
+	return GetClassesRow(r)
+}
 
 // ============================== STUDENT_ENROLLMENT ==============================
 

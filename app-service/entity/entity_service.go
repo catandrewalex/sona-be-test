@@ -230,6 +230,8 @@ type EntityService interface {
 	DeleteCourses(ctx context.Context, ids []CourseID) error
 
 	GetClasses(ctx context.Context, pagination util.PaginationSpec, spec GetClassesSpec) (GetClassesResult, error)
+	// GetClassesWithoutToken is specifically used for creating TeacherPayment, thus have different filtering & sorting rule.
+	GetClassesWithoutToken(ctx context.Context, timeRange util.TimeSpec) ([]Class, error)
 	GetClassById(ctx context.Context, id ClassID) (Class, error)
 	GetClassesByIds(ctx context.Context, ids []ClassID) ([]Class, error)
 	InsertClasses(ctx context.Context, specs []InsertClassSpec) ([]ClassID, error)

@@ -995,6 +995,100 @@ func (q *Queries) GetClassesTotalStudentsByClassIds(ctx context.Context, ids []i
 	return items, nil
 }
 
+const getClassesWithoutTokenForTeacherPayment = `-- name: GetClassesWithoutTokenForTeacherPayment :many
+SELECT class.id AS class_id, transport_fee, class.auto_owe_attendance_token, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
+    user_teacher.username AS teacher_username,
+    user_teacher.user_detail AS teacher_detail,
+    instrument.id, instrument.name, grade.id, grade.name,
+    user_student.username AS student_username,
+    user_student.user_detail AS student_detail,
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
+FROM class
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
+
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
+    LEFT JOIN student ON se.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
+
+    JOIN attendance ON attendance.class_id = class.id
+WHERE
+    attendance.token_id IS NULL
+    AND (attendance.date >= ? AND attendance.date <= ?)
+ORDER BY teacher_id ASC, class.id ASC
+`
+
+type GetClassesWithoutTokenForTeacherPaymentParams struct {
+	StartDate time.Time
+	EndDate   time.Time
+}
+
+type GetClassesWithoutTokenForTeacherPaymentRow struct {
+	ClassID                int64
+	TransportFee           int32
+	AutoOweAttendanceToken int32
+	IsDeactivated          int32
+	CourseID               int64
+	TeacherID              sql.NullInt64
+	StudentID              sql.NullInt64
+	TeacherUsername        sql.NullString
+	TeacherDetail          []byte
+	Instrument             Instrument
+	Grade                  Grade
+	StudentUsername        sql.NullString
+	StudentDetail          []byte
+	DefaultFee             int32
+	DefaultDurationMinute  int32
+	TeacherSpecialFee      sql.NullInt32
+}
+
+func (q *Queries) GetClassesWithoutTokenForTeacherPayment(ctx context.Context, arg GetClassesWithoutTokenForTeacherPaymentParams) ([]GetClassesWithoutTokenForTeacherPaymentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getClassesWithoutTokenForTeacherPayment, arg.StartDate, arg.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetClassesWithoutTokenForTeacherPaymentRow
+	for rows.Next() {
+		var i GetClassesWithoutTokenForTeacherPaymentRow
+		if err := rows.Scan(
+			&i.ClassID,
+			&i.TransportFee,
+			&i.AutoOweAttendanceToken,
+			&i.IsDeactivated,
+			&i.CourseID,
+			&i.TeacherID,
+			&i.StudentID,
+			&i.TeacherUsername,
+			&i.TeacherDetail,
+			&i.Instrument.ID,
+			&i.Instrument.Name,
+			&i.Grade.ID,
+			&i.Grade.Name,
+			&i.StudentUsername,
+			&i.StudentDetail,
+			&i.DefaultFee,
+			&i.DefaultDurationMinute,
+			&i.TeacherSpecialFee,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCourseById = `-- name: GetCourseById :one
 SELECT course.id AS course_id, instrument.id, instrument.name, grade.id, grade.name, default_fee, default_duration_minute
 FROM course
@@ -1418,7 +1512,8 @@ func (q *Queries) GetInstrumentsByIds(ctx context.Context, ids []int64) ([]Instr
 }
 
 const getPaidTeachers = `-- name: GetPaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
+    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -1438,15 +1533,16 @@ type GetPaidTeachersParams struct {
 }
 
 type GetPaidTeachersRow struct {
-	ID               int64
-	UserID           int64
-	Username         string
-	Email            sql.NullString
-	UserDetail       json.RawMessage
-	PrivilegeType    int32
-	IsDeactivated    int32
-	CreatedAt        sql.NullTime
-	TotalAttendances interface{}
+	ID                           int64
+	UserID                       int64
+	Username                     string
+	Email                        sql.NullString
+	UserDetail                   json.RawMessage
+	PrivilegeType                int32
+	IsDeactivated                int32
+	CreatedAt                    sql.NullTime
+	TotalAttendances             interface{}
+	TotalAttendancesWithoutToken interface{}
 }
 
 func (q *Queries) GetPaidTeachers(ctx context.Context, arg GetPaidTeachersParams) ([]GetPaidTeachersRow, error) {
@@ -1473,6 +1569,7 @@ func (q *Queries) GetPaidTeachers(ctx context.Context, arg GetPaidTeachersParams
 			&i.IsDeactivated,
 			&i.CreatedAt,
 			&i.TotalAttendances,
+			&i.TotalAttendancesWithoutToken,
 		); err != nil {
 			return nil, err
 		}
@@ -2430,7 +2527,8 @@ func (q *Queries) GetTeachersByIds(ctx context.Context, ids []int64) ([]GetTeach
 }
 
 const getUnpaidTeachers = `-- name: GetUnpaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
+    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -2450,15 +2548,16 @@ type GetUnpaidTeachersParams struct {
 }
 
 type GetUnpaidTeachersRow struct {
-	ID               int64
-	UserID           int64
-	Username         string
-	Email            sql.NullString
-	UserDetail       json.RawMessage
-	PrivilegeType    int32
-	IsDeactivated    int32
-	CreatedAt        sql.NullTime
-	TotalAttendances interface{}
+	ID                           int64
+	UserID                       int64
+	Username                     string
+	Email                        sql.NullString
+	UserDetail                   json.RawMessage
+	PrivilegeType                int32
+	IsDeactivated                int32
+	CreatedAt                    sql.NullTime
+	TotalAttendances             interface{}
+	TotalAttendancesWithoutToken interface{}
 }
 
 func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersParams) ([]GetUnpaidTeachersRow, error) {
@@ -2485,6 +2584,7 @@ func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersPa
 			&i.IsDeactivated,
 			&i.CreatedAt,
 			&i.TotalAttendances,
+			&i.TotalAttendancesWithoutToken,
 		); err != nil {
 			return nil, err
 		}

@@ -80,7 +80,8 @@ DELETE FROM teacher
 WHERE user_id = ?;
 
 -- name: GetUnpaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
+    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -104,7 +105,8 @@ WITH unpaid_teacher AS (
 SELECT Count(teacher_id) AS total FROM unpaid_teacher;
 
 -- name: GetPaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
+    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -412,6 +414,33 @@ WHERE class.id = ?;
 SELECT class.auto_owe_attendance_token
 FROM class
 WHERE class.id = ?;
+
+-- name: GetClassesWithoutTokenForTeacherPayment :many
+SELECT class.id AS class_id, transport_fee, class.auto_owe_attendance_token, class.is_deactivated, class.course_id AS course_id, class.teacher_id AS teacher_id, se.student_id AS student_id,
+    user_teacher.username AS teacher_username,
+    user_teacher.user_detail AS teacher_detail,
+    sqlc.embed(instrument), sqlc.embed(grade),
+    user_student.username AS student_username,
+    user_student.user_detail AS student_detail,
+    course.default_fee, course.default_duration_minute, tsf.fee AS teacher_special_fee
+FROM class
+    JOIN course ON course_id = course.id
+    JOIN instrument ON course.instrument_id = instrument.id
+    JOIN grade ON course.grade_id = grade.id
+
+    LEFT JOIN teacher ON teacher_id = teacher.id
+    LEFT JOIN user AS user_teacher ON teacher.user_id = user_teacher.id
+    LEFT JOIN teacher_special_fee AS tsf ON (teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
+
+    LEFT JOIN student_enrollment AS se ON (class.id = se.class_id AND se.is_deleted=0)
+    LEFT JOIN student ON se.student_id = student.id
+    LEFT JOIN user AS user_student ON student.user_id = user_student.id
+
+    JOIN attendance ON attendance.class_id = class.id
+WHERE
+    attendance.token_id IS NULL
+    AND (attendance.date >= sqlc.arg('startDate') AND attendance.date <= sqlc.arg('endDate'))
+ORDER BY teacher_id ASC, class.id ASC;
 
 -- name: InsertClass :execlastid
 INSERT INTO class (

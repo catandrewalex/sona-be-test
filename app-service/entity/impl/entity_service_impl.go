@@ -844,6 +844,37 @@ func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.Pagin
 	}, nil
 }
 
+func (s entityServiceImpl) GetClassesWithoutToken(ctx context.Context, timeSpec util.TimeSpec) ([]entity.Class, error) {
+	timeFilter := timeSpec
+	timeFilter.SetDefaultForZeroValues()
+
+	var classRows = make([]mysql.GetClassesWithoutTokenForTeacherPaymentRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		classRows, err = qtx.GetClassesWithoutTokenForTeacherPayment(newCtx, mysql.GetClassesWithoutTokenForTeacherPaymentParams{
+			StartDate: timeFilter.StartDatetime,
+			EndDate:   timeFilter.EndDatetime,
+		})
+		if err != nil {
+			return fmt.Errorf("qtx.GetClassesWithoutTokenForTeacherPayment(): %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return []entity.Class{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	classRowsConverted := make([]mysql.GetClassesRow, 0, len(classRows))
+	for _, row := range classRows {
+		classRowsConverted = append(classRowsConverted, row.ToGetClassesRow())
+	}
+
+	classes := NewClassesFromGetClassesRow(classRowsConverted)
+
+	return classes, nil
+}
+
 func (s entityServiceImpl) GetClassById(ctx context.Context, id entity.ClassID) (entity.Class, error) {
 	var classRows = make([]mysql.GetClassByIdRow, 0)
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
