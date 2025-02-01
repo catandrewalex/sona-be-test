@@ -483,25 +483,6 @@ FROM student_enrollment AS se
     LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
 WHERE se.is_deleted = 0 AND se.id IN (sqlc.slice('ids'));
 
--- name: GetStudentEnrollmentsByStudentId :many
-SELECT se.id AS student_enrollment_id,
-    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    sqlc.embed(class), tsf.fee AS teacher_special_fee, sqlc.embed(course), sqlc.embed(instrument), sqlc.embed(grade),
-    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
-FROM student_enrollment AS se
-    JOIN student ON se.student_id = student.id
-    JOIN user AS user_student ON student.user_id = user_student.id
-    
-    JOIN class on se.class_id = class.id
-    JOIN course ON course_id = course.id
-    JOIN instrument ON course.instrument_id = instrument.id
-    JOIN grade ON course.grade_id = grade.id
-    
-    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
-    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
-    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
-WHERE se.is_deleted = 0 AND student_id = ?;
-
 -- name: GetStudentEnrollmentsByClassId :many
 SELECT se.id AS student_enrollment_id,
     se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
@@ -634,10 +615,6 @@ FROM teacher_special_fee
     JOIN grade ON course.grade_id = grade.id
 WHERE teacher_id = ?
 ORDER BY course.id;
-
--- name: GetTeacherSpecialFeesByTeacherIdAndCourseId :one
-SELECT id, fee FROM teacher_special_fee
-WHERE teacher_id = ? AND course_id = ? LIMIT 1;
 
 -- name: InsertTeacherSpecialFee :execlastid
 INSERT INTO teacher_special_fee (

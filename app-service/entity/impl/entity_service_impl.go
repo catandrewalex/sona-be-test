@@ -907,9 +907,10 @@ func (s entityServiceImpl) InsertClasses(ctx context.Context, specs []entity.Ins
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
 			classID, err := qtx.InsertClass(newCtx, mysql.InsertClassParams{
-				TransportFee: spec.TransportFee,
-				TeacherID:    sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
-				CourseID:     int64(spec.CourseID),
+				TransportFee:           spec.TransportFee,
+				TeacherID:              sql.NullInt64{Int64: int64(spec.TeacherID), Valid: spec.TeacherID != entity.TeacherID_None},
+				CourseID:               int64(spec.CourseID),
+				AutoOweAttendanceToken: util.BoolToInt32(true),
 			})
 			if err != nil {
 
@@ -1134,9 +1135,33 @@ func (s entityServiceImpl) GetStudentEnrollmentById(ctx context.Context, id enti
 		return entity.StudentEnrollment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
 	}
 
-	teacherSpecialFee := NewStudentEnrollmentsFromGetStudentEnrollmentsRow([]mysql.GetStudentEnrollmentsRow{studentEnrollmentRow.ToGetStudentEnrollmentsRow()})[0]
+	studentEnrollment := NewStudentEnrollmentsFromGetStudentEnrollmentsRow([]mysql.GetStudentEnrollmentsRow{studentEnrollmentRow.ToGetStudentEnrollmentsRow()})[0]
 
-	return teacherSpecialFee, nil
+	return studentEnrollment, nil
+}
+
+func (s entityServiceImpl) GetStudentEnrollmentsByClassId(ctx context.Context, classId entity.ClassID) ([]entity.StudentEnrollment, error) {
+	var studentEnrollmentRows = make([]mysql.GetStudentEnrollmentsByClassIdRow, 0)
+	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
+		var err error
+		studentEnrollmentRows, err = qtx.GetStudentEnrollmentsByClassId(newCtx, int64(classId))
+		if err != nil {
+			return fmt.Errorf("mySQLQueries.GetStudentEnrollmentsByClassId(): %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return []entity.StudentEnrollment{}, fmt.Errorf("ExecuteInTransaction(): %w", err)
+	}
+
+	studentEnrollmentRowsConverted := make([]mysql.GetStudentEnrollmentsRow, 0, len(studentEnrollmentRows))
+	for _, row := range studentEnrollmentRows {
+		studentEnrollmentRowsConverted = append(studentEnrollmentRowsConverted, row.ToGetStudentEnrollmentsRow())
+	}
+
+	studentEnrollments := NewStudentEnrollmentsFromGetStudentEnrollmentsRow(studentEnrollmentRowsConverted)
+
+	return studentEnrollments, nil
 }
 
 func (s entityServiceImpl) GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (entity.GetTeacherSpecialFeesResult, error) {

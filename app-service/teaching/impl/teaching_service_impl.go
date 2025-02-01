@@ -110,27 +110,13 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 			return fmt.Errorf("entityService.GetStudentEnrollmentById(): %w", err)
 		}
 
-		// calculate Course Fee
 		courseFeeValue := studentEnrollment.ClassInfo.Course.DefaultFee
-		teacherID, err := s.mySQLQueries.GetClassTeacherId(ctx, int64(studentEnrollment.ClassInfo.ClassID))
-		if err != nil {
-			return fmt.Errorf("mySQLQueries.GetClassTeacherId(): %w", err)
-		}
-		if teacherID.Valid {
-			teacherSpecialFee, err := s.mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx, mysql.GetTeacherSpecialFeesByTeacherIdAndCourseIdParams{
-				TeacherID: teacherID.Int64,
-				CourseID:  int64(studentEnrollment.ClassInfo.Course.CourseID),
-			})
-			if err != nil && !errors.Is(err, sql.ErrNoRows) { // ignore not found error, and use the default course value
-				return fmt.Errorf("mySQLQueries.GetTeacherSpecialFeesByTeacherIdAndCourseId(): %w", err)
-			}
-			if teacherSpecialFee.ID > 0 {
-				courseFeeValue = teacherSpecialFee.Fee
-			}
+		if studentEnrollment.ClassInfo.TeacherSpecialFee != 0 {
+			courseFeeValue = studentEnrollment.ClassInfo.TeacherSpecialFee
 		}
 
 		// calculate Course Fee Penalty (e.g. due to late payment)
-		latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(ctx, sql.NullInt64{Int64: int64(studentEnrollmentID), Valid: true})
+		latestPaymentDate, err := s.mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(newCtx, sql.NullInt64{Int64: int64(studentEnrollmentID), Valid: true})
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				return fmt.Errorf("mySQLQueries.GetLatestEnrollmentPaymentDateByStudentEnrollmentId(): %w", err)
@@ -152,7 +138,7 @@ func (s teachingServiceImpl) GetEnrollmentPaymentInvoice(ctx context.Context, st
 
 		// calculate transport fee (splitted unionly across all class students)
 		splittedTransportFee := studentEnrollment.ClassInfo.TransportFee
-		classIdToTotalStudents, err := s.mySQLQueries.GetClassesTotalStudentsByClassIds(ctx, []int64{int64(studentEnrollment.ClassInfo.ClassID)})
+		classIdToTotalStudents, err := s.mySQLQueries.GetClassesTotalStudentsByClassIds(newCtx, []int64{int64(studentEnrollment.ClassInfo.ClassID)})
 		if err != nil {
 			return fmt.Errorf("mySQLQueries.GetClassesTotalStudentsByClassIds(): %w", err)
 		}
@@ -428,13 +414,55 @@ func (s teachingServiceImpl) EditClassesCourses(ctx context.Context, specs []tea
 	// if it already exists, use IncrementSLTQuotaById(), with incrementedQuota==0, so that it becomes the latest SLT.
 	err := s.mySQLQueries.ExecuteInTransaction(ctx, func(newCtx context.Context, qtx *mysql.Queries) error {
 		for _, spec := range specs {
-			classId := int64(spec.ClassID)
 			err := qtx.UpdateClassCourse(newCtx, mysql.UpdateClassCourseParams{
 				CourseID: int64(spec.CourseID),
-				ID:       classId,
+				ID:       int64(spec.ClassID),
 			})
 			if err != nil {
 				return fmt.Errorf("qtx.UpdateClassCourse(): %w", err)
+			}
+
+			enrollments, err := s.entityService.GetStudentEnrollmentsByClassId(newCtx, spec.ClassID)
+			if err != nil {
+				return fmt.Errorf("entityService.GetStudentEnrollmentsByClassId(): %w", err)
+			}
+
+			for _, enrollment := range enrollments {
+				fmt.Printf("enrollmentClassInfo: %#v\n", enrollment.ClassInfo)
+				courseFee := enrollment.ClassInfo.Course.DefaultFee
+				if enrollment.ClassInfo.TeacherSpecialFee != 0 {
+					courseFee = enrollment.ClassInfo.TeacherSpecialFee
+				}
+				existingSLT, err := qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(newCtx, mysql.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarterParams{
+					EnrollmentID:             int64(enrollment.StudentEnrollmentID),
+					CourseFeeQuarterValue:    courseFee / teaching.Default_OneCourseCycle,
+					TransportFeeQuarterValue: enrollment.ClassInfo.TransportFee / teaching.Default_OneCourseCycle,
+				})
+				isNeedInsert := false
+				if errors.Is(err, sql.ErrNoRows) {
+					isNeedInsert = true
+					err = nil
+				} else if err != nil {
+					return fmt.Errorf("qtx.GetSLTByEnrollmentIdAndCourseFeeQuarterAndTransportFeeQuarter(): %w", err)
+				}
+
+				if isNeedInsert {
+					// we don't need the newly added SLT ID, so we can safely ignore it
+					_, err := s.autoRegisterSLT(newCtx, entity.StudentEnrollmentID(enrollment.StudentEnrollmentID), 0)
+					if err != nil {
+						return fmt.Errorf("autoRegisterSLT(): %w", err)
+					}
+				} else {
+					// the goal is to set token's LastUpdatedAt to current date
+					err := qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
+						Quota:         0,
+						LastUpdatedAt: time.Now().UTC(),
+						ID:            existingSLT.ID,
+					})
+					if err != nil {
+						return fmt.Errorf("qtx.IncrementSLTQuotaById(): %w", err)
+					}
+				}
 			}
 		}
 		return nil
@@ -532,9 +560,9 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 		}
 		autoOweSLT := util.Int32ToBool(autoOweTokenMode)
 
-		studentEnrollments, err := qtx.GetStudentEnrollmentsByClassId(newCtx, int64(spec.ClassID))
+		studentEnrollments, err := s.entityService.GetStudentEnrollmentsByClassId(newCtx, spec.ClassID)
 		if err != nil {
-			return fmt.Errorf("qtx.GetStudentEnrollmentsByClassId(): %w", err)
+			return fmt.Errorf("entityService.GetStudentEnrollmentsByClassId(): %w", err)
 		}
 		if len(studentEnrollments) == 0 {
 			return fmt.Errorf("classID='%d': %w", spec.ClassID, errs.ErrClassHaveNoStudent)
@@ -542,10 +570,10 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 
 		studentEnrollmentIDsInt64 := make([]int64, 0, len(studentEnrollments))
 		for _, studentEnrollment := range studentEnrollments {
-			studentEnrollmentIDsInt64 = append(studentEnrollmentIDsInt64, studentEnrollment.StudentEnrollmentID)
+			studentEnrollmentIDsInt64 = append(studentEnrollmentIDsInt64, int64(studentEnrollment.StudentEnrollmentID))
 		}
 
-		enrollmentIDToEarliestSLTID := make(map[int64]entity.StudentLearningTokenID, 0)
+		enrollmentIDToEarliestSLTID := make(map[entity.StudentEnrollmentID]entity.StudentLearningTokenID, 0)
 		// students may have > 1 SLT, we'll pick the one with earliest non-zero quota.
 		//   if all <= 0, we decrement the last SLT (thus becoming negative).
 		earliestAvailableSLTs, err := qtx.GetEarliestAvailableSLTsByStudentEnrollmentIds(newCtx, studentEnrollmentIDsInt64)
@@ -559,7 +587,8 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 			if !autoOweSLT && earliestAvailableSLT.Quota-spec.UsedStudentTokenQuota < 0 {
 				continue
 			}
-			enrollmentIDToEarliestSLTID[earliestAvailableSLT.EnrollmentID] = entity.StudentLearningTokenID(earliestAvailableSLT.StudentLearningTokenID)
+			enrollmentID := entity.StudentEnrollmentID(earliestAvailableSLT.EnrollmentID)
+			enrollmentIDToEarliestSLTID[enrollmentID] = entity.StudentLearningTokenID(earliestAvailableSLT.StudentLearningTokenID)
 
 			err = qtx.IncrementSLTQuotaById(newCtx, mysql.IncrementSLTQuotaByIdParams{
 				Quota:         spec.UsedStudentTokenQuota * -1,
@@ -591,7 +620,7 @@ func (s teachingServiceImpl) AddAttendance(ctx context.Context, spec teaching.Ad
 			specs = append(specs, entity.InsertAttendanceSpec{
 				ClassID:                spec.ClassID,
 				TeacherID:              spec.TeacherID,
-				StudentID:              entity.StudentID(studentEnrollment.StudentID),
+				StudentID:              entity.StudentID(studentEnrollment.StudentInfo.StudentID),
 				StudentLearningTokenID: sltID,
 				Date:                   spec.Date,
 				UsedStudentTokenQuota:  spec.UsedStudentTokenQuota,

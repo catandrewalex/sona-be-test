@@ -1884,88 +1884,6 @@ func (q *Queries) GetStudentEnrollmentsByIds(ctx context.Context, ids []int64) (
 	return items, nil
 }
 
-const getStudentEnrollmentsByStudentId = `-- name: GetStudentEnrollmentsByStudentId :many
-SELECT se.id AS student_enrollment_id,
-    se.student_id AS student_id, user_student.username AS student_username, user_student.user_detail AS student_detail,
-    class.id, class.transport_fee, class.teacher_id, class.course_id, class.auto_owe_attendance_token, class.is_deactivated, tsf.fee AS teacher_special_fee, course.id, course.default_fee, course.default_duration_minute, course.instrument_id, course.grade_id, instrument.id, instrument.name, grade.id, grade.name,
-    class.teacher_id AS class_teacher_id, user_class_teacher.username AS class_teacher_username, user_class_teacher.user_detail AS class_teacher_detail
-FROM student_enrollment AS se
-    JOIN student ON se.student_id = student.id
-    JOIN user AS user_student ON student.user_id = user_student.id
-    
-    JOIN class on se.class_id = class.id
-    JOIN course ON course_id = course.id
-    JOIN instrument ON course.instrument_id = instrument.id
-    JOIN grade ON course.grade_id = grade.id
-    
-    LEFT JOIN teacher AS class_teacher ON class.teacher_id = class_teacher.id
-    LEFT JOIN user AS user_class_teacher ON class_teacher.user_id = user_class_teacher.id
-    LEFT JOIN teacher_special_fee AS tsf ON (class_teacher.id = tsf.teacher_id AND course.id = tsf.course_id)
-WHERE se.is_deleted = 0 AND student_id = ?
-`
-
-type GetStudentEnrollmentsByStudentIdRow struct {
-	StudentEnrollmentID  int64
-	StudentID            int64
-	StudentUsername      string
-	StudentDetail        json.RawMessage
-	Class                Class
-	TeacherSpecialFee    sql.NullInt32
-	Course               Course
-	Instrument           Instrument
-	Grade                Grade
-	ClassTeacherID       sql.NullInt64
-	ClassTeacherUsername sql.NullString
-	ClassTeacherDetail   []byte
-}
-
-func (q *Queries) GetStudentEnrollmentsByStudentId(ctx context.Context, studentID int64) ([]GetStudentEnrollmentsByStudentIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getStudentEnrollmentsByStudentId, studentID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetStudentEnrollmentsByStudentIdRow
-	for rows.Next() {
-		var i GetStudentEnrollmentsByStudentIdRow
-		if err := rows.Scan(
-			&i.StudentEnrollmentID,
-			&i.StudentID,
-			&i.StudentUsername,
-			&i.StudentDetail,
-			&i.Class.ID,
-			&i.Class.TransportFee,
-			&i.Class.TeacherID,
-			&i.Class.CourseID,
-			&i.Class.AutoOweAttendanceToken,
-			&i.Class.IsDeactivated,
-			&i.TeacherSpecialFee,
-			&i.Course.ID,
-			&i.Course.DefaultFee,
-			&i.Course.DefaultDurationMinute,
-			&i.Course.InstrumentID,
-			&i.Course.GradeID,
-			&i.Instrument.ID,
-			&i.Instrument.Name,
-			&i.Grade.ID,
-			&i.Grade.Name,
-			&i.ClassTeacherID,
-			&i.ClassTeacherUsername,
-			&i.ClassTeacherDetail,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getStudents = `-- name: GetStudents :many
 SELECT student.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at
 FROM student JOIN user ON student.user_id = user.id
@@ -2395,28 +2313,6 @@ func (q *Queries) GetTeacherSpecialFeesByTeacherId(ctx context.Context, teacherI
 		return nil, err
 	}
 	return items, nil
-}
-
-const getTeacherSpecialFeesByTeacherIdAndCourseId = `-- name: GetTeacherSpecialFeesByTeacherIdAndCourseId :one
-SELECT id, fee FROM teacher_special_fee
-WHERE teacher_id = ? AND course_id = ? LIMIT 1
-`
-
-type GetTeacherSpecialFeesByTeacherIdAndCourseIdParams struct {
-	TeacherID int64
-	CourseID  int64
-}
-
-type GetTeacherSpecialFeesByTeacherIdAndCourseIdRow struct {
-	ID  int64
-	Fee int32
-}
-
-func (q *Queries) GetTeacherSpecialFeesByTeacherIdAndCourseId(ctx context.Context, arg GetTeacherSpecialFeesByTeacherIdAndCourseIdParams) (GetTeacherSpecialFeesByTeacherIdAndCourseIdRow, error) {
-	row := q.db.QueryRowContext(ctx, getTeacherSpecialFeesByTeacherIdAndCourseId, arg.TeacherID, arg.CourseID)
-	var i GetTeacherSpecialFeesByTeacherIdAndCourseIdRow
-	err := row.Scan(&i.ID, &i.Fee)
-	return i, err
 }
 
 const getTeachers = `-- name: GetTeachers :many

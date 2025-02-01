@@ -134,13 +134,13 @@ WHERE enrollment_id = ? AND course_fee_quarter_value = ? AND transport_fee_quart
 -- name: GetEarliestAvailableSLTsByStudentEnrollmentIds :many
 WITH slt_min_max AS (
     -- fetch earliest SLT with quota > 0
-    SELECT enrollment_id, MIN(created_at) AS createDateWithNonZeroQuota_or_maxCreateDate
+    SELECT enrollment_id, MIN(last_updated_at) AS updateDateWithNonZeroQuota_or_maxUpdateDate
     FROM student_learning_token
     WHERE quota > 0
     GROUP BY enrollment_id
     UNION
     -- combined with latest SLT, to cover case when all SLT has <= 0 quota
-    SELECT enrollment_id, MAX(created_at) AS createDateWithNonZeroQuota_or_maxCreateDate
+    SELECT enrollment_id, MAX(last_updated_at) AS updateDateWithNonZeroQuota_or_maxUpdateDate
     FROM student_learning_token
     GROUP BY enrollment_id
     -- each record will be unique if all non-latest SLTs has 0 quota; OR duplicated (2 records) if there exists non-latest SLT with quota > 0
@@ -150,12 +150,12 @@ SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, tra
 FROM student_learning_token AS slt
     JOIN (
         -- we have 1-2 SLT option per enrollment_id from `slt_min_max`, pick the earliest
-        SELECT enrollment_id, MIN(createDateWithNonZeroQuota_or_maxCreateDate) AS earliestCreateDateWithNonZeroQuota
+        SELECT enrollment_id, MIN(updateDateWithNonZeroQuota_or_maxUpdateDate) AS earliestUpdateDateWithNonZeroQuota
         FROM slt_min_max
         GROUP BY enrollment_id
     ) AS slt_min ON (
         slt.enrollment_id = slt_min.enrollment_id
-        AND created_at = earliestCreateDateWithNonZeroQuota
+        AND last_updated_at = earliestUpdateDateWithNonZeroQuota
     )
 
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
@@ -170,7 +170,7 @@ SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, tra
 FROM student_learning_token AS slt
     JOIN student_enrollment AS se ON slt.enrollment_id = se.id
 WHERE se.class_id = ?
-ORDER BY created_at DESC, slt.id DESC;
+ORDER BY last_updated_at DESC, slt.id DESC;
 
 -- name: GetStudentLearningTokenById :one
 SELECT slt.id AS student_learning_token_id, quota, course_fee_quarter_value, transport_fee_quarter_value, slt.created_at, last_updated_at, slt.enrollment_id AS student_enrollment_id,

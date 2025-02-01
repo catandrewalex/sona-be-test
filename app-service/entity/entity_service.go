@@ -238,6 +238,7 @@ type EntityService interface {
 
 	GetStudentEnrollments(ctx context.Context, pagination util.PaginationSpec) (GetStudentEnrollmentsResult, error)
 	GetStudentEnrollmentById(ctx context.Context, ids StudentEnrollmentID) (StudentEnrollment, error)
+	GetStudentEnrollmentsByClassId(ctx context.Context, classId ClassID) ([]StudentEnrollment, error)
 
 	GetTeacherSpecialFees(ctx context.Context, pagination util.PaginationSpec) (GetTeacherSpecialFeesResult, error)
 	GetTeacherSpecialFeeById(ctx context.Context, id TeacherSpecialFeeID) (TeacherSpecialFee, error)
