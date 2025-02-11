@@ -1754,7 +1754,7 @@ func (q *Queries) GetTeacherPaymentsByTeacherId(ctx context.Context, arg GetTeac
 }
 
 const incrementSLTQuotaById = `-- name: IncrementSLTQuotaById :exec
-UPDATE student_learning_token SET quota = quota + ?, last_updated_at = ?
+UPDATE student_learning_token SET quota = ROUND(quota + ?, 3), last_updated_at = ?
 WHERE id = ?
 `
 

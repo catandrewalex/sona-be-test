@@ -80,8 +80,8 @@ DELETE FROM teacher
 WHERE user_id = ?;
 
 -- name: GetUnpaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
-    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances,
+    ROUND(sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END), 3) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -94,7 +94,7 @@ LIMIT ? OFFSET ?;
 
 -- name: CountUnpaidTeachers :one
 WITH unpaid_teacher AS (
-    SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
+    SELECT teacher_id, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances
     FROM attendance
     WHERE
         is_paid = 0
@@ -105,8 +105,8 @@ WITH unpaid_teacher AS (
 SELECT Count(teacher_id) AS total FROM unpaid_teacher;
 
 -- name: GetPaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
-    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances,
+    ROUND(sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END), 3) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -119,7 +119,7 @@ LIMIT ? OFFSET ?;
 
 -- name: CountPaidTeachers :one
 WITH paid_teacher AS (
-    SELECT attendance.teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
+    SELECT attendance.teacher_id, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances
     FROM teacher_payment AS tp
         JOIN attendance ON tp.attendance_id = attendance.id
     WHERE

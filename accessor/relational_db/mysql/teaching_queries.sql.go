@@ -186,7 +186,7 @@ func (q *Queries) CountInstrumentsByIds(ctx context.Context, ids []int64) (int64
 
 const countPaidTeachers = `-- name: CountPaidTeachers :one
 WITH paid_teacher AS (
-    SELECT attendance.teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
+    SELECT attendance.teacher_id, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances
     FROM teacher_payment AS tp
         JOIN attendance ON tp.attendance_id = attendance.id
     WHERE
@@ -322,7 +322,7 @@ func (q *Queries) CountTeachersByIds(ctx context.Context, ids []int64) (int64, e
 
 const countUnpaidTeachers = `-- name: CountUnpaidTeachers :one
 WITH unpaid_teacher AS (
-    SELECT teacher_id, sum(attendance.used_student_token_quota) AS total_attendances
+    SELECT teacher_id, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances
     FROM attendance
     WHERE
         is_paid = 0
@@ -1512,8 +1512,8 @@ func (q *Queries) GetInstrumentsByIds(ctx context.Context, ids []int64) ([]Instr
 }
 
 const getPaidTeachers = `-- name: GetPaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
-    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances,
+    ROUND(sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END), 3) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -1541,8 +1541,8 @@ type GetPaidTeachersRow struct {
 	PrivilegeType                int32
 	IsDeactivated                int32
 	CreatedAt                    sql.NullTime
-	TotalAttendances             interface{}
-	TotalAttendancesWithoutToken interface{}
+	TotalAttendances             float64
+	TotalAttendancesWithoutToken float64
 }
 
 func (q *Queries) GetPaidTeachers(ctx context.Context, arg GetPaidTeachersParams) ([]GetPaidTeachersRow, error) {
@@ -2527,8 +2527,8 @@ func (q *Queries) GetTeachersByIds(ctx context.Context, ids []int64) ([]GetTeach
 }
 
 const getUnpaidTeachers = `-- name: GetUnpaidTeachers :many
-SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, sum(attendance.used_student_token_quota) AS total_attendances,
-    sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END) as total_attendances_without_token
+SELECT teacher.id, user.id AS user_id, username, email, user_detail, privilege_type, is_deactivated, created_at, ROUND(sum(attendance.used_student_token_quota), 3) AS total_attendances,
+    ROUND(sum(CASE WHEN attendance.token_id IS NULL THEN attendance.used_student_token_quota ELSE 0 END), 3) as total_attendances_without_token
 FROM teacher
     JOIN user ON teacher.user_id = user.id
     JOIN attendance ON teacher.id = attendance.teacher_id
@@ -2556,8 +2556,8 @@ type GetUnpaidTeachersRow struct {
 	PrivilegeType                int32
 	IsDeactivated                int32
 	CreatedAt                    sql.NullTime
-	TotalAttendances             interface{}
-	TotalAttendancesWithoutToken interface{}
+	TotalAttendances             float64
+	TotalAttendancesWithoutToken float64
 }
 
 func (q *Queries) GetUnpaidTeachers(ctx context.Context, arg GetUnpaidTeachersParams) ([]GetUnpaidTeachersRow, error) {

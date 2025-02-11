@@ -18,8 +18,8 @@ func NewTeacherForPaymentsFromGetUnpaidTeachersRow(teacherRows []mysql.GetUnpaid
 					UserDetail: identity.UnmarshalUserDetail(teacherRow.UserDetail, mainLog),
 				},
 			},
-			TotalAttendances:             teacherRow.TotalAttendances.(float64),
-			TotalAttendancesWithoutToken: teacherRow.TotalAttendancesWithoutToken.(float64),
+			TotalAttendances:             teacherRow.TotalAttendances,
+			TotalAttendancesWithoutToken: teacherRow.TotalAttendancesWithoutToken,
 		})
 	}
 
