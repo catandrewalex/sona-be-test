@@ -855,6 +855,8 @@ func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.Pagin
 				return false
 			} else if classes[j].TeacherInfo_Minimal == nil {
 				return true
+			} else if classes[i].TeacherInfo_Minimal.TeacherID == classes[j].TeacherInfo_Minimal.TeacherID {
+				// do nothing, continue to the next criterion
 			} else {
 				return classes[i].TeacherInfo_Minimal.UserInfo_Minimal.UserDetail.String() < classes[j].TeacherInfo_Minimal.UserInfo_Minimal.UserDetail.String()
 			}
