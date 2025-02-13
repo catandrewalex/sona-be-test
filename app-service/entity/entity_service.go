@@ -366,6 +366,9 @@ type GetClassesSpec struct {
 	StudentID          StudentID
 	TeacherID          TeacherID
 	CourseID           CourseID
+
+	// PrettySorting sorts the resulting class by: (1) active > deactivated, (2) teacher name, (3) number of students asc, (4) students name
+	PrettySorting bool
 }
 
 type GetClassesResult struct {

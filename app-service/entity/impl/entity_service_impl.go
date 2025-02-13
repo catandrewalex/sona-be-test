@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"time"
 
 	"sonamusica-backend/accessor/relational_db"
@@ -837,6 +838,40 @@ func (s entityServiceImpl) GetClasses(ctx context.Context, pagination util.Pagin
 	}
 
 	classes := NewClassesFromGetClassesRow(classRows)
+
+	if spec.PrettySorting {
+		sort.SliceStable(classes, func(i, j int) bool {
+			if classes[i].IsDeactivated != classes[j].IsDeactivated { // classes[i] XOR classes[j]
+				if classes[i].IsDeactivated {
+					return false
+				} else {
+					return true
+				}
+			}
+
+			if classes[i].TeacherInfo_Minimal == nil && classes[j].TeacherInfo_Minimal == nil {
+				// do nothing, continue to the next criterion
+			} else if classes[i].TeacherInfo_Minimal == nil {
+				return false
+			} else if classes[j].TeacherInfo_Minimal == nil {
+				return true
+			} else {
+				return classes[i].TeacherInfo_Minimal.UserInfo_Minimal.UserDetail.String() < classes[j].TeacherInfo_Minimal.UserInfo_Minimal.UserDetail.String()
+			}
+
+			c1StudentsLength := len(classes[i].StudentInfos_Minimal)
+			c2StudentsLength := len(classes[j].StudentInfos_Minimal)
+			if c1StudentsLength > c2StudentsLength {
+				return false
+			} else if c1StudentsLength < c2StudentsLength {
+				return true
+			} else if c1StudentsLength != 0 && c2StudentsLength != 0 {
+				return classes[i].StudentInfos_Minimal[0].UserInfo_Minimal.UserDetail.String() < classes[j].StudentInfos_Minimal[0].UserInfo_Minimal.UserDetail.String()
+			}
+
+			return false
+		})
+	}
 
 	return entity.GetClassesResult{
 		Classes:          classes,

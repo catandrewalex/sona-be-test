@@ -354,6 +354,7 @@ func (s teachingServiceImpl) SearchClass(ctx context.Context, spec teaching.Sear
 		TeacherID:          spec.TeacherID,
 		StudentID:          spec.StudentID,
 		CourseID:           spec.CourseID,
+		PrettySorting:      true,
 	}
 	getClassResult, err := s.entityService.GetClasses(ctx, paginationSpec, getClassesSpec)
 	if err != nil {
