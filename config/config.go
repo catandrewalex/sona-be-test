@@ -16,7 +16,7 @@ type Config struct {
 
 	ServerTimeout time.Duration `envconfig:"SERVER_TIMEOUT" default:"3m"`
 
-	DevelopmentKey string `envConfig:"DEVELOPMENT_KEY" default:"6VG8crJtinJlNLe643ru4CVYNW-kNHsRoZ9N49cb8qE"`
+	DevelopmentKey string `envconfig:"DEVELOPMENT_KEY" default:"6VG8crJtinJlNLe643ru4CVYNW-kNHsRoZ9N49cb8qE"`
 
 	JWTSecretKey       []byte        `envconfig:"JWT_SECRET_KEY" default:"32Thdl3XHtanj3rKsn0lkS38HbMUh1p8ZLZRy5w3MS0="`
 	JWTTokenExpiration time.Duration `envconfig:"JWT_TOKEN_EXPIRATION" default:"24h"`
